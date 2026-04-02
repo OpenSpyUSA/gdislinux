@@ -12,9 +12,29 @@ my $use_grisu=0;
 my $wsdl2h = "wsdl2h";
 my $soapcpp2 = "soapcpp2";
 my $pkg_config = $ENV{PKG_CONFIG} || "pkg-config";
-my $base_pkg_config_packages = $ENV{GDIS_BASE_PKG_CONFIG_PACKAGES} || "gtk+-2.0 gthread-2.0 gmodule-2.0";
-my $gui_pkg_config_packages = $ENV{GDIS_GUI_PKG_CONFIG_PACKAGES} || "$base_pkg_config_packages gtkglext-1.0";
-my $linux_core_pkg_hint = "sudo apt-get update && sudo apt-get install -y build-essential pkg-config libgtk2.0-dev libgtkglext1-dev";
+my $gtk_target = lc($ENV{GDIS_GTK_TARGET} || "gtk2");
+my %gtk_target_config = (
+  gtk2 => {
+    base => "gtk+-2.0 gthread-2.0 gmodule-2.0",
+    gui => "gtk+-2.0 gthread-2.0 gmodule-2.0 gtkglext-1.0",
+    hint => "sudo apt-get update && sudo apt-get install -y build-essential pkg-config libgtk2.0-dev libgtkglext1-dev",
+  },
+  gtk3 => {
+    base => "gtk+-3.0 gthread-2.0 gmodule-2.0",
+    gui => "gtk+-3.0 gthread-2.0 gmodule-2.0",
+    hint => "sudo apt-get update && sudo apt-get install -y build-essential pkg-config libgtk-3-dev",
+  },
+  gtk4 => {
+    base => "gtk4 gthread-2.0 gmodule-2.0",
+    gui => "gtk4 gthread-2.0 gmodule-2.0",
+    hint => "sudo apt-get update && sudo apt-get install -y build-essential pkg-config libgtk-4-dev",
+  },
+);
+die "Unsupported GDIS_GTK_TARGET: $gtk_target\n" if (!exists $gtk_target_config{$gtk_target});
+
+my $base_pkg_config_packages = $ENV{GDIS_BASE_PKG_CONFIG_PACKAGES} || $gtk_target_config{$gtk_target}{base};
+my $gui_pkg_config_packages = $ENV{GDIS_GUI_PKG_CONFIG_PACKAGES} || $gtk_target_config{$gtk_target}{gui};
+my $linux_core_pkg_hint = $gtk_target_config{$gtk_target}{hint};
 # --- CUTTING EDGE
 #$wsdl2h = "/home/sean/apps/bin/wsdl2h";
 #$soapcpp2 = "/home/sean/apps/bin/soapcpp2";
@@ -38,6 +58,11 @@ my $osmakefile = &check_os();
 &check_program($pkg_config) || die;
 
 print ("Checking pre-requisite packages.\n");
+print ("GTK target: $gtk_target\n");
+if ($gtk_target eq "gtk4")
+  {
+  print ("GTK4 support is currently experimental. Dialog and container scaffolding is in place, but menus and toolbars still need porting.\n");
+  }
 
 # TODO - print help on where to get if not installed?
 foreach my $pkg_module (split(/\s+/, $base_pkg_config_packages))
@@ -254,7 +279,7 @@ printf "%-20s  ",$_[0];
 if (system("$pkg_config --exists $_[0]"))
   {
   print "[not found]\n";
-  if ($_[0] eq "gtk+-2.0" || $_[0] eq "gtkglext-1.0")
+  if ($_[0] eq "gtk+-2.0" || $_[0] eq "gtk+-3.0" || $_[0] eq "gtk4" || $_[0] eq "gtkglext-1.0")
     {
     print "Install the core build dependencies with:\n  $linux_core_pkg_hint\n";
     }
@@ -433,6 +458,7 @@ else
 print OUT "include $_[0]\n";
 print OUT "include makefile.src\n\n";
 print OUT "PKG_CONFIG ?= $pkg_config\n";
+print OUT "GDIS_GTK_TARGET ?= $gtk_target\n";
 print OUT "GDIS_BASE_PKG_CONFIG_PACKAGES ?= $base_pkg_config_packages\n";
 print OUT "GDIS_GUI_PKG_CONFIG_PACKAGES ?= $gui_pkg_config_packages\n\n";
 
