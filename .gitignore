@@ -1,0 +1,27 @@
+src/*.o
+src/*.d
+src/makefile
+install.log
+gdis-master.tar.gz
+28154-ICSD
+Pt surf0
+quartz
+bin/gdis
+src/gdis.xcodeproj/project.xcworkspace/xcuserdata/andrew.xcuserdatad/UserInterfaceState.xcuserstate
+src/gdis.xcodeproj/project.xcworkspace/xcuserdata/andrew.xcuserdatad/IDEFindNavigatorScopes.plist
+src/gdis.xcodeproj/xcuserdata/andrew.xcuserdatad/xcdebugger/Breakpoints_v2.xcbkptlist
+src/gdis.xcodeproj/project.xcworkspace/xcshareddata/
+src/gdis.xcodeproj/project.xcworkspace/xcuserdata/
+src/gdis.xcodeproj/xcuserdata/
+**/CVS/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.orig
+*.rej
+core
+core.*
+vgcore.*
+.DS_Store

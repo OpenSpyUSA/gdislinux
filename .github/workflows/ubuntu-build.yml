@@ -1,0 +1,34 @@
+name: Ubuntu Build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install legacy GTK2 toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            perl \
+            pkg-config \
+            ripgrep \
+            xvfb \
+            libgtk2.0-dev \
+            libgtkglext1-dev
+
+      - name: Rebuild GDIS
+        run: ./rebuild-ubuntu.sh
+
+      - name: Verify binary exists
+        run: test -x ./bin/gdis
+
+      - name: Smoke test curated examples
+        run: ./smoke-test-examples.sh methane water adp1
