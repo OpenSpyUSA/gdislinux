@@ -109,6 +109,7 @@ gint write_povray(gchar *, struct model_pak *);
 gint write_pdb(gchar *, struct model_pak *);
 gint write_gauss(gchar *, struct model_pak *);
 gint write_qe(gchar *, struct model_pak *);
+gint write_qbox(gchar *, struct model_pak *);
 gint write_cssr(gchar *, struct model_pak *);
 gint write_mol2(gchar *, struct model_pak *);
 gint write_dmol(gchar *, struct model_pak *);
@@ -157,6 +158,8 @@ gint read_gauss(gchar *, struct model_pak *);
 gint read_gauss_out(gchar *, struct model_pak *);
 gint read_qe(gchar *, struct model_pak *);
 gint read_qe_out(gchar *, struct model_pak *);
+gint read_qbox(gchar *, struct model_pak *);
+gint read_qbox_out(gchar *, struct model_pak *);
 gint read_rietica(gchar *, struct model_pak *);
 gint read_off(gchar *, struct model_pak *);
 gint read_moldy(gchar *, struct model_pak *);
@@ -221,4 +224,3 @@ GSList *fdf_species_build(struct model_pak *);
 gint fdf_species_index(gchar *, GSList *);
 
 GSList *gromacs_read_ff(const gchar *);
-

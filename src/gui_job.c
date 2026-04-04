@@ -261,7 +261,7 @@ gtk_widget_set_size_request(window, 400, 400);
 
 notebook = gtk_notebook_new();
 gtk_notebook_set_tab_pos(GTK_NOTEBOOK(notebook), GTK_POS_TOP);
-gtk_container_add(GTK_CONTAINER(GTK_DIALOG(window)->vbox), notebook);
+gtk_container_add(GTK_CONTAINER(GDIS_DIALOG_CONTENTS(window)), notebook);
 gtk_notebook_set_show_border(GTK_NOTEBOOK(notebook), FALSE);
 
 /* run type page */

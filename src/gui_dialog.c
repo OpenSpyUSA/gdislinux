@@ -666,11 +666,11 @@ window = dialog_window(dialog);
 gtk_window_set_title(GTK_WINDOW(window), title);
 gtk_window_set_default_size(GTK_WINDOW(window), 600, 400);
 gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
-gtk_container_set_border_width(GTK_CONTAINER(GTK_BOX(GTK_DIALOG(window)->vbox)),10);
+gtk_container_set_border_width(GTK_CONTAINER(GTK_BOX(GDIS_DIALOG_CONTENTS(window))),10);
 
 /* TOP ROW - cwd printed */
 hbox = gtk_hbox_new(FALSE,0);
-gtk_box_pack_start(GTK_BOX(GTK_DIALOG(window)->vbox),hbox,FALSE,FALSE,0);
+gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)),hbox,FALSE,FALSE,0);
 label = gtk_label_new("Current path: ");
 gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 0);
 
@@ -684,7 +684,7 @@ if (secondary_handler == (gpointer) file_save_as)
   if (data->periodic)
     {
     hbox = gtk_hbox_new(FALSE,0);
-    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(window)->vbox),
+    gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)),
                                          hbox,FALSE,FALSE,0);
 
     new_check_button("Save as cartesian coordinates", toggle_save_type, data,
@@ -694,7 +694,7 @@ if (secondary_handler == (gpointer) file_save_as)
 
 /* SECOND ROW - sub directory & file listings */
 hbox = gtk_hbox_new(FALSE, PANEL_SPACING);
-gtk_box_pack_start(GTK_BOX(GTK_DIALOG(window)->vbox), hbox, TRUE, TRUE, 0);
+gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)), hbox, TRUE, TRUE, 0);
 gtk_container_set_border_width(GTK_CONTAINER(hbox), PANEL_SPACING);
 
 /* scrolled model pane */
@@ -743,7 +743,7 @@ if (secondary_handler == (gpointer) file_load)
 
 /* THIRD ROW - filename currently selected & file extension filter */
 hbox = gtk_hbox_new(FALSE, PANEL_SPACING);
-gtk_box_pack_start(GTK_BOX(GTK_DIALOG(window)->vbox), hbox, FALSE, FALSE, 0);
+gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)), hbox, FALSE, FALSE, 0);
 
 /* filename */
 file_name = gtk_entry_new();
@@ -786,17 +786,17 @@ switch (type)
   {
   case FILE_LOAD:
     gui_stock_button(GTK_STOCK_OPEN, file_event_handler, secondary_handler, 
-                       GTK_DIALOG(window)->action_area);
+                       GDIS_DIALOG_ACTIONS(window));
     break;
 
   case FILE_SAVE:
     gui_stock_button(GTK_STOCK_SAVE, file_event_handler, secondary_handler, 
-                       GTK_DIALOG(window)->action_area);
+                       GDIS_DIALOG_ACTIONS(window));
     break;
   }
 
 gui_stock_button(GTK_STOCK_CANCEL, dialog_destroy, dialog,
-                   GTK_DIALOG(window)->action_area);
+                   GDIS_DIALOG_ACTIONS(window));
 
 /* all done */
 gtk_widget_show_all(window);

@@ -175,7 +175,7 @@ window = dialog_window(dialog);
 
 /* --- main box */
 main_hbox = gtk_hbox_new(TRUE, 0);
-gtk_box_pack_start(GTK_BOX(GTK_DIALOG(window)->vbox), main_hbox, TRUE, TRUE, 0);
+gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)), main_hbox, TRUE, TRUE, 0);
 
 /* --- left pane */
 main_vbox = gtk_vbox_new(FALSE, 0);
@@ -262,10 +262,10 @@ g_signal_connect(GTK_OBJECT(gui_combo_entry(combo)), "changed",
 
 /* terminating buttons */
 gui_stock_button(GTK_STOCK_EXECUTE, exec_analysis_task, dialog,
-                   GTK_DIALOG(window)->action_area);
+                   GDIS_DIALOG_ACTIONS(window));
 
 gui_stock_button(GTK_STOCK_CLOSE, dialog_destroy, dialog,
-                   GTK_DIALOG(window)->action_area);
+                   GDIS_DIALOG_ACTIONS(window));
 
 gtk_widget_show_all(window);
 }

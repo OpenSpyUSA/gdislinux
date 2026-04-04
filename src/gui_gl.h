@@ -25,12 +25,17 @@ The GNU GPL can also be found at http://www.gnu.org
 
 #include <gtk/gtk.h>
 
+#if GTK_MAJOR_VERSION >= 4
+typedef gpointer GdkWindow;
+#endif
+
 gint gdis_gl_backend_init(gint *argc, gchar ***argv);
 gpointer gdis_gl_config_new(gboolean stereo);
 gpointer gdis_gl_config_new_basic(void);
 GtkWidget *gdis_gl_widget_new(gpointer glconfig);
 gboolean gdis_gl_widget_enable(GtkWidget *widget, gpointer glconfig);
 gboolean gdis_gl_begin(GtkWidget *widget);
+gboolean gdis_gl_context_is_legacy(GtkWidget *widget);
 void gdis_gl_end(GtkWidget *widget);
 void gdis_gl_swap_buffers(GtkWidget *widget);
 void gdis_gl_get_size(GtkWidget *widget, gint *w, gint *h);

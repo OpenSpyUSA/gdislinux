@@ -1,0 +1,14 @@
+! USPEX: ONE VASP STEP MAKES NO SENSE!!!!
+! USPEX: the possibility is left for both
+! USPEX: TESTING and BENCHMARK, all other
+! USPEX: cases should be considered WRONG
+! USPEX: and with NO significance.--OVHPA
+SIGMA = 0.75
+PREC = HIGH
+NELMIN = 6
+EDIFF = 1E-05
+EDIFFG = 1E-05
+NSW = 200
+ISIF = 2
+IBRION = 2
+POTIM = 0.15

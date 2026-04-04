@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<fpmd:simulation xmlns:fpmd="http://www.quantum-simulation.org/ns/fpmd/fpmd-1.0">
+  <atomset>
+    <unit_cell a="20.0 0.0 0.0" b="0.0 20.0 0.0" c="0.0 0.0 20.0"/>
+    <atom name="C1" species="C">
+      <position>0.000000000 0.000000000 0.000000000</position>
+    </atom>
+    <atom name="H1" species="H">
+      <position>1.190000000 1.190000000 1.190000000</position>
+    </atom>
+    <atom name="H2" species="H">
+      <position>1.190000000 -1.190000000 -1.190000000</position>
+    </atom>
+    <atom name="H3" species="H">
+      <position>-1.190000000 1.190000000 -1.190000000</position>
+    </atom>
+    <atom name="H4" species="H">
+      <position>-1.190000000 -1.190000000 1.190000000</position>
+    </atom>
+    <etotal>-40.220000000</etotal>
+  </atomset>
+</fpmd:simulation>

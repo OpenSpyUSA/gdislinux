@@ -343,8 +343,10 @@ void gamess_optimise_schlegel(struct model_pak *data)
 {
 data->gamess.opt_type = GMS_SCHLEGEL;
 }
-void event_destroy_user_data_from_object(GtkObject *object, gpointer user_data)
+void event_destroy_user_data_from_object(gpointer object, gpointer user_data)
 {
+(void) object;
+
 g_free(user_data);
 }
 
@@ -947,7 +949,7 @@ if (!dialog)
 window = dialog_window(dialog);
 
 frame = gtk_frame_new(NULL);
-gtk_box_pack_start(GTK_BOX(GTK_DIALOG(window)->vbox), frame, FALSE, FALSE, 0);
+gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)), frame, FALSE, FALSE, 0);
 gtk_container_set_border_width(GTK_CONTAINER(frame), PANEL_SPACING);
 
 vbox = gtk_vbox_new(FALSE,0);
@@ -956,14 +958,14 @@ gui_gamess_widget(vbox, model);
 
 /* terminating button */
 gui_stock_button(GTK_STOCK_EXECUTE, gamess_execute, model,
-                   GTK_DIALOG(window)->action_area);
+                   GDIS_DIALOG_ACTIONS(window));
 
 #ifdef WITH_GRISU
-gui_icon_button(GTK_STOCK_APPLY, "Grid Submit", gui_gms_grid_submit, model, GTK_DIALOG(window)->action_area);
+gui_icon_button(GTK_STOCK_APPLY, "Grid Submit", gui_gms_grid_submit, model, GDIS_DIALOG_ACTIONS(window));
 #endif
 
 gui_stock_button(GTK_STOCK_CLOSE, dialog_destroy, dialog,
-                   GTK_DIALOG(window)->action_area);
+                   GDIS_DIALOG_ACTIONS(window));
 
 gtk_widget_show_all(window);
 }

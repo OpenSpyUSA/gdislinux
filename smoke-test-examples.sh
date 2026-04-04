@@ -8,10 +8,13 @@ usage() {
   cat <<'EOF'
 Usage:
   ./smoke-test-examples.sh
+  ./smoke-test-examples.sh --gtk3
+  ./smoke-test-examples.sh --gtk4
   ./smoke-test-examples.sh methane water adp1
 
 Environment:
   GDIS_SMOKE_TIMEOUT   Per-example timeout in seconds (default: 8)
+  GDIS_GTK_TARGET      Optional target-specific binary to use (gtk2/gtk3/gtk4)
 EOF
 }
 
@@ -31,15 +34,68 @@ example_path() {
   esac
 }
 
+resolve_gdis_executable() {
+  local gtk_target="${1:-}"
+  local gdis_exec
+
+  if [[ -n "$gtk_target" ]]; then
+    gdis_exec="$ROOT_DIR/bin/gdis-$gtk_target"
+    if [[ ! -x "$gdis_exec" ]]; then
+      echo "Missing executable: $gdis_exec" >&2
+      echo "Build it first with: GDIS_GTK_TARGET=$gtk_target ./rebuild-ubuntu.sh" >&2
+      exit 1
+    fi
+    printf '%s\n' "$gdis_exec"
+    return
+  fi
+
+  if [[ -x "$ROOT_DIR/bin/gdis-gtk2" ]]; then
+    printf '%s\n' "$ROOT_DIR/bin/gdis-gtk2"
+    return
+  fi
+
+  gdis_exec="$ROOT_DIR/bin/gdis"
+  if [[ ! -x "$gdis_exec" ]]; then
+    echo "Missing executable: $gdis_exec" >&2
+    echo "Run ./rebuild-ubuntu.sh first." >&2
+    exit 1
+  fi
+
+  printf '%s\n' "$gdis_exec"
+}
+
+GTK_TARGET="${GDIS_GTK_TARGET:-}"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    --gtk2|--gtk3|--gtk4)
+      GTK_TARGET="${1#--}"
+      shift
+      ;;
+    --)
+      shift
+      break
+      ;;
+    -*)
+      echo "Unknown option: $1" >&2
+      usage >&2
+      exit 1
+      ;;
+    *)
+      break
+      ;;
+  esac
+done
+
+GDIS_EXEC="$(resolve_gdis_executable "$GTK_TARGET")"
+
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   usage
   exit 0
-fi
-
-if [[ ! -x "$ROOT_DIR/bin/gdis" ]]; then
-  echo "Missing executable: $ROOT_DIR/bin/gdis" >&2
-  echo "Run ./rebuild-ubuntu.sh first." >&2
-  exit 1
 fi
 
 timeout_cmd="$(command -v timeout || command -v gtimeout || true)"
@@ -72,7 +128,7 @@ for example in "${examples[@]}"; do
 
   set +e
   "$timeout_cmd" "$TIMEOUT_SECONDS" "${runner[@]}" \
-    "$ROOT_DIR/bin/gdis" "$ROOT_DIR/$path" >"$log_file" 2>&1
+    "$GDIS_EXEC" "$ROOT_DIR/$path" >"$log_file" 2>&1
   status=$?
   set -e
 

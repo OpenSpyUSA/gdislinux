@@ -234,7 +234,7 @@ window = dialog_window(dialog);
 frame_label = g_string_new(NULL);
 g_string_printf(frame_label,"Box dimension");//g_string_sprintf deprecated
 frame = gtk_frame_new(frame_label->str);
-gtk_box_pack_start(GTK_BOX(GTK_DIALOG(window)->vbox), frame, TRUE, TRUE, 0);
+gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)), frame, TRUE, TRUE, 0);
 vbox = gtk_vbox_new(FALSE, 0);
 gtk_container_set_border_width(GTK_CONTAINER(vbox), PANEL_SPACING);
 gtk_container_add(GTK_CONTAINER(frame), vbox);
@@ -252,7 +252,7 @@ gtk_box_pack_start(GTK_BOX (vbox), spinner[0], FALSE, TRUE, 0);
 g_string_printf(frame_label,"Model: %s",data->basename);//g_string_sprintf deprecated
 
 frame = gtk_frame_new(frame_label->str);
-gtk_box_pack_start(GTK_BOX(GTK_DIALOG(window)->vbox), frame, TRUE, TRUE, 0);
+gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)), frame, TRUE, TRUE, 0);
 vbox = gtk_vbox_new(FALSE, 0);
 gtk_container_set_border_width(GTK_CONTAINER (vbox), PANEL_SPACING);
 gtk_container_add(GTK_CONTAINER(frame), vbox);
@@ -272,7 +272,7 @@ while (list)
   g_string_printf(frame_label,"Model: %s",data->basename);//g_string_sprintf deprecated
 
   frame = gtk_frame_new(frame_label->str);
-  gtk_box_pack_start(GTK_BOX(GTK_DIALOG(window)->vbox), frame, TRUE, TRUE, 0);
+  gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)), frame, TRUE, TRUE, 0);
   vbox = gtk_vbox_new(FALSE, 0);
   gtk_container_set_border_width(GTK_CONTAINER(vbox), PANEL_SPACING);
   gtk_container_add(GTK_CONTAINER(frame), vbox);
@@ -293,10 +293,10 @@ while (list)
 
 /* buttons */
 gui_stock_button(GTK_STOCK_EXECUTE, mdi_model_setup, NULL,
-                   GTK_DIALOG(window)->action_area);
+                   GDIS_DIALOG_ACTIONS(window));
 
 gui_stock_button(GTK_STOCK_CLOSE, dialog_destroy, dialog,
-                   GTK_DIALOG(window)->action_area);
+                   GDIS_DIALOG_ACTIONS(window));
 
 
 /* display the dialog */
@@ -738,4 +738,3 @@ else
 
 return f;
 }
-

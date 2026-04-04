@@ -69,6 +69,29 @@ GSList *gui_relation_list=NULL;
 
 #define DEBUG_RELATION 0
 
+static gboolean gui_check_widget_get_active(GtkWidget *widget)
+{
+#if GTK_MAJOR_VERSION >= 4
+if (GTK_IS_CHECK_BUTTON(widget))
+  return(gtk_check_button_get_active(GTK_CHECK_BUTTON(widget)));
+#endif
+
+return(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)));
+}
+
+static void gui_check_widget_set_active(GtkWidget *widget, gboolean active)
+{
+#if GTK_MAJOR_VERSION >= 4
+if (GTK_IS_CHECK_BUTTON(widget))
+  {
+  gtk_check_button_set_active(GTK_CHECK_BUTTON(widget), active);
+  return;
+  }
+#endif
+
+gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget), active);
+}
+
 /**************************************/
 /* auto update widget handling events */
 /**************************************/
@@ -143,9 +166,9 @@ while (list)
     case AUTO_CHECK:
 #if DEBUG_RELATION
 printf("model %p : relation %p : setting variable to %d\n", 
-       model, relation, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(w)));
+       model, relation, gui_check_widget_get_active(w));
 #endif
-      if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(w)))
+      if (gui_check_widget_get_active(w))
         *((gint *) value) = TRUE;
       else
         *((gint *) value) = FALSE;
@@ -203,11 +226,9 @@ printf("relation %p : type %d : updating widget\n", relation, relation->type);
     {
     case AUTO_CHECK:
       if (*((gint *) value))
-        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(relation->widget),
-                                     TRUE);
+        gui_check_widget_set_active(relation->widget, TRUE);
       else
-        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(relation->widget),
-                                     FALSE);
+        gui_check_widget_set_active(relation->widget, FALSE);
       break;
 
     case AUTO_SPIN:
@@ -289,11 +310,9 @@ printf("relation %p : type %d : model change\n", relation, relation->type);
     {
     case AUTO_CHECK:
       if (*((gint *) value))
-        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(relation->widget),
-                                     TRUE);
+        gui_check_widget_set_active(relation->widget, TRUE);
       else
-        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(relation->widget),
-                                     FALSE);
+        gui_check_widget_set_active(relation->widget, FALSE);
       break;
 
     case AUTO_SPIN:
@@ -378,9 +397,9 @@ switch (relation->type)
   {
   case AUTO_CHECK:
     if (*((gint *) value))
-      gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget), TRUE);
+      gui_check_widget_set_active(widget, TRUE);
     else
-      gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget), FALSE);
+      gui_check_widget_set_active(widget, FALSE);
     break;
 
   case AUTO_SPIN:
@@ -410,11 +429,11 @@ gtk_widget_show(button);
 
 /* set the state (NB: before the callback is attached) */
 if (state)
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(button), TRUE);
+  gui_check_widget_set_active(button, TRUE);
 
 /* attach the callback */
 if (callback)
-  g_signal_connect(GTK_OBJECT(button), "clicked", GTK_SIGNAL_FUNC(callback), arg);
+  g_signal_connect(GTK_OBJECT(button), "toggled", GTK_SIGNAL_FUNC(callback), arg);
 return(button);
 }
 
@@ -438,12 +457,12 @@ if (box)
   gtk_box_pack_start(GTK_BOX(box), button, TRUE, TRUE, 0);
 
 /* callback to set the variable to match the widget */
-g_signal_connect(GTK_OBJECT(button), "clicked",
+g_signal_connect(GTK_OBJECT(button), "toggled",
                  GTK_SIGNAL_FUNC(gui_relation_set_value), NULL);
 
 /* callback to do (user defined) update tasks */
 if (cb)
-  g_signal_connect_after(GTK_OBJECT(button), "clicked", cb, arg);
+  g_signal_connect_after(GTK_OBJECT(button), "toggled", cb, arg);
 
 /* callback to remove the variable <-> widget relation */
 g_signal_connect(GTK_OBJECT(button), "destroy",
@@ -458,7 +477,7 @@ return(button);
 /* TODO - shortcut for setting up one of these widgets */
 void gui_checkbox_refresh(GtkWidget *w, GtkWidget *box)
 {
-if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(w)))
+if (gui_check_widget_get_active(w))
   gtk_widget_set_sensitive(box, TRUE);
 else
   gtk_widget_set_sensitive(box, FALSE);
@@ -485,7 +504,7 @@ if (box)
 
 
 /* callback to set the variable to match the widget */
-g_signal_connect(GTK_OBJECT(button), "clicked",
+g_signal_connect(GTK_OBJECT(button), "toggled",
                  GTK_SIGNAL_FUNC(gui_relation_set_value), model);
 
 /* callback to remove the variable <-> widget relation */
@@ -494,7 +513,7 @@ g_signal_connect(GTK_OBJECT(button), "destroy",
 
 /* callback to do (user defined) update tasks */
 if (cb)
-  g_signal_connect_after(GTK_OBJECT(button), "clicked", cb, arg);
+  g_signal_connect_after(GTK_OBJECT(button), "toggled", cb, arg);
 
 return(button);
 }
@@ -1284,6 +1303,49 @@ if (!GTK_IS_ENTRY(child))
 return(child);
 }
 
+static void gui_combo_compactify(GtkWidget *combo)
+{
+GtkWidget *entry;
+GList *list, *cells;
+
+if (!combo)
+  return;
+
+#if GTK_MAJOR_VERSION >= 3
+gtk_widget_set_hexpand(combo, TRUE);
+#endif
+
+if (GTK_IS_COMBO_BOX(combo))
+  gtk_combo_box_set_popup_fixed_width(GTK_COMBO_BOX(combo), FALSE);
+
+if (GTK_IS_CELL_LAYOUT(combo))
+  {
+  cells = gtk_cell_layout_get_cells(GTK_CELL_LAYOUT(combo));
+  for (list=cells ; list ; list=g_list_next(list))
+    {
+    if (!GTK_IS_CELL_RENDERER_TEXT(list->data))
+      continue;
+
+    g_object_set(G_OBJECT(list->data),
+                 "ellipsize", PANGO_ELLIPSIZE_END,
+                 "ellipsize-set", TRUE,
+                 "width-chars", 14,
+                 "max-width-chars", 18,
+                 NULL);
+    }
+  g_list_free(cells);
+  }
+
+entry = gdis_combo_entry_get(combo);
+if (GTK_IS_ENTRY(entry))
+  {
+  gtk_entry_set_width_chars(GTK_ENTRY(entry), 14);
+#if GTK_MAJOR_VERSION >= 3
+  gtk_widget_set_hexpand(entry, TRUE);
+#endif
+  }
+}
+
 const gchar *gui_pulldown_text(gpointer w);
 void gui_pulldown_set_text(gpointer w, const gchar *text);
 
@@ -1299,6 +1361,8 @@ for (item=list ; item ; item=g_list_next(item))
 
 if (list)
   gtk_combo_box_set_active(GTK_COMBO_BOX(combo), 0);
+
+gui_combo_compactify(combo);
 
 entry = gdis_combo_entry_get(combo);
 if (GTK_IS_EDITABLE(entry))
@@ -1336,6 +1400,8 @@ for (item=list ; item ; item=g_list_next(item))
 
 if (list)
   gtk_combo_box_set_active(GTK_COMBO_BOX(combo), 0);
+
+gui_combo_compactify(combo);
 
 if (box)
   {

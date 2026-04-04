@@ -1,0 +1,21 @@
+option(
+  'gtk_target',
+  type: 'combo',
+  choices: ['gtk2', 'gtk3', 'gtk4'],
+  value: 'gtk2',
+  description: 'GTK/OpenGL frontend target to build',
+)
+
+option(
+  'gui',
+  type: 'boolean',
+  value: true,
+  description: 'Build the GUI application instead of the command-line-only core',
+)
+
+option(
+  'grisu',
+  type: 'boolean',
+  value: false,
+  description: 'Enable the legacy GRISU/gSOAP client sources',
+)

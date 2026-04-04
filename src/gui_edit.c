@@ -2589,7 +2589,7 @@ window = dialog_window(dialog);
 
 /* notebook frame */
 frame = gtk_frame_new(NULL);
-gtk_box_pack_start(GTK_BOX(GTK_DIALOG(window)->vbox), frame, FALSE, FALSE, 0);
+gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)), frame, FALSE, FALSE, 0);
 gtk_container_set_border_width(GTK_CONTAINER(frame), PANEL_SPACING);
 
 /* create notebook */
@@ -2636,7 +2636,7 @@ gui_library_window(page);
 
 /* terminating buttons */
 gui_stock_button(GTK_STOCK_CLOSE, dialog_destroy, dialog,
-                   GTK_DIALOG(window)->action_area);
+                   GDIS_DIALOG_ACTIONS(window));
 
 gtk_widget_show_all(window);
  

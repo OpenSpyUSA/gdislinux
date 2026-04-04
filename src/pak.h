@@ -188,6 +188,9 @@ gchar *gamess_path;
 gchar *vasp_exe;
 gchar *vasp_path;
 
+gchar *qbox_exe;
+gchar *qbox_path;
+
 gchar *uspex_exe;
 gchar *uspex_path;
 
@@ -1464,4 +1467,3 @@ void cmd_init(gint, gchar **);
 GSList *slist_gchar_dup(GSList *);
 void free_slist(GSList *);
 void free_list(GList *);
-

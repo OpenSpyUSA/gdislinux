@@ -218,6 +218,71 @@ for (;;)
       sysenv.gulp_exe = g_strdup(*(buff+1));
       }
     }
+
+/* GAMESS */
+  if (g_ascii_strncasecmp("gamess_p", *buff, 8) == 0)
+    sysenv.gamess_path = parse_strip_newline(&line[12]);
+
+  if (g_ascii_strncasecmp("gamess_e", *buff, 8) == 0)
+    {
+    if (num_tokens > 1)
+      {
+      g_free(sysenv.gamess_exe);
+      sysenv.gamess_exe = g_strdup(*(buff+1));
+      }
+    }
+
+/* VASP */
+  if (g_ascii_strncasecmp("vasp_p", *buff, 6) == 0)
+    sysenv.vasp_path = parse_strip_newline(&line[10]);
+
+  if (g_ascii_strncasecmp("vasp_e", *buff, 6) == 0)
+    {
+    if (num_tokens > 1)
+      {
+      g_free(sysenv.vasp_exe);
+      sysenv.vasp_exe = g_strdup(*(buff+1));
+      }
+    }
+
+/* Qbox */
+  if (g_ascii_strncasecmp("qbox_p", *buff, 6) == 0)
+    sysenv.qbox_path = parse_strip_newline(&line[10]);
+
+  if (g_ascii_strncasecmp("qbox_e", *buff, 6) == 0)
+    {
+    if (num_tokens > 1)
+      {
+      g_free(sysenv.qbox_exe);
+      sysenv.qbox_exe = g_strdup(*(buff+1));
+      }
+    }
+
+/* USPEX */
+  if (g_ascii_strncasecmp("uspex_p", *buff, 7) == 0)
+    sysenv.uspex_path = parse_strip_newline(&line[11]);
+
+  if (g_ascii_strncasecmp("uspex_e", *buff, 7) == 0)
+    {
+    if (num_tokens > 1)
+      {
+      g_free(sysenv.uspex_exe);
+      sysenv.uspex_exe = g_strdup(*(buff+1));
+      }
+    }
+
+/* mpirun */
+  if (g_ascii_strncasecmp("mpirun_p", *buff, 8) == 0)
+    sysenv.mpirun_path = parse_strip_newline(&line[12]);
+
+  if (g_ascii_strncasecmp("mpirun_e", *buff, 8) == 0)
+    {
+    if (num_tokens > 1)
+      {
+      g_free(sysenv.mpirun_exe);
+      sysenv.mpirun_exe = g_strdup(*(buff+1));
+      }
+    }
 /* OpenGL drawing font */
   if (g_ascii_strncasecmp("gl_font",*buff,7) == 0)
     if (num_tokens > 1)
@@ -309,10 +374,10 @@ if (!fp)
 /* save final dimensions */
 if (sysenv.mpane)
   if (GTK_IS_WIDGET(sysenv.mpane))
-    sysenv.tree_width = GTK_WIDGET(sysenv.mpane)->allocation.width;
+    sysenv.tree_width = gdis_gtk_widget_get_width(GTK_WIDGET(sysenv.mpane));
 if (sysenv.tpane)
   if (GTK_IS_WIDGET(sysenv.tpane))
-    sysenv.tray_height = GTK_WIDGET(sysenv.tpane)->allocation.height;
+    sysenv.tray_height = gdis_gtk_widget_get_height(GTK_WIDGET(sysenv.tpane));
 
 fprintf(fp,"gdis %f\n", VERSION);
 fprintf(fp,"canvas %d\n", sysenv.canvas);
@@ -347,6 +412,8 @@ if (sysenv.gamess_path)
   fprintf(fp,"gamess_path %s\n", sysenv.gamess_path);
 if (sysenv.vasp_path)
   fprintf(fp,"vasp_path %s\n", sysenv.vasp_path);
+if (sysenv.qbox_path)
+  fprintf(fp,"qbox_path %s\n", sysenv.qbox_path);
 if (sysenv.uspex_path)
   fprintf(fp,"uspex_path %s\n", sysenv.uspex_path);
 if (sysenv.mpirun_path)
@@ -362,6 +429,7 @@ fprintf(fp,"convert_exe %s\n", sysenv.convert_exe);
 fprintf(fp,"gulp_exe %s\n", sysenv.gulp_exe);
 fprintf(fp,"gamess_exe %s\n", sysenv.gamess_exe);
 fprintf(fp,"vasp_exe %s\n", sysenv.vasp_exe);
+fprintf(fp,"qbox_exe %s\n", sysenv.qbox_exe);
 fprintf(fp,"uspex_exe %s\n", sysenv.uspex_exe);
 fprintf(fp,"mpirun_exe %s\n", sysenv.mpirun_exe);
 fprintf(fp,"povray_exe %s\n", sysenv.povray_exe);
@@ -609,6 +677,7 @@ sysenv.convert_exe = g_strdup("convert.exe");
 sysenv.viewer_exe = g_strdup("display.exe");
 sysenv.gulp_exe = g_strdup("gulp.exe");
 sysenv.gamess_exe = g_strdup("wingamess");
+sysenv.qbox_exe = g_strdup("qbox.exe");
 #else
 sysenv.babel_exe = g_strdup("babel");
 sysenv.povray_exe = g_strdup("povray");
@@ -617,6 +686,7 @@ sysenv.viewer_exe = g_strdup("display");
 sysenv.gulp_exe = g_strdup("gulp");
 sysenv.gamess_exe = g_strdup("run_gms_for_gdis");
 sysenv.vasp_exe = g_strdup("vasp");
+sysenv.qbox_exe = g_strdup("qbox");
 sysenv.uspex_exe = g_strdup("USPEX");
 sysenv.mpirun_exe = g_strdup("mpirun");
 #endif
@@ -653,6 +723,7 @@ sysenv.convert_path = NULL;
 sysenv.gulp_path = NULL;
 sysenv.gamess_path = NULL;
 sysenv.vasp_path = NULL;
+sysenv.qbox_path = NULL;
 sysenv.uspex_path = NULL;
 sysenv.mpirun_path = NULL;
 sysenv.povray_path = NULL;
@@ -672,6 +743,17 @@ if (!sysenv.gulp_path)
   sysenv.gulp_path = g_find_program_in_path(sysenv.gulp_exe);
 if (!sysenv.vasp_path)
   sysenv.vasp_path = g_find_program_in_path(sysenv.vasp_exe);
+if (!sysenv.qbox_path)
+  {
+  temp = g_build_filename(sysenv.gdis_path, sysenv.qbox_exe, NULL);
+  if (g_file_test(temp, G_FILE_TEST_IS_EXECUTABLE))
+    sysenv.qbox_path = temp;
+  else
+    {
+    g_free(temp);
+    sysenv.qbox_path = g_find_program_in_path(sysenv.qbox_exe);
+    }
+  }
 if (!sysenv.uspex_path)
   sysenv.uspex_path = g_find_program_in_path(sysenv.uspex_exe);
 if (!sysenv.mpirun_path)

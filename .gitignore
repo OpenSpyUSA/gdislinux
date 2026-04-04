@@ -7,6 +7,9 @@ gdis-master.tar.gz
 Pt surf0
 quartz
 bin/gdis
+bin/gdis-gtk2
+bin/gdis-gtk3
+bin/gdis-gtk4
 src/gdis.xcodeproj/project.xcworkspace/xcuserdata/andrew.xcuserdatad/UserInterfaceState.xcuserstate
 src/gdis.xcodeproj/project.xcworkspace/xcuserdata/andrew.xcuserdatad/IDEFindNavigatorScopes.plist
 src/gdis.xcodeproj/xcuserdata/andrew.xcuserdatad/xcdebugger/Breakpoints_v2.xcbkptlist
@@ -16,6 +19,9 @@ src/gdis.xcodeproj/xcuserdata/
 **/CVS/
 .vscode/
 .idea/
+.cache/
+.build/
+.localdeps/
 *.swp
 *.swo
 *~

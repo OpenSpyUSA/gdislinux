@@ -189,6 +189,37 @@ sysenv.active_model = model;
 gtk_tree_model_foreach(GTK_TREE_MODEL(sysenv.tree_store), &func, model);
 }
 
+void tree_select_graph(struct model_pak *model, gpointer graph)
+{
+GtkTreeIter root, branch;
+GtkTreeSelection *selection;
+gpointer data;
+gboolean valid;
+
+if (!model || !graph)
+  return;
+if (!tree_model_iter(&root, model))
+  return;
+
+selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(sysenv.tree));
+if (!selection)
+  return;
+
+valid = gtk_tree_model_iter_children(GTK_TREE_MODEL(sysenv.tree_store),
+                                     &branch, &root);
+while (valid)
+  {
+  gtk_tree_model_get(GTK_TREE_MODEL(sysenv.tree_store), &branch,
+                     TREE_DATA, &data, -1);
+  if (data == graph)
+    {
+    gtk_tree_selection_select_iter(selection, &branch);
+    return;
+    }
+  valid = gtk_tree_model_iter_next(GTK_TREE_MODEL(sysenv.tree_store), &branch);
+  }
+}
+
 /***************************/
 /* select the active model */
 /***************************/
@@ -294,7 +325,7 @@ for (list=model->graph_list ; list ; list=g_slist_next(list))
                      -1);
   graph_set_grafted(TRUE, list->data);
 
-  if (selection)
+  if (selection && model->graph_active == list->data)
     {
     active = branch;
     flag = TRUE;
@@ -427,23 +458,38 @@ GtkTreeIter iter;
 GtkTreeModel *treemodel;
 struct model_pak *model=NULL;
 
+(void) data;
+
 if (gtk_tree_selection_get_selected(selection, &treemodel, &iter))
   {
   depth = gtk_tree_store_iter_depth(sysenv.tree_store, &iter);
+  if (g_getenv("GDIS_DEBUG_GRAPH_STATE"))
+    g_printerr("tree_selection_changed: depth=%d\n", depth);
   switch (depth)
     {
     case 0:
       gtk_tree_model_get(treemodel, &iter, TREE_POINTER, &model, -1);
       if (model)
+        {
+        if (g_getenv("GDIS_DEBUG_GRAPH_STATE"))
+          g_printerr("tree_selection_changed(root): model=%p graph=%p\n",
+                     model, model->graph_active);
         gui_model_select(model);
+        }
       break;
 
     case 1:
       gtk_tree_model_get(treemodel, &iter, TREE_POINTER, &model, TREE_DATA, &graph, -1);
       if (graph)
         {
+        if (g_getenv("GDIS_DEBUG_GRAPH_STATE"))
+          g_printerr("tree_selection_changed(graph-before): model=%p graph=%p active=%p\n",
+                     model, graph, model ? model->graph_active : NULL);
         gui_model_select(model);
         model->graph_active = graph;
+        if (g_getenv("GDIS_DEBUG_GRAPH_STATE"))
+          g_printerr("tree_selection_changed(graph-after): model=%p graph=%p active=%p\n",
+                     model, graph, model->graph_active);
         redraw_canvas(SINGLE);
         }
       break;
@@ -469,7 +515,11 @@ swin = gtk_scrolled_window_new(NULL, NULL);
 gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(swin),
                                GTK_POLICY_AUTOMATIC,
                                GTK_POLICY_AUTOMATIC);
-gtk_container_add(GTK_CONTAINER(box), swin);
+gtk_box_pack_start(GTK_BOX(box), swin, TRUE, TRUE, 0);
+#if GTK_MAJOR_VERSION >= 3
+gtk_widget_set_hexpand(swin, TRUE);
+gtk_widget_set_vexpand(swin, TRUE);
+#endif
 
 /* underlying data storage */
 sysenv.tree_store = gtk_tree_store_new(TREE_NCOLS,
@@ -480,6 +530,10 @@ sysenv.tree_store = gtk_tree_store_new(TREE_NCOLS,
 /* actual tree widget */
 sysenv.tree = gtk_tree_view_new_with_model(GTK_TREE_MODEL(sysenv.tree_store));
 gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(swin), sysenv.tree);
+#if GTK_MAJOR_VERSION >= 3
+gtk_widget_set_hexpand(sysenv.tree, TRUE);
+gtk_widget_set_vexpand(sysenv.tree, TRUE);
+#endif
 
 /* setup the model pixmap rendering colum */
 renderer = gtk_cell_renderer_pixbuf_new();
@@ -504,4 +558,3 @@ gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(sysenv.tree), FALSE);
 
 gtk_widget_show(swin);
 }
-

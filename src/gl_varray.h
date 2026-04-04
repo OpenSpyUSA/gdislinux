@@ -23,5 +23,12 @@ The GNU GPL can also be found at http://www.gnu.org
 gpointer va_init(void);
 void va_free(gpointer);
 void va_make_sphere(gpointer);
+void va_make_cylinder(gpointer);
+void va_prepare_sphere(gpointer, gdouble *, gdouble);
+void va_prepare_cylinder(gpointer, gdouble *, gdouble *, gdouble);
+gint va_get_gl_method(gpointer);
+gint va_get_num_vertices(gpointer);
+gint va_get_num_indices(gpointer);
+gconstpointer va_get_interleaved(gpointer);
+gconstpointer va_get_indices(gpointer);
 void va_draw_sphere(gpointer, gdouble *, gdouble);
-

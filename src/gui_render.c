@@ -504,7 +504,7 @@ if (model)
 
 void update_geom_line_width(GtkWidget *w, gpointer *ptr)
 {
-sysenv.render.geom_line_width = GTK_ADJUSTMENT(w)->value;
+sysenv.render.geom_line_width = gtk_adjustment_get_value(GTK_ADJUSTMENT(w));
 redraw_canvas(SINGLE);
 }
 
@@ -1944,7 +1944,7 @@ else
 
 /* notebook frame */
 frame = gtk_frame_new(NULL);
-gtk_box_pack_start(GTK_BOX(GTK_DIALOG(window)->vbox), frame, FALSE, FALSE, 0);
+gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)), frame, FALSE, FALSE, 0);
 gtk_container_set_border_width(GTK_CONTAINER(frame), PANEL_SPACING);
 
 /* create notebook */
@@ -2004,7 +2004,7 @@ render_misc_section(page);
 
 /* terminating button */
 gui_stock_button(GTK_STOCK_CLOSE, dialog_destroy, dialog,
-                   GTK_DIALOG(window)->action_area);
+                   GDIS_DIALOG_ACTIONS(window));
 
 /* display the dialog */
 gtk_widget_show_all(window);

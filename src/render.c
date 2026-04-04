@@ -211,6 +211,7 @@ for (list=model->bonds; list ; list=g_slist_next(list))
     ARR3SET(pipe->v2, mp1);
     pipe->radius = radius;
     ARR4SET(pipe->colour, colour1);
+    pipe->core = core1;
 
 /* assign to appropriate pipe list */
     if (core1->render_mode == STICK)
@@ -238,6 +239,7 @@ for (list=model->bonds; list ; list=g_slist_next(list))
     ARR3SET(pipe->v2, mp2);
     pipe->radius = radius;
     ARR4SET(pipe->colour, colour2);
+    pipe->core = core2;
 
 /* assign to appropriate pipe list */
     if (core2->render_mode == STICK)

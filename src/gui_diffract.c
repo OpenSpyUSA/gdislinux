@@ -51,9 +51,14 @@ extern struct elem_pak elements[];
 /* MEH = m*e*e/2*h*h */
 #define MEH 0.026629795
 
-GtkWidget *diff_rad_type, *diff_rad_length;
-GtkWidget *diff_broadening;
-GtkWidget *diff_filename, *diff_plot;
+struct diffract_ui
+{
+GtkWidget *rad_type;
+GtkWidget *rad_length;
+GtkWidget *broadening;
+GtkWidget *filename;
+struct model_pak *model;
+};
 
 enum {DIFF_XRAY, DIFF_NEUTRON, DIFF_ELECTRON,
       DIFF_GAUSSIAN, DIFF_LORENTZIAN, DIFF_PSEUDO_VOIGT};
@@ -61,6 +66,11 @@ enum {DIFF_XRAY, DIFF_NEUTRON, DIFF_ELECTRON,
 gint diff_all_frames = TRUE;
 
 extern gint gl_fontsize;
+
+static void diff_ui_free(GtkWidget *w, gpointer data)
+{
+g_free(data);
+}
 
 /*****************************/
 /* eliminate repeated planes */
@@ -241,7 +251,9 @@ return(sfc);
 /* diffraction output routine */
 /******************************/
 #define DEBUG_CALC_SPECTRUM 0
-void diff_calc_spectrum(GSList *list, struct model_pak *model)
+void diff_calc_spectrum(GSList *list,
+                        struct model_pak *model,
+                        const gchar *output_name)
 {
 gint i, n;
 gint cur_peak;
@@ -260,6 +272,7 @@ g_data_x gx;
 g_data_y gy;
 gint    idx;
 gdouble max;
+gdouble spectrum_max;
 gchar *line;
 
 /* constant initialization */
@@ -278,6 +291,7 @@ gy.idx=g_malloc0(gy.y_size*sizeof(gint32));
 gy.symbol=g_malloc0(gy.y_size*sizeof(graph_symbol));
 gy.sym_color=NULL;
 max=-1.0/0.0;/*-inf*/
+spectrum_max = 0.0;
 
 
 #if DEBUG_CALC_SPECTRUM
@@ -375,6 +389,8 @@ for (item=list ; item ; item=g_slist_next(item))
 /* compute intensity for the current bin */
     intensity = plane->multiplicity*lpf*f*bf;
     spectrum[i] += intensity;
+    if (spectrum[i] > spectrum_max)
+      spectrum_max = spectrum[i];
 /* add peak-only data */
 	if((cur_peak==i)&&(intensity>0.1)){
 		/*this is a peak*/
@@ -444,8 +460,12 @@ dat_graph_set_y_title("intensities (a.u.)",graph);
 /*prepare data*/
 gx.x_size=n;
 gx.x=g_malloc0(gx.x_size*sizeof(gdouble));
-gx.x[0]=0.;
+gx.x[0]=model->diffract.theta[0];
 for(idx=1;idx<n;idx++) gx.x[idx]=gx.x[idx-1]+model->diffract.theta[2];
+if (!isfinite(max) || max <= 0.0)
+  max = spectrum_max;
+if (max <= 0.0)
+  max = 1.0;
 max=max*1.05;/*adjust nicely*/
 gy.type=GRAPH_XY_TYPE;
 gy.mixed_symbol=FALSE;
@@ -476,10 +496,16 @@ g_free(gy.symbol);
   model->picture_active = NULL;
 /* display the new graph */
   tree_model_refresh(model);
+  model->graph_active = graph;
+  tree_select_graph(model, graph);
+  if (g_getenv("GDIS_DEBUG_GRAPH_STATE"))
+    g_printerr("diff: model=%p graph=%p active=%p graphs=%d\n",
+               model, graph, model->graph_active,
+               g_slist_length(model->graph_list));
   }
 
 /* save the spectrum */
-fp = fopen(gtk_entry_get_text(GTK_ENTRY(diff_filename)), "at");
+fp = fopen(output_name, "at");
 if (!fp)
   {
   gui_text_show(ERROR, "Failed to open file for raw spectrum data.\n");
@@ -499,7 +525,7 @@ redraw_canvas(SINGLE);
 /* main diffraction routine */
 /****************************/
 #define DEBUG_DIFF_CALC 0
-gint diff_calc(void)
+static gint diff_calc(struct diffract_ui *ui)
 {
 gdouble dhkl_min, tmp, sfc, sol;
 gdouble vec[3], rdv[3];
@@ -509,7 +535,9 @@ struct model_pak *model;
 struct plane_pak *plane;
 struct core_pak *core;
 
-model = sysenv.active_model;
+g_return_val_if_fail(ui != NULL, 1);
+
+model = ui->model;
 if (!model)
   return(1);
 if (model->periodic != 3)
@@ -525,7 +553,7 @@ if (model->diffract.theta[0] >= model->diffract.theta[1])
   return(2);
   }
 
-text = gui_combo_text(diff_rad_type);
+text = gui_combo_text(ui->rad_type);
 if (g_ascii_strncasecmp(text, "Electron", 8) == 0)
   model->diffract.radiation = DIFF_ELECTRON;
 if (g_ascii_strncasecmp(text, "Neutron", 7) == 0)
@@ -534,10 +562,10 @@ if (g_ascii_strncasecmp(text, "X-Ray", 5) == 0)
   model->diffract.radiation = DIFF_XRAY;
 
 /* TODO - use str_is_float() to test first? */
-text = gtk_entry_get_text(GTK_ENTRY(diff_rad_length));
+text = gtk_entry_get_text(GTK_ENTRY(ui->rad_length));
 model->diffract.wavelength = fabs(str_to_float(text));
 
-text = gui_combo_text(diff_broadening);
+text = gui_combo_text(ui->broadening);
 
 if (g_ascii_strncasecmp(text, "Gaussian", 8) == 0)
   model->diffract.broadening = DIFF_GAUSSIAN;
@@ -643,7 +671,8 @@ for (;;)
     }
 
 /* compute/plot intensities */
-  diff_calc_spectrum(list, model);
+  diff_calc_spectrum(list, model,
+                     gtk_entry_get_text(GTK_ENTRY(ui->filename)));
   free_slist(list);
 
 /* NEW - multiframe diffraction */
@@ -658,7 +687,23 @@ for (;;)
   else
     break;
   }
+
+if (diff_all_frames)
+  {
+  if (!model->transform_list && model->afp)
+    {
+    fclose(model->afp);
+    model->afp = NULL;
+    }
+  model->animating = FALSE;
+  }
+
 return(0);
+}
+
+static void diff_calc_cb(GtkWidget *w, gpointer data)
+{
+diff_calc(data);
 }
 /****************************/
 /* diffraction setup dialog */
@@ -669,6 +714,7 @@ gpointer dialog;
 GtkWidget *window, *frame, *hbox, *hbox2, *vbox, *label;
 GList *list;
 struct model_pak *data;
+struct diffract_ui *ui;
 
 data = sysenv.active_model;
 if (!data)
@@ -684,10 +730,13 @@ dialog = dialog_request(DIFFAX, "Powder Diffraction", NULL, NULL, data);
 if (!dialog)
   return;
 window = dialog_window(dialog);
+ui = g_malloc0(sizeof(struct diffract_ui));
+ui->model = data;
+g_signal_connect(window, "destroy", G_CALLBACK(diff_ui_free), ui);
 
 /* radiation details */
 frame = gtk_frame_new(NULL);
-gtk_box_pack_start(GTK_BOX(GTK_DIALOG(window)->vbox), frame, FALSE, FALSE, 0);
+gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)), frame, FALSE, FALSE, 0);
 gtk_container_set_border_width(GTK_CONTAINER(frame), PANEL_SPACING);
 vbox = gtk_vbox_new(TRUE, 0);
 gtk_container_add(GTK_CONTAINER(frame), vbox);
@@ -701,21 +750,21 @@ list = NULL;
 list = g_list_prepend(list, "Electrons");
 list = g_list_prepend(list, "Neutrons");
 list = g_list_prepend(list, "X-Rays");
-diff_rad_type = gui_combo_new(list, FALSE);
+ui->rad_type = gui_combo_new(list, FALSE);
 switch (data->diffract.radiation)
   {
   case DIFF_ELECTRON:
-    gui_combo_set_text(diff_rad_type, "Electrons");
+    gui_combo_set_text(ui->rad_type, "Electrons");
     break;
   case DIFF_NEUTRON:
-    gui_combo_set_text(diff_rad_type, "Neutrons");
+    gui_combo_set_text(ui->rad_type, "Neutrons");
     break;
   case DIFF_XRAY:
   default:
-    gui_combo_set_text(diff_rad_type, "X-Rays");
+    gui_combo_set_text(ui->rad_type, "X-Rays");
     break;
   }
-gtk_box_pack_end(GTK_BOX(hbox), diff_rad_type, FALSE, FALSE, PANEL_SPACING);
+gtk_box_pack_end(GTK_BOX(hbox), ui->rad_type, FALSE, FALSE, PANEL_SPACING);
 
 hbox = gtk_hbox_new(FALSE, 0);
 gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, PANEL_SPACING);
@@ -723,14 +772,14 @@ gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, PANEL_SPACING);
 label = gtk_label_new(g_strdup_printf(" Wavelength "));
 gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 0);
 
-diff_rad_length = gtk_entry_new();
-gtk_entry_set_text(GTK_ENTRY(diff_rad_length),
+ui->rad_length = gtk_entry_new();
+gtk_entry_set_text(GTK_ENTRY(ui->rad_length),
                    g_strdup_printf("%-9.6f", data->diffract.wavelength));
-gtk_box_pack_end(GTK_BOX(hbox), diff_rad_length, FALSE, FALSE, 0);
+gtk_box_pack_end(GTK_BOX(hbox), ui->rad_length, FALSE, FALSE, 0);
 
 /* peak broadening */
 frame = gtk_frame_new(NULL);
-gtk_box_pack_start(GTK_BOX(GTK_DIALOG(window)->vbox), frame, FALSE, FALSE, 0);
+gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)), frame, FALSE, FALSE, 0);
 gtk_container_set_border_width(GTK_CONTAINER(frame), PANEL_SPACING);
 vbox = gtk_vbox_new(TRUE, 0);
 gtk_container_add(GTK_CONTAINER(frame), vbox);
@@ -744,21 +793,21 @@ list = NULL;
 list = g_list_prepend(list, "Pseudo-Voigt");
 list = g_list_prepend(list, "Lorentzian");
 list = g_list_prepend(list, "Gaussian");
-diff_broadening = gui_combo_new(list, FALSE);
+ui->broadening = gui_combo_new(list, FALSE);
 switch (data->diffract.broadening)
   {
   case DIFF_LORENTZIAN:
-    gui_combo_set_text(diff_broadening, "Lorentzian");
+    gui_combo_set_text(ui->broadening, "Lorentzian");
     break;
   case DIFF_PSEUDO_VOIGT:
-    gui_combo_set_text(diff_broadening, "Pseudo-Voigt");
+    gui_combo_set_text(ui->broadening, "Pseudo-Voigt");
     break;
   case DIFF_GAUSSIAN:
   default:
-    gui_combo_set_text(diff_broadening, "Gaussian");
+    gui_combo_set_text(ui->broadening, "Gaussian");
     break;
   }
-gtk_box_pack_end(GTK_BOX(hbox), diff_broadening, FALSE, FALSE, PANEL_SPACING);
+gtk_box_pack_end(GTK_BOX(hbox), ui->broadening, FALSE, FALSE, PANEL_SPACING);
 
 hbox = gtk_hbox_new(FALSE, 0);
 gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, PANEL_SPACING);
@@ -766,7 +815,7 @@ gui_auto_spin("Mixing parameter ", &data->diffract.asym, 0.0, 1.0, 0.01, NULL, N
 
 /* split pane */
 hbox2 = gtk_hbox_new(TRUE, 0);
-gtk_box_pack_start(GTK_BOX(GTK_DIALOG(window)->vbox), hbox2, TRUE, TRUE, 0);
+gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)), hbox2, TRUE, TRUE, 0);
 
 /* angle range */
 frame = gtk_frame_new(NULL);
@@ -810,7 +859,7 @@ gui_auto_spin(" W ", &data->diffract.w, -9.9, 9.9, 0.05, NULL, NULL, hbox);
 
 /* output stuff */
 frame = gtk_frame_new(NULL);
-gtk_box_pack_start(GTK_BOX(GTK_DIALOG(window)->vbox), frame, FALSE, FALSE, 0);
+gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)), frame, FALSE, FALSE, 0);
 gtk_container_set_border_width(GTK_CONTAINER(frame), PANEL_SPACING);
 vbox = gtk_vbox_new(TRUE, 0);
 gtk_container_add(GTK_CONTAINER(frame), vbox);
@@ -820,9 +869,9 @@ gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, PANEL_SPACING);
 label = gtk_label_new(g_strdup_printf(" Output filename "));
 gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 0);
 
-diff_filename = gtk_entry_new();
-gtk_entry_set_text(GTK_ENTRY(diff_filename), data->basename);
-gtk_box_pack_end(GTK_BOX(hbox), diff_filename, FALSE, FALSE, 0);
+ui->filename = gtk_entry_new();
+gtk_entry_set_text(GTK_ENTRY(ui->filename), data->basename);
+gtk_box_pack_end(GTK_BOX(hbox), ui->filename, FALSE, FALSE, 0);
 
 /*
 hbox = gtk_hbox_new(FALSE, 0);
@@ -843,12 +892,12 @@ if (data->animation)
 
 /* terminating buttons */
 gui_stock_button(GTK_STOCK_EXECUTE,
-                   diff_calc, NULL, 
-                   GTK_DIALOG(window)->action_area);
+                   diff_calc_cb, ui,
+                   GDIS_DIALOG_ACTIONS(window));
 
 gui_stock_button(GTK_STOCK_CLOSE,
                    dialog_destroy, dialog,
-                   GTK_DIALOG(window)->action_area);
+                   GDIS_DIALOG_ACTIONS(window));
 
 gtk_widget_show_all(window);
 }

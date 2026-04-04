@@ -56,6 +56,8 @@ The GNU GPL can also be found at http://www.gnu.org
 extern struct sysenv_pak sysenv;
 extern struct elem_pak elements[];
 
+static gint file_guess_xml_type(const gchar *filename);
+
 /***************************************/
 /* setup the recognized file type list */
 /***************************************/
@@ -366,7 +368,35 @@ file_data->write_file = NULL;
 file_data->read_file = read_qe_out;
 file_data->read_frame = read_qe_out_frame;
 sysenv.file_list = g_slist_prepend(sysenv.file_list, file_data);
-    
+
+/* supported file type */
+file_data = g_malloc(sizeof(struct file_pak));
+file_data->id = QBOX;
+file_data->group = QBOX;
+file_data->menu = TRUE;
+file_data->label = g_strdup("Qbox");
+file_data->ext = NULL;
+file_data->ext = g_slist_append(file_data->ext, "qbox");
+file_data->ext = g_slist_append(file_data->ext, "qboxin");
+file_data->ext = g_slist_append(file_data->ext, "qb");
+file_data->write_file = write_qbox;
+file_data->read_file = read_qbox;
+file_data->read_frame = NULL;
+sysenv.file_list = g_slist_prepend(sysenv.file_list, file_data);
+
+/* supported file type */
+file_data = g_malloc(sizeof(struct file_pak));
+file_data->id = QBOX_OUT;
+file_data->group = QBOX;
+file_data->menu = TRUE;
+file_data->label = g_strdup("Qbox output");
+file_data->ext = NULL;
+file_data->ext = g_slist_append(file_data->ext, "r");
+file_data->ext = g_slist_append(file_data->ext, "qboxr");
+file_data->write_file = NULL;
+file_data->read_file = read_qbox_out;
+file_data->read_frame = NULL;
+sysenv.file_list = g_slist_prepend(sysenv.file_list, file_data);
 
 /* supported file type */
 file_data = g_malloc(sizeof(struct file_pak));
@@ -848,6 +878,53 @@ if (n > 2)
     }
   }
 return(NULL);
+}
+
+/**************************************/
+/* sniff ambiguous xml-like filetypes */
+/**************************************/
+static gint file_guess_xml_type(const gchar *filename)
+{
+FILE *fp;
+gchar *line;
+gint i, guess;
+
+g_return_val_if_fail(filename != NULL, XML);
+
+guess = XML;
+if (g_str_has_suffix(filename, ".qbox.xml") || g_str_has_suffix(filename, ".qb.xml"))
+  return(QBOX_OUT);
+
+fp = fopen(filename, "rt");
+if (!fp)
+  return(guess);
+
+for (i=0 ; i<256 ; i++)
+  {
+  line = file_read_line(fp);
+  if (!line)
+    break;
+
+  if (g_strrstr(line, "<fpmd:simulation") || g_strrstr(line, "<atomset")
+      || g_strrstr(line, "<unit_cell a="))
+    {
+    guess = QBOX_OUT;
+    g_free(line);
+    break;
+    }
+
+  if (g_strrstr(line, "<modeling>") || (g_strrstr(line, "program") && g_strrstr(line, "vasp")))
+    {
+    guess = VASP;
+    g_free(line);
+    break;
+    }
+
+  g_free(line);
+  }
+
+fclose(fp);
+return(guess);
 }
 
 /************************************************/
@@ -1392,7 +1469,7 @@ error_table_clear();
 error_table_enable();
 
 /* get the file structure required to parse the file */
-switch (sysenv.file_type)
+  switch (sysenv.file_type)
   {
 /* cases for which duplicate extensions occur */
   case RIETICA:
@@ -1401,9 +1478,34 @@ switch (sysenv.file_type)
     file_data = get_file_info(GINT_TO_POINTER(sysenv.file_type), BY_FILE_ID);
     break;
 
+  case VASP:
+  case XML:
+  case QBOX:
+  case QBOX_OUT:
+    {
+    gchar *ext;
+
+    ext = file_extension_get(filename);
+    if (ext && g_ascii_strcasecmp(ext, "xml") == 0)
+      file_data = get_file_info(GINT_TO_POINTER(file_guess_xml_type(filename)), BY_FILE_ID);
+    else
+      file_data = get_file_info((gpointer *) filename, BY_EXTENSION);
+    g_free(ext);
+    }
+    break;
+
 /* cases for which extensions must be used to determine type (eg .gin/.got) */
   default:
-    file_data = get_file_info((gpointer *) filename, BY_EXTENSION);
+    {
+    gchar *ext;
+
+    ext = file_extension_get(filename);
+    if (ext && g_ascii_strcasecmp(ext, "xml") == 0)
+      file_data = get_file_info(GINT_TO_POINTER(file_guess_xml_type(filename)), BY_FILE_ID);
+    else
+      file_data = get_file_info((gpointer *) filename, BY_EXTENSION);
+    g_free(ext);
+    }
   }
 if (!file_data)
   return;
@@ -1852,6 +1954,4 @@ while(current){
 }
 return TRUE;
 }
-
-
 

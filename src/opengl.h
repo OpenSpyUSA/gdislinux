@@ -50,6 +50,7 @@ gdouble v1[3];
 gdouble v2[3];
 gdouble radius;
 gdouble colour[4];
+gpointer core;
 };
 
 /**************/
@@ -61,6 +62,7 @@ struct canvas_pak *gl_new_canvas(gint width, gint height);
 void draw_objs(struct canvas_pak *, struct model_pak *);
 void gl_draw(struct canvas_pak *, struct model_pak *);
 gint gl_init_visual(void);
+gint gl_canvas_refresh(void);
 void gl_init_projection(struct canvas_pak *, struct model_pak *);
 void gl_select_box(GtkWidget *);
 void gl_project(gdouble *, gint, gint, struct canvas_pak *);
@@ -98,5 +100,3 @@ void stereo_open_window(void);
 void stereo_draw(void);
 
 void graph_draw(struct canvas_pak *, struct model_pak *);
-
-

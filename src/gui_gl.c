@@ -24,11 +24,63 @@ The GNU GPL can also be found at http://www.gnu.org
 #define GDK_DISABLE_DEPRECATED
 #define GDK_PIXBUF_DISABLE_DEPRECATED
 #define GLIB_DISABLE_DEPRECATION_WARNINGS
+
+#include "gui_gl.h"
+
 #if GTK_MAJOR_VERSION < 3
 #include <gtk/gtkgl.h>
 #endif
 
-#include "gui_gl.h"
+#if GTK_MAJOR_VERSION >= 3
+static void gdis_gl_report_context(GdkGLContext *context)
+{
+static gboolean reported = FALSE;
+gint major = 0, minor = 0;
+
+if (reported || !context || !g_getenv("GDIS_DEBUG_GL"))
+  return;
+
+gdk_gl_context_get_version(context, &major, &minor);
+g_printerr("GDIS GL context: %d.%d legacy=%d es=%d\n",
+           major, minor,
+           gdk_gl_context_is_legacy(context),
+           gdk_gl_context_get_use_es(context));
+reported = TRUE;
+}
+
+#if GTK_MAJOR_VERSION < 4
+static GdkGLContext *gdis_glarea_create_context(GtkGLArea *area,
+                                                gpointer data)
+{
+GdkWindow *window;
+GdkGLContext *context;
+GError *error = NULL;
+
+(void) data;
+
+window = gtk_widget_get_window(GTK_WIDGET(area));
+if (!window)
+  return(NULL);
+
+context = gdk_window_create_gl_context(window, &error);
+if (!context)
+  {
+  if (error)
+    {
+    gtk_gl_area_set_error(area, error);
+    g_error_free(error);
+    }
+  return(NULL);
+  }
+
+gdk_gl_context_set_use_es(context, FALSE);
+gdk_gl_context_set_required_version(context, 3, 2);
+gdk_gl_context_set_forward_compatible(context, FALSE);
+
+return(context);
+}
+#endif
+#endif
 
 gint gdis_gl_backend_init(gint *argc, gchar ***argv)
 {
@@ -75,7 +127,20 @@ GtkWidget *gdis_gl_widget_new(gpointer glconfig)
 GtkWidget *widget;
 
 widget = gtk_gl_area_new();
+#if GTK_MAJOR_VERSION >= 4
+gtk_gl_area_set_allowed_apis(GTK_GL_AREA(widget), GDK_GL_API_GL);
+#else
+g_signal_connect(widget, "create-context",
+                 G_CALLBACK(gdis_glarea_create_context), NULL);
+#endif
+gtk_gl_area_set_use_es(GTK_GL_AREA(widget), FALSE);
+#if GTK_MAJOR_VERSION >= 4
+gtk_gl_area_set_required_version(GTK_GL_AREA(widget), 2, 1);
+#else
+gtk_gl_area_set_required_version(GTK_GL_AREA(widget), 3, 2);
+#endif
 gtk_gl_area_set_has_depth_buffer(GTK_GL_AREA(widget), TRUE);
+gtk_gl_area_set_has_stencil_buffer(GTK_GL_AREA(widget), TRUE);
 gtk_gl_area_set_auto_render(GTK_GL_AREA(widget), FALSE);
 
 return(widget);
@@ -107,11 +172,22 @@ return(gtk_widget_set_gl_capability(widget, GDK_GL_CONFIG(glconfig),
 gboolean gdis_gl_begin(GtkWidget *widget)
 {
 #if GTK_MAJOR_VERSION >= 3
+GError *error;
+GdkGLContext *context;
+
 g_return_val_if_fail(GTK_IS_GL_AREA(widget), FALSE);
 
 gtk_gl_area_make_current(GTK_GL_AREA(widget));
-if (gtk_gl_area_get_error(GTK_GL_AREA(widget)))
+error = gtk_gl_area_get_error(GTK_GL_AREA(widget));
+if (error)
+  {
+  if (g_getenv("GDIS_DEBUG_GL"))
+    g_printerr("GtkGLArea error: %s\n", error->message);
   return(FALSE);
+  }
+
+context = gtk_gl_area_get_context(GTK_GL_AREA(widget));
+gdis_gl_report_context(context);
 
 return(TRUE);
 #else
@@ -126,6 +202,24 @@ if (!glcontext || !gldrawable)
   return(FALSE);
 
 return(gdk_gl_drawable_gl_begin(gldrawable, glcontext));
+#endif
+}
+
+gboolean gdis_gl_context_is_legacy(GtkWidget *widget)
+{
+#if GTK_MAJOR_VERSION >= 3
+GdkGLContext *context;
+
+g_return_val_if_fail(GTK_IS_GL_AREA(widget), TRUE);
+
+context = gtk_gl_area_get_context(GTK_GL_AREA(widget));
+if (!context)
+  return(FALSE);
+
+return(gdk_gl_context_is_legacy(context));
+#else
+(void) widget;
+return(TRUE);
 #endif
 }
 
@@ -147,8 +241,7 @@ if (gldrawable)
 void gdis_gl_swap_buffers(GtkWidget *widget)
 {
 #if GTK_MAJOR_VERSION >= 3
-if (GTK_IS_GL_AREA(widget))
-  gtk_gl_area_queue_render(GTK_GL_AREA(widget));
+(void) widget;
 #else
 GdkGLDrawable *gldrawable;
 
@@ -192,7 +285,17 @@ if (gldrawable)
 
 GdkWindow *gdis_gl_get_window(GtkWidget *widget)
 {
-#if GTK_MAJOR_VERSION >= 3
+#if GTK_MAJOR_VERSION >= 4
+GtkNative *native;
+
+g_return_val_if_fail(GTK_IS_WIDGET(widget), NULL);
+
+native = gtk_widget_get_native(widget);
+if (!native)
+  return(NULL);
+
+return((GdkWindow *) gtk_native_get_surface(native));
+#elif GTK_MAJOR_VERSION >= 3
 g_return_val_if_fail(GTK_IS_WIDGET(widget), NULL);
 
 return(gtk_widget_get_window(widget));

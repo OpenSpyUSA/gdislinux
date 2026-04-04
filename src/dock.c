@@ -485,7 +485,7 @@ window = dialog_window(dialog);
 
 /* title display */
 frame = gtk_frame_new(NULL);
-gtk_box_pack_start(GTK_BOX(GTK_DIALOG(window)->vbox), frame, FALSE, FALSE, 0);
+gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)), frame, FALSE, FALSE, 0);
 vbox = gtk_vbox_new(TRUE, 0);
 gtk_container_add(GTK_CONTAINER(frame), vbox);
 
@@ -500,7 +500,7 @@ g_free(text);
 
 /* NEW - split pane display */
 hbox2 = gtk_hbox_new(FALSE, 0);
-gtk_box_pack_start(GTK_BOX(GTK_DIALOG(window)->vbox), hbox2, TRUE, TRUE, 0);
+gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)), hbox2, TRUE, TRUE, 0);
 vbox_left = gtk_vbox_new(FALSE, 0);
 gtk_box_pack_start(GTK_BOX(hbox2), vbox_left, FALSE, FALSE, PANEL_SPACING);
 vbox_right = gtk_vbox_new(FALSE, 0);
@@ -583,10 +583,9 @@ gtk_widget_set_sensitive(GTK_WIDGET(vbox), FALSE);
 
 /* control buttons */
 gui_stock_button(GTK_STOCK_EXECUTE, docking_project_create, model,
-                   GTK_DIALOG(window)->action_area);
+                   GDIS_DIALOG_ACTIONS(window));
 gui_stock_button(GTK_STOCK_CLOSE, dialog_destroy, dialog,
-                   GTK_DIALOG(window)->action_area);
+                   GDIS_DIALOG_ACTIONS(window));
 
 gtk_widget_show_all(window);
 }
-

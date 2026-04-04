@@ -55,6 +55,7 @@ GLdouble *vertices;
 GLdouble *new_vertices;
 GLdouble *normals;
 */
+GLfloat *template_interleaved;
 GLfloat *interleaved;
 
 GLdouble *colours;
@@ -81,6 +82,7 @@ va->vertices = NULL;
 va->new_vertices = NULL;
 va->normals = NULL;
 */
+va->template_interleaved = NULL;
 va->interleaved = NULL;
 
 va->colours = NULL;
@@ -102,10 +104,25 @@ g_free(va->new_vertices);
 g_free(va->normals);
 */
 
+g_free(va->template_interleaved);
 g_free(va->interleaved);
 
 g_free(va->colours);
 g_free(va);
+}
+
+static void va_clear_geometry(struct varray_pak *va)
+{
+g_return_if_fail(va != NULL);
+
+g_free(va->indices);
+va->indices = NULL;
+g_free(va->template_interleaved);
+va->template_interleaved = NULL;
+g_free(va->interleaved);
+va->interleaved = NULL;
+va->num_indices = 0;
+va->num_vertices = 0;
 }
 
 
@@ -237,95 +254,205 @@ printf("\n");
 #define DEBUG_MAKE_SPHERE 0
 void va_make_sphere(gpointer ptr_varray)
 {
-gint i, j, k, n;
-gdouble layers, divisions, alpha, beta, phi, theta, sp, cp, st, ct;
+gint i, j, k;
+gint quality;
+gint stacks, slices;
+gint row0, row1;
+gdouble phi, theta, sp, cp, st, ct;
 struct varray_pak *va = ptr_varray;
 
+g_return_if_fail(va != NULL);
+
+quality = nearest_int(sysenv.render.sphere_quality);
+if (quality < 0)
+  quality = 0;
+
+stacks = 6 + 2*quality;
+slices = 2*stacks;
+
+va_clear_geometry(va);
+
 va->gl_method = GL_TRIANGLES;
-
-/* number of layers - azimuthal sweep */
-layers = sysenv.render.sphere_quality+1.0;
-alpha = 0.5*G_PI/layers;
-
-/* alloc */
-n=0;
-for (i=0 ; i<(gint) 1.0+layers ; i++)
-  n += i;
-n *= 6;
-n++;
-
-/* TODO - index & vertices depend on quality */
-/*
-sysenv.render.sphere_quality;
-*/
-
-/* setup indices */
-va_generate_indices(layers, va);
-/*
-va->num_indices = 18;
+va->num_vertices = (stacks + 1) * (slices + 1);
+va->num_indices = stacks * slices * 6;
+va->template_interleaved = g_malloc0(6 * va->num_vertices * sizeof(GLfloat));
+va->interleaved = g_malloc0(6 * va->num_vertices * sizeof(GLfloat));
 va->indices = g_malloc(va->num_indices * sizeof(GLuint));
-memcpy(va->indices, sphere_indices, va->num_indices*sizeof(GLuint));
-*/
 
-/* setup vertices and normals */
-va->num_vertices = n;
-/*
-va->vertices = g_malloc(3 * n * sizeof(GLdouble));
-va->new_vertices = g_malloc(3 * n * sizeof(GLdouble));
-va->normals = g_malloc(3 * n * sizeof(GLdouble));
-*/
-va->interleaved = g_malloc(6 * n * sizeof(GLfloat));
-
-
-/* initial vertex */
-VEC3SET((va->interleaved), 0.0, 0.0, -1.0);
-VEC3SET((va->interleaved+3), 0.0, 0.0, -1.0);
-
-/* compute vertices */
-k = 2;
-for (i=1 ; i<(gint) 1.0+layers ; i++)
+k = 0;
+for (i=0 ; i<=stacks ; i++)
   {
-#if DEBUG_MAKE_SPHERE
-printf("[%d/%d]\n", i, (gint) layers);
-#endif
+  phi = G_PI * (gdouble) i / (gdouble) stacks;
+  sp = sin(phi);
+  cp = cos(phi);
 
-  phi = i*alpha;
-  sp = tbl_sin(phi);
-  cp = tbl_cos(phi);
-
-/* divisions at this level - hexagonal sweep */
-  divisions = i*6.0;
-  beta = 2.0*G_PI/divisions;
-  for (j=0 ; j<(gint) divisions ; j++)
+  for (j=0 ; j<=slices ; j++)
     {
-    theta = j*beta;
-    st = tbl_sin(theta);
-    ct = tbl_cos(theta);
+    theta = 2.0 * G_PI * (gdouble) j / (gdouble) slices;
+    st = sin(theta);
+    ct = cos(theta);
 
-    VEC3SET((va->interleaved+3*k), ct*sp, st*sp, -cp);
+    va->template_interleaved[6*k+0] = ct*sp;
+    va->template_interleaved[6*k+1] = st*sp;
+    va->template_interleaved[6*k+2] = -cp;
+    va->template_interleaved[6*k+3] = va->template_interleaved[6*k+0];
+    va->template_interleaved[6*k+4] = va->template_interleaved[6*k+1];
+    va->template_interleaved[6*k+5] = va->template_interleaved[6*k+2];
     k++;
-    VEC3SET((va->interleaved+3*k), ct*sp, st*sp, -cp);
-    k++;
+    }
+  }
 
-#if DEBUG_MAKE_SPHERE
-printf("%7.4f %7.4f %7.4f\n", ct*sp, st*sp, -cp);
-#endif
+memcpy(va->interleaved, va->template_interleaved,
+       6 * va->num_vertices * sizeof(GLfloat));
+
+k = 0;
+for (i=0 ; i<stacks ; i++)
+  {
+  row0 = i * (slices + 1);
+  row1 = (i + 1) * (slices + 1);
+
+  for (j=0 ; j<slices ; j++)
+    {
+    va->indices[k++] = row0 + j;
+    va->indices[k++] = row1 + j;
+    va->indices[k++] = row1 + j + 1;
+    va->indices[k++] = row0 + j;
+    va->indices[k++] = row1 + j + 1;
+    va->indices[k++] = row0 + j + 1;
     }
   }
 
 #if DEBUG_MAKE_SPHERE
-printf("k = %d, n = %d\n", k, n);
+printf("stacks = %d, slices = %d, vertices = %d, indices = %d\n",
+       stacks, slices, va->num_vertices, va->num_indices);
 #endif
-
-/*
-memcpy(va->normals, va->vertices, 3*n*sizeof(GLdouble));
-*/
 }
 
-/*********************/
-/* drawing primitive */
-/*********************/
-void va_draw_sphere(gpointer ptr_varray, gdouble *x, gdouble r)
+/*********************************/
+/* cylinder array initialization */
+/*********************************/
+void va_make_cylinder(gpointer ptr_varray)
+{
+gint i, k;
+gint quality;
+gint slices;
+gint side_base, bottom_base, top_base;
+gint bottom_center, top_center;
+struct varray_pak *va = ptr_varray;
+
+g_return_if_fail(va != NULL);
+
+quality = nearest_int(sysenv.render.cylinder_quality);
+if (quality < 4)
+  quality = 4;
+if (quality > 64)
+  quality = 64;
+
+slices = quality;
+
+va_clear_geometry(va);
+
+va->gl_method = GL_TRIANGLES;
+va->num_vertices = 4 * (slices + 1) + 2;
+va->num_indices = slices * 12;
+va->template_interleaved = g_malloc0(6 * va->num_vertices * sizeof(GLfloat));
+va->interleaved = g_malloc0(6 * va->num_vertices * sizeof(GLfloat));
+va->indices = g_malloc(va->num_indices * sizeof(GLuint));
+
+side_base = 0;
+bottom_base = 2 * (slices + 1);
+top_base = bottom_base + (slices + 1);
+bottom_center = top_base + (slices + 1);
+top_center = bottom_center + 1;
+
+for (i=0 ; i<=slices ; i++)
+  {
+  gdouble theta;
+  gdouble st, ct;
+
+  theta = 2.0 * G_PI * (gdouble) i / (gdouble) slices;
+  st = sin(theta);
+  ct = cos(theta);
+
+  k = side_base + 2*i;
+  va->template_interleaved[6*k+0] = ct;
+  va->template_interleaved[6*k+1] = st;
+  va->template_interleaved[6*k+2] = 0.0f;
+  va->template_interleaved[6*k+3] = ct;
+  va->template_interleaved[6*k+4] = st;
+  va->template_interleaved[6*k+5] = 0.0f;
+
+  k++;
+  va->template_interleaved[6*k+0] = ct;
+  va->template_interleaved[6*k+1] = st;
+  va->template_interleaved[6*k+2] = 1.0f;
+  va->template_interleaved[6*k+3] = ct;
+  va->template_interleaved[6*k+4] = st;
+  va->template_interleaved[6*k+5] = 0.0f;
+
+  k = bottom_base + i;
+  va->template_interleaved[6*k+0] = ct;
+  va->template_interleaved[6*k+1] = st;
+  va->template_interleaved[6*k+2] = 0.0f;
+  va->template_interleaved[6*k+3] = 0.0f;
+  va->template_interleaved[6*k+4] = 0.0f;
+  va->template_interleaved[6*k+5] = -1.0f;
+
+  k = top_base + i;
+  va->template_interleaved[6*k+0] = ct;
+  va->template_interleaved[6*k+1] = st;
+  va->template_interleaved[6*k+2] = 1.0f;
+  va->template_interleaved[6*k+3] = 0.0f;
+  va->template_interleaved[6*k+4] = 0.0f;
+  va->template_interleaved[6*k+5] = 1.0f;
+  }
+
+va->template_interleaved[6*bottom_center+0] = 0.0f;
+va->template_interleaved[6*bottom_center+1] = 0.0f;
+va->template_interleaved[6*bottom_center+2] = 0.0f;
+va->template_interleaved[6*bottom_center+3] = 0.0f;
+va->template_interleaved[6*bottom_center+4] = 0.0f;
+va->template_interleaved[6*bottom_center+5] = -1.0f;
+
+va->template_interleaved[6*top_center+0] = 0.0f;
+va->template_interleaved[6*top_center+1] = 0.0f;
+va->template_interleaved[6*top_center+2] = 1.0f;
+va->template_interleaved[6*top_center+3] = 0.0f;
+va->template_interleaved[6*top_center+4] = 0.0f;
+va->template_interleaved[6*top_center+5] = 1.0f;
+
+memcpy(va->interleaved, va->template_interleaved,
+       6 * va->num_vertices * sizeof(GLfloat));
+
+k = 0;
+for (i=0 ; i<slices ; i++)
+  {
+  gint row0, row1;
+
+  row0 = side_base + 2*i;
+  row1 = side_base + 2*(i+1);
+
+  va->indices[k++] = row0;
+  va->indices[k++] = row0 + 1;
+  va->indices[k++] = row1 + 1;
+  va->indices[k++] = row0;
+  va->indices[k++] = row1 + 1;
+  va->indices[k++] = row1;
+
+  va->indices[k++] = bottom_center;
+  va->indices[k++] = bottom_base + i + 1;
+  va->indices[k++] = bottom_base + i;
+
+  va->indices[k++] = top_center;
+  va->indices[k++] = top_base + i;
+  va->indices[k++] = top_base + i + 1;
+  }
+}
+
+/****************************/
+/* prepare sphere positions */
+/****************************/
+void va_prepare_sphere(gpointer ptr_varray, gdouble *x, gdouble r)
 {
 gint i;
 GLfloat *interleaved;
@@ -333,17 +460,150 @@ struct varray_pak *va = ptr_varray;
 
 /* setup vertex/normal arrays */
 interleaved = va->interleaved;
-/*
-memcpy(vertices, va->vertices, 3*va->num_vertices*sizeof(GLdouble));
-*/
+g_return_if_fail(va->template_interleaved != NULL);
 
 /* expand to required radius and move to desired location */
 for (i=va->num_vertices ; i-- ; )
   {
-  ARR3SET((interleaved+6*i), (va->interleaved+6*i+3));
+  ARR3SET((interleaved+6*i), (va->template_interleaved+6*i));
   VEC3MUL((interleaved+6*i), r);
   ARR3ADD((interleaved+6*i), x);
+  ARR3SET((interleaved+6*i+3), (va->template_interleaved+6*i+3));
   }
+}
+
+/******************************/
+/* prepare cylinder positions */
+/******************************/
+void va_prepare_cylinder(gpointer ptr_varray, gdouble *v1, gdouble *v2, gdouble r)
+{
+gint i;
+gdouble axis[3], p[3], q[3], pos[3], normal[3];
+gdouble len;
+GLfloat *interleaved;
+GLfloat *base;
+struct varray_pak *va = ptr_varray;
+
+g_return_if_fail(va != NULL);
+g_return_if_fail(v1 != NULL);
+g_return_if_fail(v2 != NULL);
+g_return_if_fail(va->template_interleaved != NULL);
+
+interleaved = va->interleaved;
+
+ARR3SET(axis, v2);
+ARR3SUB(axis, v1);
+len = VEC3MAG(axis);
+if (len < FRACTION_TOLERANCE)
+  {
+  for (i=0 ; i<va->num_vertices ; i++)
+    {
+    ARR3SET((interleaved+6*i), v1);
+    ARR3SET((interleaved+6*i+3), (va->template_interleaved+6*i+3));
+    }
+  return;
+  }
+
+normalize(axis, 3);
+
+VEC3SET(p, 1.0, 1.0, 1.0);
+crossprod(q, p, axis);
+if (VEC3MAGSQ(q) < FRACTION_TOLERANCE)
+  {
+  VEC3SET(p, 0.0, 1.0, 0.0);
+  crossprod(q, p, axis);
+  if (VEC3MAGSQ(q) < FRACTION_TOLERANCE)
+    {
+    VEC3SET(p, 0.0, 0.0, 1.0);
+    crossprod(q, p, axis);
+    }
+  }
+crossprod(p, axis, q);
+normalize(p, 3);
+normalize(q, 3);
+
+for (i=0 ; i<va->num_vertices ; i++)
+  {
+  base = va->template_interleaved + 6*i;
+  pos[0] = v1[0] + r * (base[0] * p[0] + base[1] * q[0])
+                 + len * base[2] * axis[0];
+  pos[1] = v1[1] + r * (base[0] * p[1] + base[1] * q[1])
+                 + len * base[2] * axis[1];
+  pos[2] = v1[2] + r * (base[0] * p[2] + base[1] * q[2])
+                 + len * base[2] * axis[2];
+
+  normal[0] = base[3] * p[0] + base[4] * q[0] + base[5] * axis[0];
+  normal[1] = base[3] * p[1] + base[4] * q[1] + base[5] * axis[1];
+  normal[2] = base[3] * p[2] + base[4] * q[2] + base[5] * axis[2];
+  if (VEC3MAGSQ(normal) > FRACTION_TOLERANCE)
+    normalize(normal, 3);
+  else
+    ARR3SET(normal, axis);
+
+  ARR3SET((interleaved+6*i), pos);
+  ARR3SET((interleaved+6*i+3), normal);
+  }
+}
+
+/*******************/
+/* mesh accessors */
+/*******************/
+gint va_get_gl_method(gpointer ptr_varray)
+{
+struct varray_pak *va = ptr_varray;
+
+g_return_val_if_fail(va != NULL, 0);
+
+return(va->gl_method);
+}
+
+gint va_get_num_vertices(gpointer ptr_varray)
+{
+struct varray_pak *va = ptr_varray;
+
+g_return_val_if_fail(va != NULL, 0);
+
+return(va->num_vertices);
+}
+
+gint va_get_num_indices(gpointer ptr_varray)
+{
+struct varray_pak *va = ptr_varray;
+
+g_return_val_if_fail(va != NULL, 0);
+
+return(va->num_indices);
+}
+
+gconstpointer va_get_interleaved(gpointer ptr_varray)
+{
+struct varray_pak *va = ptr_varray;
+
+g_return_val_if_fail(va != NULL, NULL);
+
+return(va->interleaved);
+}
+
+gconstpointer va_get_indices(gpointer ptr_varray)
+{
+struct varray_pak *va = ptr_varray;
+
+g_return_val_if_fail(va != NULL, NULL);
+
+return(va->indices);
+}
+
+/*********************/
+/* drawing primitive */
+/*********************/
+void va_draw_sphere(gpointer ptr_varray, gdouble *x, gdouble r)
+{
+GLfloat *interleaved;
+struct varray_pak *va = ptr_varray;
+
+va_prepare_sphere(ptr_varray, x, r);
+
+interleaved = va->interleaved;
 
 /* draw vertex array */
 /*
@@ -358,4 +618,3 @@ glNormalPointer(GL_FLOAT, 6*sizeof(GLfloat), &interleaved[3]);
 
 glDrawElements(va->gl_method, va->num_indices, GL_UNSIGNED_INT, va->indices);
 }
-

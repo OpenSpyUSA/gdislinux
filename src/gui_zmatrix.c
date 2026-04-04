@@ -570,7 +570,7 @@ gtk_window_set_default_size(GTK_WINDOW(window), -1, 600);
 
 
 /* units information */
-vbox = gui_frame_vbox(NULL, FALSE, FALSE, GTK_DIALOG(window)->vbox);
+vbox = gui_frame_vbox(NULL, FALSE, FALSE, GDIS_DIALOG_CONTENTS(window));
 
 hbox = gtk_hbox_new(FALSE, 0);
 gtk_box_pack_start(GTK_BOX(vbox), hbox, TRUE, TRUE, 0);
@@ -590,7 +590,7 @@ gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 0);
 
 
 /* main display */
-vbox = gui_frame_vbox(NULL, TRUE, TRUE, GTK_DIALOG(window)->vbox);
+vbox = gui_frame_vbox(NULL, TRUE, TRUE, GDIS_DIALOG_CONTENTS(window));
 
 gui_zmatrix_widget(vbox, dialog);
 

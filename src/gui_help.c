@@ -440,7 +440,7 @@ gtk_window_set_default_size(GTK_WINDOW(window), 800, 500);
 
 /* split pane display */
 hbox = gtk_hbox_new(FALSE, 0);
-gtk_box_pack_start(GTK_BOX(GTK_DIALOG(window)->vbox), hbox, TRUE, TRUE, 1);
+gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)), hbox, TRUE, TRUE, 1);
 
 /* left pane - topics browser */
 swin = gtk_scrolled_window_new(NULL, NULL);
@@ -501,7 +501,7 @@ g_signal_connect(G_OBJECT(select), "changed",
 
 /* terminating button */
 gui_stock_button(GTK_STOCK_CLOSE, dialog_destroy, dialog,
-                   GTK_DIALOG(window)->action_area);
+                   GDIS_DIALOG_ACTIONS(window));
 
 /* populate the manual page */
 gui_help_refresh(list);

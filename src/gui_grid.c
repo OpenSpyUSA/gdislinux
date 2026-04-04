@@ -1102,7 +1102,7 @@ if (!dialog)
 window = dialog_window(dialog);
 
 vbox = gtk_vbox_new(FALSE, PANEL_SPACING);
-gtk_container_add(GTK_CONTAINER(GTK_DIALOG(window)->vbox), vbox);
+gtk_container_add(GTK_CONTAINER(GDIS_DIALOG_CONTENTS(window)), vbox);
 
 gtk_widget_set_size_request(window, -1, 440);
 
@@ -1147,7 +1147,7 @@ gtk_entry_set_editable(GTK_ENTRY(grid_status_bar), FALSE);
 gtk_box_pack_end(GTK_BOX(vbox), grid_status_bar, FALSE, FALSE, 0);
 
 /* TODO - disallow even X close button if in the middle of a grid operation */
-gui_stock_button(GTK_STOCK_CLOSE, gui_grid_close, dialog, GTK_DIALOG(window)->action_area);
+gui_stock_button(GTK_STOCK_CLOSE, gui_grid_close, dialog, GDIS_DIALOG_ACTIONS(window));
 
 gtk_widget_show_all(window);
 

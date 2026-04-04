@@ -747,7 +747,7 @@ gtk_window_set_default_size(GTK_WINDOW(window), 600, 600);
 //GtkWidget *hbox;
 //
 //hbox = gtk_hbox_new(FALSE, 0);
-//gtk_box_pack_start(GTK_BOX(GTK_DIALOG(window)->vbox), hbox, FALSE, FALSE, 0); 
+//gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)), hbox, FALSE, FALSE, 0);
 //gtk_container_set_border_width(GTK_CONTAINER(hbox), PANEL_SPACING);
 //gui_direct_spin("Maximum number of running tasks", &max_threads, 1, 32, 1, NULL, NULL, hbox);
 
@@ -757,7 +757,7 @@ gtk_widget_set_sensitive(GTK_WIDGET(hbox), FALSE);
 
 /* job list frame */
 frame = gtk_frame_new(NULL);
-gtk_box_pack_start(GTK_BOX(GTK_DIALOG(window)->vbox), frame, TRUE, TRUE, 0); 
+gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)), frame, TRUE, TRUE, 0);
 gtk_container_set_border_width(GTK_CONTAINER(frame), PANEL_SPACING);
 /* create a vbox in the frame */
 vbox = gtk_vbox_new(FALSE, PANEL_SPACING/2);
@@ -809,19 +809,19 @@ gtk_container_add(GTK_CONTAINER(swin), task_text_view);
 /* control buttons */
 gui_icon_button(GTK_STOCK_REMOVE, "Kill selected",
                   task_kill_selected, NULL,
-                  GTK_DIALOG(window)->action_area);
+                  GDIS_DIALOG_ACTIONS(window));
 
 gui_icon_button(GTK_STOCK_DELETE, "Kill all",
                   task_kill_all, NULL,
-                  GTK_DIALOG(window)->action_area);
+                  GDIS_DIALOG_ACTIONS(window));
 
 gui_icon_button(GTK_STOCK_CLEAR, "Remove completed",
                   task_remove_completed, NULL,
-                  GTK_DIALOG(window)->action_area);
+                  GDIS_DIALOG_ACTIONS(window));
 
 gui_stock_button(GTK_STOCK_CLOSE,
                    dialog_destroy, dialog,
-                   GTK_DIALOG(window)->action_area);
+                   GDIS_DIALOG_ACTIONS(window));
 
 /* done */
 gtk_widget_show_all(window);

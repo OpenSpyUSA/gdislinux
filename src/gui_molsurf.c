@@ -62,6 +62,20 @@ gpointer pulldown_colour;
 GtkWidget *epot_vbox, *surf_epot_min, *surf_epot_max, *surf_epot_div;
 GtkWidget *epot_pts;
 
+static void ms_update_epot_sensitivity(void)
+{
+gboolean sensitive;
+struct model_pak *model;
+
+model = sysenv.active_model;
+sensitive = (ms_colour == MS_EPOT);
+if (model && model->epot_autoscale)
+  sensitive = FALSE;
+
+if (epot_vbox)
+  gtk_widget_set_sensitive(epot_vbox, sensitive);
+}
+
 /***************************************/
 /* setup and run a surface calculation */
 /***************************************/
@@ -76,9 +90,8 @@ struct model_pak *model;
 model = sysenv.active_model;
 g_assert(model != NULL);
 
-/*
 spatial_destroy_by_label("molsurf", model);
-*/
+model->ms_colour_scale = FALSE;
 
 /* get colouring type */
 tmp = gui_pulldown_text(pulldown_colour);
@@ -171,7 +184,7 @@ const gchar *tmp;
 
 g_assert(entry != NULL);
 
-tmp = gtk_entry_get_text(GTK_ENTRY(entry));
+tmp = gui_pulldown_text(entry);
 
 ms_method = MS_MOLECULAR;
 if (g_ascii_strncasecmp(tmp, "Electron dens", 13) == 0)
@@ -187,18 +200,15 @@ redraw_canvas(ALL);
 /*******************************************/
 /* Molecular surface colour mode selection */
 /*******************************************/
-/*
 void ms_colour_mode(GtkWidget *entry)
 {
 const gchar *tmp;
 
 g_assert(entry != NULL);
 
-tmp = gtk_entry_get_text(GTK_ENTRY(entry));
+tmp = gui_pulldown_text(entry);
 
-gtk_widget_set_sensitive(epot_vbox, FALSE);
-
-if (g_ascii_strncasecmp(tmp,"Nearest atom", 12) == 0)
+if (g_ascii_strncasecmp(tmp,"Default", 7) == 0)
   ms_colour = MS_TOUCH;
 if (g_ascii_strncasecmp(tmp,"AFM", 3) == 0)
   ms_colour = MS_AFM;
@@ -207,22 +217,26 @@ if (g_ascii_strncasecmp(tmp,"Electrostatic", 13) == 0)
   ms_colour = MS_EPOT;
   gtk_widget_set_sensitive(epot_vbox, TRUE);
   }
+if (g_ascii_strncasecmp(tmp,"Curvedness", 10) == 0)
+  ms_colour = MS_CURVEDNESS;
+if (g_ascii_strncasecmp(tmp,"Shape Index", 11) == 0)
+  ms_colour = MS_SHAPE_INDEX;
+if (g_ascii_strncasecmp(tmp,"De", 2) == 0)
+  ms_colour = MS_DE;
 if (g_ascii_strncasecmp(tmp,"Hirshfeld", 9) == 0)
   ms_colour = MS_HIRSHFELD;
 
+ms_update_epot_sensitivity();
+
 redraw_canvas(ALL);
 }
-*/
 
 /************************************************************/
 /* callback to update electrostatic autoscaling sensitivity */
 /************************************************************/
 void gui_epot_scale_sensitive(GtkWidget *w, gpointer data)
 {
-if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(w)))
-  gtk_widget_set_sensitive(epot_vbox, FALSE);
-else
-  gtk_widget_set_sensitive(epot_vbox, TRUE);
+ms_update_epot_sensitivity();
 }
 
 /***************************/
@@ -251,7 +265,7 @@ window = dialog_window(dialog);
 
 /* isosurface type */
 frame = gtk_frame_new(NULL);
-gtk_box_pack_start(GTK_BOX(GTK_DIALOG(window)->vbox),frame,FALSE,FALSE,0); 
+gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)),frame,FALSE,FALSE,0);
 gtk_container_set_border_width(GTK_CONTAINER(frame), PANEL_SPACING);
 vbox = gtk_vbox_new(FALSE, PANEL_SPACING);
 gtk_container_add(GTK_CONTAINER(frame), vbox);
@@ -284,12 +298,12 @@ list = g_list_prepend(list, "Shape Index");
 list = g_list_prepend(list, "De");
 list = g_list_reverse(list);
 pulldown_colour = gui_pulldown_new("Colour method", list, FALSE, hbox);
-/* redo when colour mode changes can be done without recalculating */
-/* TODO: reconnect ms_colour_mode once the UI path is re-enabled. */
+g_signal_connect(GTK_OBJECT(pulldown_colour), "changed",
+                 GTK_SIGNAL_FUNC(ms_colour_mode), NULL);
 
 /* frame for spinner setup */
 frame = gtk_frame_new(NULL);
-gtk_box_pack_start(GTK_BOX(GTK_DIALOG(window)->vbox),frame,FALSE,FALSE,0); 
+gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)),frame,FALSE,FALSE,0);
 vbox = gtk_vbox_new(FALSE, PANEL_SPACING);
 gtk_container_add(GTK_CONTAINER(frame), vbox);
 gtk_container_set_border_width(GTK_CONTAINER(frame), PANEL_SPACING);
@@ -344,15 +358,15 @@ g_free(text);
 
 /* make, hide, close - terminating buttons */
 gui_stock_button(GTK_STOCK_EXECUTE, ms_calculate, NULL,
-                   GTK_DIALOG(window)->action_area);
+                   GDIS_DIALOG_ACTIONS(window));
 
 gui_stock_button(GTK_STOCK_REMOVE, ms_delete, NULL,
-                   GTK_DIALOG(window)->action_area);
+                   GDIS_DIALOG_ACTIONS(window));
 
 gui_stock_button(GTK_STOCK_CLOSE, dialog_destroy, dialog,
-                   GTK_DIALOG(window)->action_area);
+                   GDIS_DIALOG_ACTIONS(window));
 
 /* done */
 gtk_widget_show_all(window);
-gtk_widget_set_sensitive(epot_vbox, FALSE);
+ms_update_epot_sensitivity();
 }

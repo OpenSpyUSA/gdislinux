@@ -13,13 +13,13 @@ case "$GTK_TARGET" in
     ;;
   gtk3)
     DEFAULT_BASE_PKG_CONFIG_PACKAGES="gtk+-3.0 gthread-2.0 gmodule-2.0"
-    DEFAULT_GUI_PKG_CONFIG_PACKAGES="$DEFAULT_BASE_PKG_CONFIG_PACKAGES"
-    UBUNTU_PACKAGES=(build-essential pkg-config libgtk-3-dev)
+    DEFAULT_GUI_PKG_CONFIG_PACKAGES="$DEFAULT_BASE_PKG_CONFIG_PACKAGES gl glu epoxy"
+    UBUNTU_PACKAGES=(build-essential pkg-config libgtk-3-dev libgl1-mesa-dev libglu1-mesa-dev libepoxy-dev)
     ;;
   gtk4)
     DEFAULT_BASE_PKG_CONFIG_PACKAGES="gtk4 gthread-2.0 gmodule-2.0"
-    DEFAULT_GUI_PKG_CONFIG_PACKAGES="$DEFAULT_BASE_PKG_CONFIG_PACKAGES"
-    UBUNTU_PACKAGES=(build-essential pkg-config libgtk-4-dev)
+    DEFAULT_GUI_PKG_CONFIG_PACKAGES="$DEFAULT_BASE_PKG_CONFIG_PACKAGES gl glu epoxy"
+    UBUNTU_PACKAGES=(build-essential pkg-config libgtk-4-dev libgl1-mesa-dev libglu1-mesa-dev libepoxy-dev)
     ;;
   *)
     echo "Unsupported GDIS_GTK_TARGET: $GTK_TARGET" >&2
@@ -46,6 +46,9 @@ pkg_map=(
   "gtk+-2.0:libgtk2.0-dev"
   "gtk+-3.0:libgtk-3-dev"
   "gtk4:libgtk-4-dev"
+  "gl:libgl1-mesa-dev"
+  "glu:libglu1-mesa-dev"
+  "epoxy:libepoxy-dev"
   "gthread-2.0:libglib2.0-dev"
   "gmodule-2.0:libglib2.0-dev"
   "gtkglext-1.0:libgtkglext1-dev"
@@ -92,7 +95,7 @@ fi
 
 echo "GTK target: $GTK_TARGET"
 if [[ "$GTK_TARGET" == "gtk4" ]]; then
-  echo "GTK4 support is currently experimental. Dialog and container scaffolding is in place, but menus and toolbars still need porting."
+  echo "GTK4 support is still experimental. The current renewal build has a compact menu shim plus a modern core renderer for atoms, bond/stick geometry, cell frames, graph plots/text, iso-surfaces, and several overlays, while some legacy overlays and interaction paths still need porting."
 fi
 
 cd "$ROOT_DIR"

@@ -423,19 +423,19 @@ _Pragma ("GCC warning \"use of GTK COMBO interface is deprecated!\"");\
 #define GUI_TOGGLE_OFF(button) gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(button),FALSE)
 /*insert a frame (frame) in a dialog (window) using an implicit vertical box.*/
 #define GUI_FRAME_WINDOW(window,frame) do{\
-	GUI_FRAME_BOX(GTK_DIALOG(window)->vbox,frame);\
+	GUI_FRAME_BOX(GDIS_DIALOG_CONTENTS(window),frame);\
 }while(0)
 /*add a save action button (button) connected to function (function) passing data (data) on the dialog (window).*/
 #define GUI_SAVE_ACTION(window,button,function,data) do{\
-	button=gui_stock_button(GTK_STOCK_SAVE,function,data,GTK_DIALOG(window)->action_area);\
+	button=gui_stock_button(GTK_STOCK_SAVE,function,data,GDIS_DIALOG_ACTIONS(window));\
 }while(0)
 /*add an execute action button (button) connected to function (function) passing data (data) on the dialog (window).*/ 
 #define GUI_EXEC_ACTION(window,button,function,data) do{\
-	button=gui_stock_button(GTK_STOCK_EXECUTE,function,data,GTK_DIALOG(window)->action_area);\
+	button=gui_stock_button(GTK_STOCK_EXECUTE,function,data,GDIS_DIALOG_ACTIONS(window));\
 }while(0)
 /*add a close action button (button) connected to function (function) passing data (data) on the dialog (window).*/
 #define GUI_CLOSE_ACTION(window,button,function,data) do{\
-	button=gui_stock_button(GTK_STOCK_CLOSE,function,data,GTK_DIALOG(window)->action_area);\
+	button=gui_stock_button(GTK_STOCK_CLOSE,function,data,GDIS_DIALOG_ACTIONS(window));\
 }while(0)
 /*prepare an open-dialog (open_dialog) in the window (window) with the title (title) and an implicit filter with pattern (filter_pattern) and filter title (filter_caption).*/
 #define GUI_PREPARE_OPEN_DIALOG(window,open_dialog,title,filter_pattern,filter_caption) do{\

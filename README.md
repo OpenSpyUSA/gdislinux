@@ -17,9 +17,15 @@ Original authorship remains credited to Sean Fleming and Andrew Rohl.
 
 ### Current Status
 
-- The codebase currently targets `gtk+2` and `gtkglext`.
+- The current stable runtime target is `gtk+2` plus `gtkglext`.
 - It builds successfully on Ubuntu 24.04 with the legacy development packages
   installed.
+- The GTK3 renewal branch now builds and launches against `GtkGLArea`, with a
+  limited core-profile renderer that shows atom views while legacy-only
+  features are still being ported.
+- The GTK4 renewal branch now builds and launches with a compact compatibility
+  menu layer and the same limited atom renderer, so the molecule view is
+  visible again instead of blank.
 - The project should be treated as a maintenance fork candidate because the GUI
   stack depends on aging toolkit packages that are increasingly fragile on
   modern distributions.
@@ -27,6 +33,8 @@ Original authorship remains credited to Sean Fleming and Andrew Rohl.
   launching, and optional tool verification.
 - A staged modernization plan lives in
   [`docs/modernization-roadmap.md`](docs/modernization-roadmap.md).
+- A renderer-specific blocker audit lives in
+  [`docs/renderer-audit.md`](docs/renderer-audit.md).
 - A practical GitHub publishing guide lives in
   [`docs/github-fork-guide.md`](docs/github-fork-guide.md).
 
@@ -38,6 +46,36 @@ For a local build into `bin/gdis`:
 ./rebuild-ubuntu.sh
 ```
 
+For a Meson/Ninja build into `bin/gdis`:
+
+```bash
+./rebuild-meson.sh
+```
+
+For the experimental GTK4 renewal build:
+
+```bash
+GDIS_GTK_TARGET=gtk4 ./rebuild-ubuntu.sh
+```
+
+For the intermediate GTK3 renewal build:
+
+```bash
+GDIS_GTK_TARGET=gtk3 ./rebuild-ubuntu.sh
+```
+
+If you do not have `sudo`, you can build the GTK3 branch with a project-local
+sysroot:
+
+```bash
+./build-gtk3-local.sh
+```
+
+Each rebuild also saves a target-specific executable such as `bin/gdis-gtk2`,
+`bin/gdis-gtk3`, or `bin/gdis-gtk4`. Plain `./rebuild-ubuntu.sh` defaults to
+GTK2. The `./build-gtk3-local.sh` helper keeps `bin/gdis-gtk2` as the default
+`bin/gdis` when that stable build is already present.
+
 To override the pkg-config module set for an experimental backend branch:
 
 ```bash
@@ -47,13 +85,59 @@ GDIS_GUI_PKG_CONFIG_PACKAGES="gtk+-2.0 gthread-2.0 gmodule-2.0 gtkglext-1.0" ./r
 To launch the main application:
 
 ```bash
-./bin/gdis
+./run-gdis.sh
 ```
 
 To launch a curated example:
 
 ```bash
 ./run-example.sh methane
+```
+
+To launch a real USPEX results bundle:
+
+```bash
+./run-uspex-output.sh /path/to/results-dir
+./run-uspex-output.sh /path/to/results-dir/OUTPUT.txt
+```
+
+To launch an example with a specific target build:
+
+```bash
+./run-example.sh --gtk4 methane
+```
+
+For reliable interactive use today, prefer GTK2:
+
+```bash
+./run-gdis.sh --gtk2
+./run-example.sh --gtk2 methane
+```
+
+To exercise the modern renderer on GTK4:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y libgtk-4-dev libgl1-mesa-dev libglu1-mesa-dev libepoxy-dev
+GDIS_GTK_TARGET=gtk4 ./rebuild-ubuntu.sh
+./run-example.sh --gtk4 methane
+```
+
+For the GTK3 renewal target:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y libgtk-3-dev libgl1-mesa-dev libglu1-mesa-dev libepoxy-dev
+GDIS_GTK_TARGET=gtk3 ./rebuild-ubuntu.sh
+./run-example.sh --gtk3 methane
+```
+
+If you cannot install packages globally, the local helper does the GTK3 dev
+bootstrap into `.localdeps/gtk3` and then builds against that sysroot:
+
+```bash
+./build-gtk3-local.sh
+./run-example.sh --gtk3 methane
 ```
 
 ### Build Requirements
@@ -72,6 +156,30 @@ On Ubuntu 24.04:
 sudo apt-get update
 sudo apt-get install -y build-essential pkg-config libgtk2.0-dev libgtkglext1-dev
 ./rebuild-ubuntu.sh
+```
+
+For the GTK3 renewal target:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y build-essential pkg-config libgtk-3-dev libgl1-mesa-dev libglu1-mesa-dev
+GDIS_GTK_TARGET=gtk3 ./rebuild-ubuntu.sh
+```
+
+For the Meson/Ninja path on GTK2:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y build-essential pkg-config meson ninja-build libgtk2.0-dev libgtkglext1-dev
+./rebuild-meson.sh --gtk2
+```
+
+For the Meson/Ninja path on GTK4:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y build-essential pkg-config meson ninja-build libgtk-4-dev libgl1-mesa-dev libglu1-mesa-dev libepoxy-dev
+./rebuild-meson.sh --gtk4
 ```
 
 If you prefer the original installer flow:
@@ -96,21 +204,60 @@ Advanced build overrides:
 
 - `./rebuild-ubuntu.sh`
   Rebuilds `bin/gdis` non-interactively after checking the required packages.
+- `./rebuild-meson.sh`
+  Configures a Meson build directory, compiles with Ninja, and stages the
+  selected target back into `bin/gdis` plus `bin/gdis-<target>`.
 - `./run-example.sh <name>`
   Opens one of the curated examples from [`examples/`](examples/).
+- `./run-example.sh --gtk4 <name>`
+  Uses a target-specific executable such as `bin/gdis-gtk4` when present.
+- `./run-example.sh --gtk3 <name>`
+  Uses `bin/gdis-gtk3` when you have built the GTK3 branch locally.
+- `./run-gdis.sh`
+  Launches GDIS directly and prefers `bin/gdis-gtk2` automatically when it is
+  available.
+- `./run-uspex-output.sh <results-dir-or-output.txt>`
+  Validates a USPEX results folder and launches GDIS on its `OUTPUT.txt` file.
+  Accepts `--gtk2`, `--gtk3`, or `--gtk4` like the other launch helpers.
+- `./bootstrap-gtk3-local.sh`
+  Downloads the missing GTK3 development packages into a project-local sysroot
+  so the GTK3 branch can be built without root access.
+- `./build-gtk3-local.sh`
+  Bootstraps the local GTK3 sysroot and rebuilds `bin/gdis-gtk3` against it,
+  while restoring `bin/gdis` to the GTK2 build when available.
+- `./audit-core-gl.sh`
+  Reports the fixed-function OpenGL patterns that still block a core-profile
+  GTK3/GTK4 renderer path.
 - `./verify-optional-tools.sh`
-  Checks optional helpers such as POV-Ray, ImageMagick, Open Babel, FFmpeg, and
-  xmgrace.
+  Checks optional helpers such as Qbox, POV-Ray, ImageMagick, Open Babel,
+  FFmpeg, and xmgrace.
 - `./install-optional-ubuntu.sh`
   Installs the open-source optional helper tools available on Ubuntu.
+- `./install-qbox-local.sh`
+  Clones upstream Qbox, builds it locally in `.localdeps/`, and creates
+  `bin/qbox` plus `bin/qb` convenience links for GDIS.
+- `./run-qbox-roundtrip.sh`
+  Runs a minimal methane Qbox job with the bundled local C/H pseudopotentials,
+  saves `tmp/qbox-roundtrip/methane.xml`, and can optionally reopen it in GDIS.
 - `./smoke-test-examples.sh`
   Launches curated examples under a timeout and flags obvious startup/runtime
-  failures. Uses `xvfb-run` automatically if no display is present.
+  failures. Uses `xvfb-run` automatically if no display is present and accepts
+  `--gtk2`, `--gtk3`, or `--gtk4` for target-specific binaries.
 
 ### Maintenance Notes
 
 - The most important technical debt is the legacy GUI stack:
   `gtk+2`, `gtkglext`, and many deprecated GTK APIs.
+- GTK3 and GTK4 now survive modern non-legacy GL contexts by switching to a
+  limited core renderer for atom views.
+- GTK4 also now uses a compact compatibility menu layer so the main window no
+  longer stretches far off-screen before the canvas is visible.
+- The modern renderer is still incomplete: atom spheres, bond cylinders, stick
+  geometry, and selection overlays now work in GTK3/GTK4, but labels, graphs,
+  bitmap text, and many fixed-function-era drawing paths still need migration.
+- The next realistic renewal target is still renderer modernization, with text,
+  labels, graph canvases, and other overlay-era drawing as the next useful
+  slices after restored picking and bond geometry.
 - The first maintenance priority is repository hygiene and repeatable builds.
 - The second priority is isolating GUI and OpenGL integration points so a later
   GTK3/GTK4 migration is realistic.
@@ -136,6 +283,7 @@ Some GDIS functionality depends on external projects and scientific codes.
 
 Optional helpers that improve the GDIS workflow include:
 
+- Qbox
 - POV-Ray
 - ImageMagick
 - Open Babel
@@ -143,5 +291,65 @@ Optional helpers that improve the GDIS workflow include:
 - xmgrace
 
 GDIS also contains input/output integration points for codes such as GULP,
-GAMESS, SIESTA, Monty, VASP, and USPEX, but availability depends on those
-external engines being installed and licensed where applicable.
+GAMESS, SIESTA, Monty, VASP, Qbox, and USPEX, but availability depends on
+those external engines being installed and licensed where applicable.
+
+### Qbox Notes
+
+This tree now includes first-pass Qbox integration in GDIS:
+
+- Qbox input files: `*.qbox`, `*.qboxin`, `*.qb`
+- Qbox restart/output files: `*.r`, `*.qboxr`, and Qbox-style XML detected by
+  content sniffing
+- Setup dialog field: `Qbox`
+
+Two smoke-test samples are included:
+
+- `models/qbox_methane.qbox`
+- `models/qbox_methane.xml`
+
+On Ubuntu 24.04, the practical install flow is:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y libxerces-c-dev libopenmpi-dev openmpi-bin libfftw3-dev \
+  libscalapack-openmpi-dev libblas-dev liblapack-dev uuid-dev g++ make git
+./install-qbox-local.sh
+```
+
+After that, a working local smoke round-trip is:
+
+```bash
+./run-qbox-roundtrip.sh
+./run-qbox-roundtrip.sh --open --gtk4
+```
+
+The Qbox writer emits `species` lines with placeholder pseudopotential XML
+filenames such as `C.xml` and `H.xml`. Update those URIs to match the
+pseudopotential files available in your own Qbox installation before running a
+real Qbox job.
+
+### USPEX Notes
+
+The USPEX viewer path expects an actual USPEX results directory, not just an
+input file. From the current source, the loader is wired around `OUTPUT.txt`
+and then reads sibling files from the same folder such as:
+
+- `Parameters.txt`
+- `Individuals`
+- `gatheredPOSCARS` or `gatheredPOSCARS_relaxed`
+
+This repository currently includes USPEX input-side examples under
+`models/INPUT.txt` and `models/Specific/`, but it does not ship a full USPEX
+results example. That means a command shown by another user such as:
+
+```bash
+./run-gdis.sh --gtk2 /usr/local/USPEX-10.3/application/archive/examples/EX01/reference/OUTPUT.txt
+```
+
+only works when that separate USPEX installation exists on disk. On your
+machine, use the path to your own USPEX results folder instead, for example:
+
+```bash
+./run-uspex-output.sh --gtk2 ~/somewhere/USPEX-job/reference
+```

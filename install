@@ -21,13 +21,13 @@ my %gtk_target_config = (
   },
   gtk3 => {
     base => "gtk+-3.0 gthread-2.0 gmodule-2.0",
-    gui => "gtk+-3.0 gthread-2.0 gmodule-2.0",
-    hint => "sudo apt-get update && sudo apt-get install -y build-essential pkg-config libgtk-3-dev",
+    gui => "gtk+-3.0 gthread-2.0 gmodule-2.0 gl glu epoxy",
+    hint => "sudo apt-get update && sudo apt-get install -y build-essential pkg-config libgtk-3-dev libgl1-mesa-dev libglu1-mesa-dev libepoxy-dev",
   },
   gtk4 => {
     base => "gtk4 gthread-2.0 gmodule-2.0",
-    gui => "gtk4 gthread-2.0 gmodule-2.0",
-    hint => "sudo apt-get update && sudo apt-get install -y build-essential pkg-config libgtk-4-dev",
+    gui => "gtk4 gthread-2.0 gmodule-2.0 gl glu epoxy",
+    hint => "sudo apt-get update && sudo apt-get install -y build-essential pkg-config libgtk-4-dev libgl1-mesa-dev libglu1-mesa-dev libepoxy-dev",
   },
 );
 die "Unsupported GDIS_GTK_TARGET: $gtk_target\n" if (!exists $gtk_target_config{$gtk_target});
@@ -61,7 +61,7 @@ print ("Checking pre-requisite packages.\n");
 print ("GTK target: $gtk_target\n");
 if ($gtk_target eq "gtk4")
   {
-  print ("GTK4 support is currently experimental. Dialog and container scaffolding is in place, but menus and toolbars still need porting.\n");
+  print ("GTK4 support is still experimental. The current renewal build has a compact menu shim plus a modern core renderer for atoms, bond/stick geometry, cell frames, graph plots/text, iso-surfaces, and several overlays, while some legacy overlays and interaction paths still need porting.\n");
   }
 
 # TODO - print help on where to get if not installed?
@@ -123,12 +123,19 @@ if (system("make", "-C", "src", "-f", $makefile, "gdis") != 0)
   {
   print "GDIS compile failed - check $logfile\n";
   close(STDERR);
-  exit;
+  exit(1);
   }
 else
   {
   print "GDIS compile successful.\n";
   }
+
+my $target_exec = "bin/gdis-$gtk_target";
+my $target_exec_tmp = "$target_exec.tmp.$$";
+copy("bin/gdis", $target_exec_tmp) || die "Cannot copy $target_exec_tmp.\n";
+chmod 0755, $target_exec_tmp;
+move($target_exec_tmp, $target_exec) || die "Cannot move $target_exec_tmp to $target_exec.\n";
+print "Saved target-specific executable: [$target_exec]\n";
 
 # perform install / strip 
 # copy gdis exec + manual etc etc to install location
@@ -279,7 +286,7 @@ printf "%-20s  ",$_[0];
 if (system("$pkg_config --exists $_[0]"))
   {
   print "[not found]\n";
-  if ($_[0] eq "gtk+-2.0" || $_[0] eq "gtk+-3.0" || $_[0] eq "gtk4" || $_[0] eq "gtkglext-1.0")
+  if ($_[0] eq "gtk+-2.0" || $_[0] eq "gtk+-3.0" || $_[0] eq "gtk4" || $_[0] eq "gtkglext-1.0" || $_[0] eq "gl" || $_[0] eq "glu" || $_[0] eq "epoxy")
     {
     print "Install the core build dependencies with:\n  $linux_core_pkg_hint\n";
     }

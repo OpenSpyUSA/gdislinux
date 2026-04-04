@@ -388,7 +388,7 @@ void gui_plots_dialog(void){
 	window = dialog_window(dialog);
 /* notebook frame */
 	frame = gtk_frame_new(NULL);
-	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(window)->vbox), frame, FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)), frame, FALSE, FALSE, 0);
 	gtk_container_set_border_width(GTK_CONTAINER(frame), PANEL_SPACING);
 /* create notebook */
 	notebook = gtk_notebook_new();
@@ -534,15 +534,15 @@ void gui_plots_dialog(void){
 	else gtk_widget_set_sensitive(frequency_box, FALSE);
 /* --- Outside of notebook */
 	frame = gtk_frame_new(NULL);
-	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(window)->vbox), frame, FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)), frame, FALSE, FALSE, 0);
 	vbox = gtk_vbox_new(FALSE, PANEL_SPACING);
 	gtk_container_add(GTK_CONTAINER(frame), vbox);
 /* plot -> tics */
 	gui_direct_spin("X tics",&plot->xtics,1.0,50.0,1.0,NULL,NULL,vbox);
 	gui_direct_spin("Y tics",&plot->ytics,1.0,50.0,1.0,NULL,NULL,vbox);
 /* Action buttons */
-	gui_stock_button(GTK_STOCK_EXECUTE, exec_plot, NULL, GTK_DIALOG(window)->action_area);
-	gui_stock_button(GTK_STOCK_CLOSE, plot_quit, dialog, GTK_DIALOG(window)->action_area);
+	gui_stock_button(GTK_STOCK_EXECUTE, exec_plot, NULL, GDIS_DIALOG_ACTIONS(window));
+	gui_stock_button(GTK_STOCK_CLOSE, plot_quit, dialog, GDIS_DIALOG_ACTIONS(window));
 /* connect to signals */
         g_signal_connect(GTK_NOTEBOOK(notebook),"switch-page",GTK_SIGNAL_FUNC(plot_page_switch),NULL);
 	/*select in page 1*/

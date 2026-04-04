@@ -66,7 +66,7 @@ MDI, CREATOR, MVNOUT, GULPOUT, GULP_TRJ, SIESTA_OUT, VASP, CVASP,
 USPEX, CUSPEX, REPLACE_ATOMS, DYNAMICS, ZMATRIX,
 OPENGL, OPENGL_OPTIONS, GAMESS, GAMESS_OUT, DIFFAX, DIFFAX_INP, DMOL_INPUT,
 ABINIT, ABINIT_OUT, NWCHEM, NWCHEM_OUT, CASTEP, CASTEP_OUT, GAUSS, GAUSS_OUT,
-QE, QE_OUT,
+QE, QE_OUT, QBOX, QBOX_OUT,
 HIRSHFELD, CONNECT, RDF, LIQUIDS, VACF, MD_ANALYSIS,
 PICTURE, TEXT, RIETICA, CEL, DLPOLY, CRYSTAL_GRAPH, BIOGRAF, DLP, GROMACS,
 LAST
@@ -93,9 +93,13 @@ enum {GUI_CANVAS, GUI_MODEL_TREE, GUI_MODEL_PROPERTIES, GUI_TEXT_BUFFER};
 
 /* main */
 void gui_init(int, char **);
+gint gui_motion_input(GtkWidget *, gdouble, gdouble, GdkModifierType);
 gint gui_motion_event(GtkWidget *, GdkEventMotion *);
+gint gui_press_input(GtkWidget *, guint, gdouble, gdouble, GdkModifierType);
 gint gui_press_event(GtkWidget *, GdkEventButton *);
+gint gui_scroll_delta(GtkWidget *, gdouble);
 gint gui_scroll_event(GtkWidget *, GdkEventScroll *);
+gint gui_release_input(GtkWidget *, guint, gdouble, gdouble, GdkModifierType);
 gint gui_release_event(GtkWidget *, GdkEventButton *);
 
 /* display control */
@@ -111,6 +115,7 @@ void gui_camera_refresh(void);
 void tree_select_delete(void);
 void tree_select_active(void);
 void tree_select_model(struct model_pak *);
+void tree_select_graph(struct model_pak *, gpointer);
 void tree_model_add(struct model_pak *);
 void tree_model_refresh(struct model_pak *);
 void tree_init(GtkWidget *);
@@ -148,6 +153,7 @@ void gui_setup_dialog(void);
 void gui_siesta_dialog(void);
 void gui_vasp_dialog(void);
 void gui_uspex_dialog(void);
+void gui_qbox_dialog(void);
 
 void gui_surface_widget(GtkWidget *);
 void gui_surface_setup(GtkWidget *);

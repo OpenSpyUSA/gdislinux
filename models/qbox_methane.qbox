@@ -1,0 +1,10 @@
+# Minimal Qbox methane input for GDIS smoke testing.
+# Update the species XML filenames to match the pseudopotentials installed with Qbox.
+set cell 20.0 0.0 0.0 0.0 20.0 0.0 0.0 0.0 20.0
+species C C_HSCV_PBE-1.0.xml
+species H H_HSCV_PBE-1.0.xml
+atom C1 C 0.000000000 0.000000000 0.000000000
+atom H1 H 1.190000000 1.190000000 1.190000000
+atom H2 H 1.190000000 -1.190000000 -1.190000000
+atom H3 H -1.190000000 1.190000000 -1.190000000
+atom H4 H -1.190000000 -1.190000000 1.190000000

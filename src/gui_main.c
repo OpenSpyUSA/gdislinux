@@ -89,14 +89,61 @@ GtkWidget *angle_spin;
 /* EVENT - button press */
 /************************/
 #define DEBUG_BUTTON_PRESS_EVENT 0
-gint gui_press_event(GtkWidget *w, GdkEventButton *event)
+static gboolean gui_debug_input_enabled(void)
+{
+return(g_getenv("GDIS_DEBUG_INPUT") != NULL);
+}
+
+static gboolean gui_event_get_local_position(GtkWidget *w,
+                                             GdkEvent *event,
+                                             gdouble *x,
+                                             gdouble *y)
+{
+gdouble ex, ey;
+
+if (!gdk_event_get_position(event, &ex, &ey))
+  return(FALSE);
+
+#if GTK_MAJOR_VERSION >= 4
+  {
+  GtkRoot *root;
+
+  root = gtk_widget_get_root(w);
+  if (root && GTK_IS_WIDGET(root))
+    {
+    graphene_point_t src;
+    graphene_point_t dest;
+
+    src.x = ex;
+    src.y = ey;
+    if (gtk_widget_compute_point(GTK_WIDGET(root), w, &src, &dest))
+      {
+      ex = dest.x;
+      ey = dest.y;
+      }
+    }
+  }
+#endif
+
+if (x)
+  *x = ex;
+if (y)
+  *y = ey;
+
+return(TRUE);
+}
+
+gint gui_press_input(GtkWidget *w,
+                     guint button,
+                     gdouble ex,
+                     gdouble ey,
+                     GdkModifierType state)
 {
 gint refresh=0, x, y;
 gint shift=FALSE;
 #ifdef UNUSED_BUT_SET
 gint ctrl=FALSE;
 #endif
-GdkModifierType state;
 struct model_pak *data;
 struct bond_pak *bond;
 struct core_pak *core;
@@ -110,15 +157,13 @@ data = sysenv.active_model;
 if (!data)
   return(FALSE);
 
-/* event info */
-x = event->x;
-y = event->y;
+x = nearest_int(ex);
+y = nearest_int(ey);
 sysenv.moving = FALSE;
 
 canvas_select(x, y);
 
 /* analyse the current state */
-state = (GdkModifierType) event->state;
 if ((state & GDK_SHIFT_MASK))
   shift = TRUE;
 #ifdef UNUSED_BUT_SET
@@ -127,7 +172,7 @@ if ((state & GDK_CONTROL_MASK))
 #endif
 
 /* only want button 1 (for now) */
-if (event->button != 1)
+if (button != 1)
   return(FALSE);
 
 /* NEW - diffraction peak search */
@@ -141,6 +186,7 @@ if (data->graph_active)
   case GRAPH_IX_TYPE:
   case GRAPH_XX_TYPE:
     dat_graph_select(x,y,data);
+    redraw_canvas(SINGLE);
     break;
   case GRAPH_REGULAR:
   default:
@@ -151,6 +197,13 @@ if (data->graph_active)
 
 /* can we assoc. with a single atom? */
 core = gl_seek_core(x, y, data);
+
+if (gui_debug_input_enabled())
+  {
+  g_printerr("GDIS input: press button=%u at %d,%d mode=%d shift=%d core=%s\n",
+             button, x, y, data->mode, shift,
+             core ? core->atom_label : "(none)");
+  }
 
 /* allow shift+click to add/remove single atoms in the selection */
 /* TODO - depending on mode add/remove objects in selection eg atom/mols */
@@ -220,9 +273,11 @@ else
 /* selection stuff */
     default:
       select_clear(data);
-/* don't select if a core is under the mouse */
-/* instead we allow the selection box to be drawn */
-      update_box(x,y,data,START);
+/* direct picking is more reliable than press-box-release for single clicks */
+      if (core)
+        select_core(core, FALSE, data);
+      else
+        update_box(x,y,data,START);
       refresh++;
       break; 
     }
@@ -235,34 +290,53 @@ if (refresh)
 return(FALSE);
 }
 
+gint gui_press_event(GtkWidget *w, GdkEventButton *event)
+{
+guint button;
+gdouble ex, ey;
+GdkModifierType state;
+
+if (!gui_event_get_local_position(w, (GdkEvent *) event, &ex, &ey))
+  return(FALSE);
+
+state = gdk_event_get_modifier_state((GdkEvent *) event);
+button = gdk_button_event_get_button((GdkEvent *) event);
+
+return(gui_press_input(w, button, ex, ey, state));
+}
+
 /***************************/
 /* EVENT - button released */
 /***************************/
-gint gui_release_event(GtkWidget *w, GdkEventButton *event)
+gint gui_release_input(GtkWidget *w,
+                       guint button,
+                       gdouble ex,
+                       gdouble ey,
+                       GdkModifierType state)
 {
 gint x, y;
 struct model_pak *data;
-#ifdef UNUSED_BUT_SET
-GdkModifierType state;
-#endif
 
 /* get model */
 data = sysenv.active_model;
 if (!data)
   return(FALSE);
 
-/* get event info */
-x = event->x;
-y = event->y;
-#ifdef UNUSED_BUT_SET
-state = (GdkModifierType) event->state;
-#endif
+x = nearest_int(ex);
+y = nearest_int(ey);
 
 /* NEW - motion flag */
 sysenv.moving = FALSE;
 
+if (gui_debug_input_enabled())
+  {
+  g_printerr("GDIS input: release button=%u at %d,%d mode=%d box_on=%d selected=%d\n",
+             button, x, y, data->mode, data->box_on,
+             g_slist_length(data->selection));
+  }
+
 /* first mouse button */
-switch (event->button)
+switch (button)
   {
   case 1:
 
@@ -304,11 +378,26 @@ redraw_canvas(SINGLE);
 return(FALSE);
 }
 
+gint gui_release_event(GtkWidget *w, GdkEventButton *event)
+{
+guint button;
+gdouble ex, ey;
+GdkModifierType state;
+
+if (!gui_event_get_local_position(w, (GdkEvent *) event, &ex, &ey))
+  return(FALSE);
+
+state = gdk_event_get_modifier_state((GdkEvent *) event);
+button = gdk_button_event_get_button((GdkEvent *) event);
+
+return(gui_release_input(w, button, ex, ey, state));
+}
+
 /************************/
 /* EVENT - mouse scroll */
 /************************/
 #define DEBUG_SCROLL 0
-gint gui_scroll_event(GtkWidget *w, GdkEventScroll *event)
+gint gui_scroll_delta(GtkWidget *w, gdouble dy)
 {
 /* change zoom -- based on "zoom section" of gui_press_event() */
 const gdouble scroll_factor = 10.0;
@@ -325,17 +414,12 @@ camera = data->camera;
 
 sysenv.moving = FALSE;
 
-switch (event->direction)
-{
-  case GDK_SCROLL_UP:
-    scroll = -scroll_factor;
-    break;
-  case GDK_SCROLL_DOWN:
-    scroll = scroll_factor;
-    break;
-  default: /* left and right are not used yet */
-    return FALSE;
-}
+if (dy < 0.0)
+  scroll = -scroll_factor;
+else if (dy > 0.0)
+  scroll = scroll_factor;
+else
+  return(FALSE);
 scroll *= PIX2SCALE;
 
 #if DEBUG_SCROLL
@@ -359,17 +443,33 @@ redraw_canvas(SINGLE);
 return FALSE;
 }
 
+gint gui_scroll_event(GtkWidget *w, GdkEventScroll *event)
+{
+switch (gdk_scroll_event_get_direction((GdkEvent *) event))
+  {
+  case GDK_SCROLL_UP:
+    return(gui_scroll_delta(w, -1.0));
+
+  case GDK_SCROLL_DOWN:
+    return(gui_scroll_delta(w, 1.0));
+
+  default:
+    return(FALSE);
+  }
+}
+
 /************************/
 /* EVENT - mouse motion */
 /************************/
 #define DEBUG_MOTION 0
-gint gui_motion_event(GtkWidget *w, GdkEventMotion *event)
+gint gui_motion_input(GtkWidget *w,
+                      gdouble ex,
+                      gdouble ey,
+                      GdkModifierType state)
 {
 gint x, y, dx, dy, fx, fy, refresh;
 gint shift=FALSE, ctrl=FALSE;
 gdouble da, dv, zoom, v[3], mat[9];
-gdouble ex, ey;
-GdkModifierType state;
 static gint ox=0, oy=0;
 struct model_pak *data;
 struct camera_pak *camera;
@@ -381,17 +481,8 @@ if (!data)
 
 camera = data->camera;
 
-/* get mouse data without direct window queries */
-if (!gdk_event_get_coords((GdkEvent *) event, &ex, &ey))
-  {
-  ex = event->x;
-  ey = event->y;
-  }
 x = nearest_int(ex);
 y = nearest_int(ey);
-
-if (!gdk_event_get_state((GdkEvent *) event, &state))
-  state = (GdkModifierType) event->state;
 
 /* discard discontinuous jumps (ie ox,oy are invalid on 1st call) */
 if (!sysenv.moving)
@@ -599,6 +690,19 @@ if (refresh)
   redraw_canvas(SINGLE);
 
 return(TRUE);
+}
+
+gint gui_motion_event(GtkWidget *w, GdkEventMotion *event)
+{
+gdouble ex, ey;
+GdkModifierType state;
+
+if (!gui_event_get_local_position(w, (GdkEvent *) event, &ex, &ey))
+  return(FALSE);
+
+state = gdk_event_get_modifier_state((GdkEvent *) event);
+
+return(gui_motion_input(w, ex, ey, state));
 }
 
 /***************************/
@@ -915,9 +1019,17 @@ void gui_model_select(struct model_pak *model)
 if (!model)
   return;
 
+if (g_getenv("GDIS_DEBUG_GRAPH_STATE"))
+  g_printerr("gui_model_select(before): model=%p active=%p graph=%p\n",
+             model, sysenv.active_model, model->graph_active);
+
 /* make the model active */
 sysenv.active_model = model;
 model->graph_active = NULL;
+
+if (g_getenv("GDIS_DEBUG_GRAPH_STATE"))
+  g_printerr("gui_model_select(after): model=%p active=%p graph=%p\n",
+             model, sysenv.active_model, model->graph_active);
 
 /* TODO - combine all these into a dialog refresh callback */
 gui_relation_update(model);
@@ -1306,10 +1418,10 @@ void gdis_exit(void)
 /* this will do it anyway - but they can just click reset next time */
 if (sysenv.write_gdisrc)
   {
-  sysenv.x = sysenv.display_box->allocation.x;
-  sysenv.y = sysenv.display_box->allocation.y;
-  sysenv.width = sysenv.display_box->allocation.width;
-  sysenv.height = sysenv.display_box->allocation.height;
+  sysenv.x = gdis_gtk_widget_get_x(sysenv.display_box);
+  sysenv.y = gdis_gtk_widget_get_y(sysenv.display_box);
+  sysenv.width = gdis_gtk_widget_get_width(sysenv.display_box);
+  sysenv.height = gdis_gtk_widget_get_height(sysenv.display_box);
 
   write_gdisrc();
   }
@@ -1519,6 +1631,7 @@ static GtkItemFactoryEntry menu_items[] =
   { "/Tools/Computation/GULP...",             NULL, gulp_dialog, 0, NULL },
   { "/Tools/Computation/GAMESS...",           NULL, gamess_dialog, 0, NULL },
   { "/Tools/Computation/Monty...",            NULL, monty_dialog, 0, NULL },
+  { "/Tools/Computation/Qbox...",             NULL, gui_qbox_dialog, 0, NULL },
   { "/Tools/Computation/SIESTA...",           NULL, gui_siesta_dialog, 0, NULL },
   { "/Tools/Computation/VASP...",             NULL, gui_vasp_dialog, 0, NULL },
   { "/Tools/Computation/USPEX...",            NULL, gui_uspex_dialog, 0, NULL },
@@ -1561,7 +1674,7 @@ gint cb_key_press(GtkWidget *w, GdkEventKey *event, gpointer dummy)
 #ifdef UNUSED_BUT_SET
 GdkModifierType state;
 
-state = (GdkModifierType) event->state;
+state = gdk_event_get_modifier_state((GdkEvent *) event);
 
 if ((state & GDK_CONTROL_MASK))
   ctrl = TRUE;
@@ -1570,7 +1683,7 @@ if ((state & GDK_MOD1_MASK))
   alt = TRUE;
 #endif
 
-switch(event->keyval)
+switch(gdk_key_event_get_keyval((GdkEvent *) event))
   {
 /* colour settings */
   case GDK_Insert:
@@ -1634,6 +1747,44 @@ switch(event->keyval)
 return(FALSE);
 }
 
+#if GTK_MAJOR_VERSION >= 4
+static gboolean gdis_window_legacy_event(GtkEventControllerLegacy *controller,
+                                         GdkEvent *event,
+                                         gpointer data)
+{
+GtkWidget *widget;
+
+(void) data;
+
+widget = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(controller));
+if (!widget || !event)
+  return(FALSE);
+
+switch (gdk_event_get_event_type(event))
+  {
+  case GDK_KEY_PRESS:
+    return(cb_key_press(widget, (GdkEventKey *) event, NULL));
+
+  default:
+    break;
+  }
+
+return(FALSE);
+}
+
+static gboolean gdis_close_request(GtkWindow *win, gpointer data)
+{
+(void) win;
+(void) data;
+
+if (gdis_exit_event())
+  return(TRUE);
+
+gdis_exit();
+return(TRUE);
+}
+#endif
+
 /*******************************************************/
 /* record current model/property pane divider position */
 /*******************************************************/
@@ -1641,6 +1792,16 @@ gboolean cb_pane_refresh(GtkPaned *w, gpointer data)
 {
 sysenv.tree_divider = gtk_paned_get_position(w);
 return(FALSE);
+}
+
+static void cb_tree_divider_changed(GObject *object,
+                                    GParamSpec *pspec,
+                                    gpointer data)
+{
+(void) pspec;
+(void) data;
+
+sysenv.tree_divider = gtk_paned_get_position(GTK_PANED(object));
 }
 
 /***************************************/
@@ -1655,6 +1816,109 @@ if (sysenv.refresh_properties)
   sysenv.refresh_properties = FALSE;
   }
 return(TRUE);
+}
+
+static void gui_sanitize_startup_layout(void)
+{
+gint x, y, depth;
+gint screen_width, screen_height;
+gint max_width, max_height;
+gint max_tree_width, max_tray_height;
+gint min_tree_divider, max_tree_divider;
+gboolean changed = FALSE;
+
+gdis_gdk_window_get_geometry(gdis_gdk_get_default_root_window(),
+                             &x, &y, &screen_width, &screen_height, &depth);
+
+if (screen_width < START_WIDTH)
+  screen_width = START_WIDTH;
+if (screen_height < START_HEIGHT)
+  screen_height = START_HEIGHT;
+
+max_width = screen_width - 80;
+max_height = screen_height - 120;
+
+if (max_width > 1600)
+  max_width = 1600;
+if (max_height > 1000)
+  max_height = 1000;
+
+if (max_width < START_WIDTH)
+  max_width = START_WIDTH;
+if (max_height < START_HEIGHT)
+  max_height = START_HEIGHT;
+
+if (sysenv.width > max_width)
+  {
+  sysenv.width = max_width;
+  changed = TRUE;
+  }
+if (sysenv.height > max_height)
+  {
+  sysenv.height = max_height;
+  changed = TRUE;
+  }
+
+#if GTK_MAJOR_VERSION >= 4
+max_tree_width = sysenv.width / 4;
+if (max_tree_width > 260)
+  max_tree_width = 260;
+if (max_tree_width < 180)
+  max_tree_width = 180;
+#else
+max_tree_width = sysenv.width / 3;
+if (max_tree_width > 360)
+  max_tree_width = 360;
+if (max_tree_width < 220)
+  max_tree_width = 220;
+#endif
+
+if (sysenv.tree_width > max_tree_width)
+  {
+  sysenv.tree_width = max_tree_width;
+  changed = TRUE;
+  }
+if (sysenv.tree_width < 180)
+  {
+  sysenv.tree_width = 180;
+  changed = TRUE;
+  }
+
+min_tree_divider = 180;
+max_tree_divider = sysenv.height - 220;
+if (max_tree_divider < min_tree_divider)
+  max_tree_divider = min_tree_divider;
+
+if (sysenv.tree_divider > max_tree_divider)
+  {
+  sysenv.tree_divider = max_tree_divider;
+  changed = TRUE;
+  }
+if (sysenv.tree_divider < min_tree_divider)
+  {
+  sysenv.tree_divider = max_tree_divider;
+  changed = TRUE;
+  }
+
+max_tray_height = sysenv.height / 3;
+if (max_tray_height > 220)
+  max_tray_height = 220;
+if (max_tray_height < 60)
+  max_tray_height = 60;
+
+if (sysenv.tray_height > max_tray_height)
+  {
+  sysenv.tray_height = max_tray_height;
+  changed = TRUE;
+  }
+if (sysenv.tray_height < 40)
+  {
+  sysenv.tray_height = 40;
+  changed = TRUE;
+  }
+
+if (changed)
+  sysenv.write_gdisrc = TRUE;
 }
 
 /*****************************/
@@ -1957,16 +2221,24 @@ gchar *text;
 GList *list;
 gpointer ptr;
 GtkWidget *gdis_wid;
-GtkWidget *hpaned, *vpaned;
-GtkWidget *vbox, *hbox, *vbox_lower, *menu_bar, *toolbar;
+GtkWidget *hpaned, *vpaned, *tree_paned;
+GtkWidget *vbox, *hbox, *vbox_lower, *left_lower, *menu_bar, *toolbar;
 GtkWidget *frame, *event_box;
 GdkPixbuf *pixbuf;
 GtkItemFactory *item;
 GtkAccelGroup *accel;
 GdkColor colour;
+#if GTK_MAJOR_VERSION >= 4
+GtkEventController *legacy;
+
+if (!g_getenv("GDK_BACKEND") && g_getenv("WAYLAND_DISPLAY") && g_getenv("DISPLAY"))
+  g_setenv("GDK_BACKEND", "x11", FALSE);
+#endif
 
 gtk_init(&argc, &argv);
 gdis_gl_backend_init(&argc, &argv);
+
+gui_sanitize_startup_layout();
 
 /* Make an accelerator group (shortcut keys) */
 accel = gtk_accel_group_new();
@@ -2001,8 +2273,14 @@ gtk_window_set_policy(GTK_WINDOW(window), TRUE, TRUE, FALSE);
 gtk_window_set_title(GTK_WINDOW(window),"GTK Display Interface for Structures");
 gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 
+#if GTK_MAJOR_VERSION >= 4
+legacy = gtk_event_controller_legacy_new();
+g_signal_connect(legacy, "event", G_CALLBACK(gdis_window_legacy_event), NULL);
+gtk_widget_add_controller(window, legacy);
+#else
 g_signal_connect(GTK_OBJECT(window), "key_press_event",
                 (GtkSignalFunc) cb_key_press, NULL);
+#endif
 
 
 /* vbox for the menubar */
@@ -2418,18 +2696,26 @@ sysenv.mpane = gtk_vbox_new(FALSE, 0);
 gtk_paned_pack1(GTK_PANED(hpaned), sysenv.mpane, TRUE, TRUE);
 gtk_widget_set_size_request(sysenv.mpane, sysenv.tree_width, -1);
 
+tree_paned = gtk_vpaned_new();
+#if GTK_MAJOR_VERSION >= 3
+gtk_paned_set_wide_handle(GTK_PANED(tree_paned), TRUE);
+#endif
+gtk_box_pack_start(GTK_BOX(sysenv.mpane), tree_paned, TRUE, TRUE, 0);
+g_signal_connect(G_OBJECT(tree_paned), "notify::position",
+                 G_CALLBACK(cb_tree_divider_changed), NULL);
+
 /* model tree box */
 vbox = gtk_vbox_new(FALSE, 0);
-gtk_box_pack_start(GTK_BOX(sysenv.mpane), vbox, TRUE, TRUE, 0);
+gtk_paned_pack1(GTK_PANED(tree_paned), vbox, TRUE, TRUE);
 tree_init(vbox);
 
-/* model pulldown */
-vbox_lower = gtk_vbox_new(FALSE, 0);
-gtk_box_pack_start(GTK_BOX(sysenv.mpane), vbox_lower, FALSE, FALSE, 0);
+/* lower left controls */
+left_lower = gtk_vbox_new(FALSE, 0);
+gtk_paned_pack2(GTK_PANED(tree_paned), left_lower, FALSE, TRUE);
 
 /* general model data box */
 vbox = gtk_vbox_new(FALSE, 0);
-gtk_box_pack_start(GTK_BOX(vbox_lower), vbox, FALSE, FALSE, 0);
+gtk_box_pack_start(GTK_BOX(left_lower), vbox, FALSE, FALSE, 0);
 
 /* CURRENT */
 gui_active_new("Model : Content", gui_content_refresh, gui_content_refresh);
@@ -2440,18 +2726,9 @@ gui_active_new("Model : Symmetry", gui_symmetry_refresh, gui_symmetry_refresh);
 gui_active_new("Model : Viewing", gui_view_widget, NULL);
 gui_active_setup(vbox);
 
-
-/* GTK is a bit dumb when it sets the initial sizes of the two panes */
-/* set the pane position and store when changed */
-/*
-gtk_paned_set_position(GTK_PANED(vpaned), sysenv.tree_divider);
-g_signal_connect(GTK_OBJECT(vpaned), "size-request",
-                 G_CALLBACK(cb_pane_refresh), NULL);
-*/
-
 /* selection pulldown */
 vbox_lower = gtk_vbox_new(FALSE, 0);
-gtk_box_pack_start(GTK_BOX(sysenv.mpane), vbox_lower, FALSE, FALSE, 0);
+gtk_box_pack_start(GTK_BOX(left_lower), vbox_lower, FALSE, FALSE, 0);
 list = NULL;
 list = g_list_append(list, "Select : Atoms");
 list = g_list_append(list, "Select : Atom Label");
@@ -2467,7 +2744,7 @@ g_signal_connect(GTK_OBJECT(ptr), "changed", GTK_SIGNAL_FUNC(gui_selection_mode_
 
 /* GDIS logo */
 frame = gtk_frame_new(NULL);
-gtk_box_pack_end(GTK_BOX(sysenv.mpane), frame, FALSE, TRUE, 0);
+gtk_box_pack_end(GTK_BOX(left_lower), frame, FALSE, TRUE, 0);
 
 /* event box (get an x window for setting black background) */
 event_box = gtk_event_box_new();
@@ -2498,6 +2775,7 @@ gtk_box_pack_end(GTK_BOX(hbox), gdis_wid, FALSE, FALSE, 0);
 /* RIGHT PANE */
 vbox = gtk_vbox_new(FALSE, 0);
 gtk_paned_pack2(GTK_PANED(hpaned), vbox, TRUE, TRUE);
+gtk_paned_set_position(GTK_PANED(hpaned), sysenv.tree_width);
 
 /* paned window */
 vpaned = gtk_vpaned_new();
@@ -2519,6 +2797,9 @@ gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sysenv.tpane),
                                GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 gtk_paned_pack2(GTK_PANED(vpaned), sysenv.tpane, TRUE, TRUE);
 gtk_widget_set_size_request(sysenv.tpane, -1, sysenv.tray_height);
+if (sysenv.height > sysenv.tray_height)
+  gtk_paned_set_position(GTK_PANED(vpaned),
+                         sysenv.height - sysenv.tray_height);
 gtk_widget_show(sysenv.tpane);
 
 text = g_strdup_printf("This is free software, distributed under the terms of the GNU public license (GPL).\nFor more information visit http://www.gnu.org/\n");
@@ -2530,12 +2811,27 @@ gui_text_show(STANDARD, text);
 g_free(text);
 
 /* confirmation callback (ie really exit?) */
+#if GTK_MAJOR_VERSION >= 4
+g_signal_connect(GTK_OBJECT(window), "close-request", G_CALLBACK(gdis_close_request), NULL);
+#else
 g_signal_connect(GTK_OBJECT(window), "delete-event", GTK_SIGNAL_FUNC(gdis_exit_event), NULL);
 /* save gdisrc callback */
 g_signal_connect(GTK_OBJECT(window), "destroy", GTK_SIGNAL_FUNC(gdis_exit), NULL);
+#endif
+
+#if GTK_MAJOR_VERSION >= 4
+gtk_widget_grab_focus(sysenv.glarea);
+#endif
 
 /* show all */
 gtk_widget_show_all(window);
+
+/* Reapply saved split positions after widgets become visible. */
+gtk_paned_set_position(GTK_PANED(hpaned), sysenv.tree_width);
+gtk_paned_set_position(GTK_PANED(tree_paned), sysenv.tree_divider);
+if (sysenv.height > sysenv.tray_height)
+  gtk_paned_set_position(GTK_PANED(vpaned),
+                         sysenv.height - sysenv.tray_height);
 
 /* CURRENT */
 gui_active_refresh();

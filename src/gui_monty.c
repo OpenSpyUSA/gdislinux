@@ -296,11 +296,7 @@ void monty_input_box(GtkWidget *box, struct model_pak *data)
     files 
    */
   
-  table = g_object_new(GTK_TYPE_TABLE,
-                       "n-rows", 2,
-                       "n-columns", 2,
-                       "homogeneous", FALSE,
-                       NULL);
+  table = gtk_table_new(2, 2, FALSE);
   
   
   gtk_box_pack_start(GTK_BOX(vbox), table, TRUE, TRUE, 0);
@@ -325,7 +321,7 @@ void monty_input_box(GtkWidget *box, struct model_pak *data)
   gui_stock_button(GTK_STOCK_OPEN, select_surface_file_dialog, NULL, hbox);/*FIX 304a57*/
   gtk_table_attach_defaults(GTK_TABLE(table), hbox, 1,2,1,2);
   
-  h_sep = GTK_WIDGET(g_object_new(GTK_TYPE_HSEPARATOR, NULL));
+  h_sep = gtk_hseparator_new();
   gtk_widget_set_size_request(h_sep, -1, size);
   gtk_box_pack_start(GTK_BOX(vbox), GTK_WIDGET(h_sep), FALSE, FALSE, 0);
   
@@ -367,7 +363,7 @@ void monty_input_box(GtkWidget *box, struct model_pak *data)
   
   gui_text_entry("Solvation energy", &data->monty.esolv, TRUE, FALSE, vbox);/*FIX 303d31*/
   
-  h_sep = GTK_WIDGET(g_object_new(GTK_TYPE_HSEPARATOR, NULL));
+  h_sep = gtk_hseparator_new();
   gtk_widget_set_size_request(h_sep, -1, size);
   gtk_box_pack_start(GTK_BOX(vbox), GTK_WIDGET(h_sep), FALSE, FALSE, 0);
   
@@ -395,7 +391,7 @@ void monty_output_box(GtkWidget *box, struct model_pak *data)
   wdgt = gui_text_entry("File extension", &data->monty.output_extension, TRUE, FALSE, vbox);
   gtk_widget_set_size_request(wdgt, sysenv.gtk_fontsize*size, -1);
   
-  h_sep = GTK_WIDGET(g_object_new(GTK_TYPE_HSEPARATOR, NULL));
+  h_sep = gtk_hseparator_new();
   gtk_widget_set_size_request(h_sep, -1, size);
   gtk_box_pack_start(GTK_BOX(vbox), GTK_WIDGET(h_sep), FALSE, FALSE, 0);
   
@@ -802,7 +798,7 @@ void monty_dialog(void)
   window = dialog_window(dialog);
   
   frame = gtk_frame_new(NULL);
-  gtk_box_pack_start(GTK_BOX(GTK_DIALOG(window)->vbox), frame, FALSE, FALSE, 0);
+  gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)), frame, FALSE, FALSE, 0);
   gtk_container_set_border_width(GTK_CONTAINER(frame), PANEL_SPACING);
   
   vbox = gtk_vbox_new(FALSE,0);
@@ -811,10 +807,10 @@ void monty_dialog(void)
   
   /* terminating button */
   gui_stock_button(GTK_STOCK_EXECUTE, monty_execute, model,
-                     GTK_DIALOG(window)->action_area);
+                     GDIS_DIALOG_ACTIONS(window));
   
   gui_stock_button(GTK_STOCK_CLOSE, dialog_destroy, dialog,
-                     GTK_DIALOG(window)->action_area);
+                     GDIS_DIALOG_ACTIONS(window));
   
   gtk_widget_show_all(window);
 }

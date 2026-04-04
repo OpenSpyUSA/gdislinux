@@ -568,7 +568,7 @@ void dat_graph_select(gint x, gint y, struct model_pak *model){
 g_assert(model!=NULL);
 	graph=(struct graph_pak *)model->graph_active;
 g_assert(graph!=NULL);
-	canvas = g_slist_nth_data(sysenv.canvas_list, 0);
+	canvas = canvas_find(model);
 g_assert(canvas!=NULL);
 /*calculate x data*/
 	ox=canvas->x + 4*gl_fontsize;

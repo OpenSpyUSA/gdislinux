@@ -374,9 +374,19 @@ if (!glconfig)
 
 /* get root window dimensions so we can create a fullscreen window */
 win = gdk_get_default_root_window();
+#if GTK_MAJOR_VERSION >= 4
 gdk_window_get_geometry(win, &stereo_x, &stereo_y,
                              &stereo_width, &stereo_height,
                              &stereo_depth);
+#elif GTK_MAJOR_VERSION >= 3
+gdk_window_get_geometry(win, &stereo_x, &stereo_y,
+                             &stereo_width, &stereo_height);
+stereo_depth = gdis_gdk_visual_get_depth(gdk_window_get_visual(win));
+#else
+gdk_window_get_geometry(win, &stereo_x, &stereo_y,
+                             &stereo_width, &stereo_height,
+                             &stereo_depth);
+#endif
 stereo_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 gtk_window_set_decorated(GTK_WINDOW(stereo_window), FALSE);
 

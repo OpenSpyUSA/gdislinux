@@ -28,6 +28,18 @@ Completed baseline maintenance work in this repository:
   `GDIS_BASE_PKG_CONFIG_PACKAGES` and `GDIS_GUI_PKG_CONFIG_PACKAGES`
 - direct live `gtkglext` calls in the application code are centralized in
   `src/gui_gl.c`
+- source-level build targets now exist for `gtk+3` and `gtk4`, even though
+  the stable runtime path is still GTK2
+- the GTK3 branch can now be bootstrapped locally without root access via a
+  project-local sysroot helper
+- the GTK3 and GTK4 branches now both survive non-legacy `GtkGLArea` contexts
+  by switching to a limited core renderer that already restores atom spheres,
+  bond cylinders, stick geometry, and visible atom selection
+- the GTK4 branch now also uses a compact compatibility menu layer, which
+  avoids the earlier giant off-screen window layout and makes the molecule
+  canvas visible again
+- the stable runtime path is still GTK2 because labels, graphs, bitmap text,
+  and many fixed-function drawing features are not yet ported
 
 That means the project is still on GTK2 and `gtkglext`, but the dependency is
 now behind a narrower seam and the build metadata is less scattered.
@@ -114,6 +126,15 @@ Possible directions:
 - a different maintained OpenGL area binding
 - a custom compatibility layer if absolutely necessary
 
+Recommended order:
+
+- try GTK3 first as the bridge target
+- use that result to decide whether the renderer can survive on compatibility
+  contexts a little longer
+- if GTK3 still yields core-profile contexts on the target platform, stop
+  spending time on widget-only migration and move the effort into renderer work
+- only then plan a real GTK4/core-profile renderer port
+
 This phase should not start until Phase 2 has reduced the number of direct
 touchpoints.
 
@@ -122,6 +143,31 @@ Risks:
 - rendering regressions
 - event-handling regressions
 - platform-specific GL context behavior
+
+Current concrete blocker surface:
+
+- fixed-function matrix stack and GLU projection math in
+  `src/gl_main.c` and `src/gl_stereo.c`
+- immediate-mode drawing in `src/gl_main.c`, `src/gl_primitives.c`, and
+  `src/gl_graph.c`
+- client-side vertex arrays in `src/gl_varray.c`
+- fixed-function lighting/material state in `src/gl_main.c`
+
+Recommended first renderer slice:
+
+- keep GTK2 as the stable runtime path
+- use `src/gl_varray.c` as the first core-profile migration seam
+- get atom spheres visible with CPU-side matrices plus a minimal shader/VBO
+  path before attempting full bond, overlay, text, or widget parity
+
+Progress on that slice:
+
+- complete enough to show atom views again on GTK3/GTK4
+- still incomplete for bond cylinders, overlays, labels, graphs, and text
+
+See also:
+
+- [`docs/renderer-audit.md`](renderer-audit.md)
 
 ## Phase 4: Toolkit Migration Beyond GTK2
 
@@ -169,6 +215,8 @@ Feature checks:
 Avoid starting with:
 
 - a GTK4 rewrite branch
+- long stretches of GTK4 signal or container work without solving the renderer
+  compatibility problem first
 - a full rendering rewrite
 - cross-platform packaging for every OS
 - broad style-only code churn

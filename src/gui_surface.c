@@ -2600,7 +2600,7 @@ g_free(title);
 
 /* main vbox */
 vbox = gtk_vbox_new(FALSE,0);
-gtk_container_add(GTK_CONTAINER(GTK_DIALOG(window)->vbox), vbox);
+gtk_container_add(GTK_CONTAINER(GDIS_DIALOG_CONTENTS(window)), vbox);
 
 
 /* NEW - menu */
@@ -2945,7 +2945,7 @@ else
 
 /* terminating button */
 gui_stock_button(GTK_STOCK_CLOSE, dialog_destroy, dialog,
-                   GTK_DIALOG(window)->action_area);
+                   GDIS_DIALOG_ACTIONS(window));
 
 /* done */
 gtk_widget_show_all(window);

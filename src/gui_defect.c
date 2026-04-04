@@ -114,7 +114,7 @@ window = dialog_window(dialog);
 gui_defect_default();
 
 /* defect build setup frame */
-vbox = gui_frame_vbox("Geometry", FALSE, FALSE, GTK_DIALOG(window)->vbox);
+vbox = gui_frame_vbox("Geometry", FALSE, FALSE, GDIS_DIALOG_CONTENTS(window));
 table = gtk_table_new(4, 5, FALSE);
 gtk_box_pack_start(GTK_BOX(vbox), table, TRUE, TRUE, 0); 
 
@@ -163,7 +163,7 @@ spin = gui_direct_spin(NULL, &defect.region[1], 0, 999, 1, NULL, NULL, NULL);
 gtk_table_attach_defaults(GTK_TABLE(table),spin,3,4,4,5);
 
 /* construct setup frame */
-vbox = gui_frame_vbox("Options", FALSE, FALSE, GTK_DIALOG(window)->vbox);
+vbox = gui_frame_vbox("Options", FALSE, FALSE, GDIS_DIALOG_CONTENTS(window));
 
 hbox = gtk_hbox_new(FALSE, 0);
 gtk_box_pack_start(GTK_BOX(vbox), hbox, TRUE, TRUE, 0); 
@@ -181,11 +181,10 @@ gui_direct_check("Discard periodicity ", &defect.cluster, NULL, NULL, vbox);
 
 /* terminating buttons */
 gui_stock_button(GTK_STOCK_EXECUTE, gui_defect_build, NULL,
-                   GTK_DIALOG(window)->action_area);
+                   GDIS_DIALOG_ACTIONS(window));
 
 gui_stock_button(GTK_STOCK_CLOSE, dialog_destroy, dialog,
-                   GTK_DIALOG(window)->action_area);
+                   GDIS_DIALOG_ACTIONS(window));
 
 gtk_widget_show_all(window);
 }
-

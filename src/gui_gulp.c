@@ -395,7 +395,9 @@ gui_relation_update_widget(&model->gulp.trj_file);
 /**************************/
 void phonon_scaling_changed(GtkWidget *w, gpointer *ptr)
 {
-sysenv.render.phonon_scaling = GTK_ADJUSTMENT(w)->value;
+(void) ptr;
+
+sysenv.render.phonon_scaling = gtk_adjustment_get_value(GTK_ADJUSTMENT(w));
 }
 
 #define DEBUG_PHONON_DISPLAY 0
@@ -1943,20 +1945,20 @@ window = dialog_window(dialog);
 
 model->gulp.dialog = window;
 
-vbox = gui_frame_vbox(NULL, FALSE, FALSE, GTK_DIALOG(window)->vbox);
+vbox = gui_frame_vbox(NULL, FALSE, FALSE, GDIS_DIALOG_CONTENTS(window));
 
 gui_gulp_widget(vbox, dialog);
 
 /* terminating button */
 gui_stock_button(GTK_STOCK_EXECUTE, gulp_execute, model,
-                   GTK_DIALOG(window)->action_area);
+                   GDIS_DIALOG_ACTIONS(window));
 
 #ifdef WITH_GRISU
-gui_icon_button(GTK_STOCK_APPLY, "Grid Submit", gui_gulp_grid_submit, model, GTK_DIALOG(window)->action_area);
+gui_icon_button(GTK_STOCK_APPLY, "Grid Submit", gui_gulp_grid_submit, model, GDIS_DIALOG_ACTIONS(window));
 #endif
 
 gui_stock_button(GTK_STOCK_CLOSE, dialog_destroy, dialog,
-                   GTK_DIALOG(window)->action_area);
+                   GDIS_DIALOG_ACTIONS(window));
 
 gtk_widget_show_all(window);
 }

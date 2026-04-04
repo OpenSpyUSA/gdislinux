@@ -1163,7 +1163,7 @@ gtk_window_set_default_size(GTK_WINDOW(window), 250, 550);
 /* notebook */
 notebook = gtk_notebook_new();
 gtk_notebook_set_tab_pos(GTK_NOTEBOOK(notebook), GTK_POS_TOP);
-gtk_box_pack_start(GTK_BOX(GTK_DIALOG(window)->vbox),notebook,FALSE,FALSE,0);
+gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)),notebook,FALSE,FALSE,0);
 gtk_notebook_set_show_border(GTK_NOTEBOOK(notebook), TRUE);
 
 /* manual measurement */
@@ -1180,7 +1180,7 @@ meas_search_page(vbox);
 
 /* measurements viewing pane */
 frame = gtk_frame_new ("Label list");
-gtk_box_pack_start(GTK_BOX(GTK_DIALOG(window)->vbox),frame,TRUE,TRUE,0); 
+gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)),frame,TRUE,TRUE,0);
 gtk_container_set_border_width(GTK_CONTAINER(frame), PANEL_SPACING/2);
 vbox = gtk_vbox_new(FALSE, 0);
 gtk_container_add(GTK_CONTAINER(frame), vbox);
@@ -1228,7 +1228,7 @@ gui_button(" Dump ", meas_dump_all, NULL, hbox, TT);
 
 /* terminating button */
 gui_stock_button(GTK_STOCK_CLOSE, dialog_destroy, dialog,
-                   GTK_DIALOG(window)->action_area);
+                   GDIS_DIALOG_ACTIONS(window));
 
 /* done */
 gtk_widget_show_all(window);

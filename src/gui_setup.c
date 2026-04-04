@@ -49,10 +49,10 @@ window = dialog_window(dialog);
 gtk_widget_set_size_request(window, 640, -1);
 
 frame = gtk_frame_new(NULL);
-gtk_box_pack_start(GTK_BOX(GTK_DIALOG(window)->vbox), frame, FALSE, FALSE, PANEL_SPACING);
+gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)), frame, FALSE, FALSE, PANEL_SPACING);
 gtk_container_set_border_width(GTK_CONTAINER(frame), PANEL_SPACING);
 
-table = gtk_table_new(2, 9, FALSE);
+table = gtk_table_new(2, 10, FALSE);
 gtk_container_add(GTK_CONTAINER(frame), table);
 gtk_container_set_border_width(GTK_CONTAINER(table), PANEL_SPACING);
 
@@ -77,51 +77,58 @@ vbox = gtk_vbox_new(TRUE, 0);
 gtk_table_attach_defaults(GTK_TABLE(table),vbox,1,2,2,3);
 gui_text_entry(NULL, &sysenv.vasp_path, TRUE, TRUE, vbox);
 
-label = gtk_label_new("USPEX");
+label = gtk_label_new("Qbox");
 gtk_misc_set_alignment(GTK_MISC(label), 0, 0);
 gtk_table_attach_defaults(GTK_TABLE(table),label,0,1,3,4);
 vbox = gtk_vbox_new(TRUE, 0);
 gtk_table_attach_defaults(GTK_TABLE(table),vbox,1,2,3,4);
-gui_text_entry(NULL, &sysenv.uspex_path, TRUE, TRUE, vbox);
+gui_text_entry(NULL, &sysenv.qbox_path, TRUE, TRUE, vbox);
 
-label = gtk_label_new("MPIRUN");
+label = gtk_label_new("USPEX");
 gtk_misc_set_alignment(GTK_MISC(label), 0, 0);
 gtk_table_attach_defaults(GTK_TABLE(table),label,0,1,4,5);
 vbox = gtk_vbox_new(TRUE, 0);
 gtk_table_attach_defaults(GTK_TABLE(table),vbox,1,2,4,5);
-gui_text_entry(NULL, &sysenv.mpirun_path, TRUE, TRUE, vbox);
+gui_text_entry(NULL, &sysenv.uspex_path, TRUE, TRUE, vbox);
 
-label = gtk_label_new("GULP");
+label = gtk_label_new("MPIRUN");
 gtk_misc_set_alignment(GTK_MISC(label), 0, 0);
 gtk_table_attach_defaults(GTK_TABLE(table),label,0,1,5,6);
 vbox = gtk_vbox_new(TRUE, 0);
 gtk_table_attach_defaults(GTK_TABLE(table),vbox,1,2,5,6);
-gui_text_entry(NULL, &sysenv.gulp_path, TRUE, TRUE, vbox);
+gui_text_entry(NULL, &sysenv.mpirun_path, TRUE, TRUE, vbox);
 
-label = gtk_label_new("Monty");
+label = gtk_label_new("GULP");
 gtk_misc_set_alignment(GTK_MISC(label), 0, 0);
 gtk_table_attach_defaults(GTK_TABLE(table),label,0,1,6,7);
 vbox = gtk_vbox_new(TRUE, 0);
 gtk_table_attach_defaults(GTK_TABLE(table),vbox,1,2,6,7);
-gui_text_entry(NULL, &sysenv.monty_path, TRUE, TRUE, vbox);
+gui_text_entry(NULL, &sysenv.gulp_path, TRUE, TRUE, vbox);
 
-label = gtk_label_new("POVRay");
+label = gtk_label_new("Monty");
 gtk_misc_set_alignment(GTK_MISC(label), 0, 0);
 gtk_table_attach_defaults(GTK_TABLE(table),label,0,1,7,8);
 vbox = gtk_vbox_new(TRUE, 0);
 gtk_table_attach_defaults(GTK_TABLE(table),vbox,1,2,7,8);
-gui_text_entry(NULL, &sysenv.povray_path, TRUE, TRUE, vbox);
+gui_text_entry(NULL, &sysenv.monty_path, TRUE, TRUE, vbox);
 
-label = gtk_label_new("Image viewer          ");
+label = gtk_label_new("POVRay");
 gtk_misc_set_alignment(GTK_MISC(label), 0, 0);
 gtk_table_attach_defaults(GTK_TABLE(table),label,0,1,8,9);
 vbox = gtk_vbox_new(TRUE, 0);
 gtk_table_attach_defaults(GTK_TABLE(table),vbox,1,2,8,9);
+gui_text_entry(NULL, &sysenv.povray_path, TRUE, TRUE, vbox);
+
+label = gtk_label_new("Image viewer          ");
+gtk_misc_set_alignment(GTK_MISC(label), 0, 0);
+gtk_table_attach_defaults(GTK_TABLE(table),label,0,1,9,10);
+vbox = gtk_vbox_new(TRUE, 0);
+gtk_table_attach_defaults(GTK_TABLE(table),vbox,1,2,9,10);
 gui_text_entry(NULL, &sysenv.viewer_path, TRUE, TRUE, vbox);
 
 /* termination */
 gui_stock_button(GTK_STOCK_CLOSE, dialog_destroy, dialog,
-                   GTK_DIALOG(window)->action_area);
+                   GDIS_DIALOG_ACTIONS(window));
 
 gtk_widget_show_all(window);
 }

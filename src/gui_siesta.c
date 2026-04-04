@@ -777,7 +777,7 @@ if (!dialog)
 
 window = dialog_window(dialog);
 box = gtk_vbox_new(TRUE, 0);
-gtk_container_add(GTK_CONTAINER(GTK_DIALOG(window)->vbox), box);
+gtk_container_add(GTK_CONTAINER(GDIS_DIALOG_CONTENTS(window)), box);
 
 /* phonon selection */
 vbox = gui_frame_vbox(NULL, FALSE, FALSE, box);
@@ -882,9 +882,9 @@ file_handler_page_generator(dialog, window, model);
 
 siesta_gui_page_generator(dialog, window, model);
 
-gui_button("Animation", siesta_animation_dialog, model, GTK_DIALOG(window)->action_area, TT);
-gui_button("FileGenerate", siesta_file_dialog, model, GTK_DIALOG(window)->action_area, TT);
-gui_stock_button(GTK_STOCK_CLOSE, dialog_destroy, dialog, GTK_DIALOG(window)->action_area);
+gui_button("Animation", siesta_animation_dialog, model, GDIS_DIALOG_ACTIONS(window), TT);
+gui_button("FileGenerate", siesta_file_dialog, model, GDIS_DIALOG_ACTIONS(window), TT);
+gui_stock_button(GTK_STOCK_CLOSE, dialog_destroy, dialog, GDIS_DIALOG_ACTIONS(window));
 
 gtk_widget_show_all(window);
 }
@@ -894,7 +894,7 @@ void file_handler_page_generator(gpointer * dialog, GtkWidget * window, struct m
     GtkWidget *frame, *vbox;
 
     vbox = gtk_vbox_new(FALSE,0);
-    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(window)->vbox), vbox, TRUE, TRUE, 10);
+    gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)), vbox, TRUE, TRUE, 10);
 
     gui_direct_check("Write csv", &siestafileWRITE, random_action, NULL, vbox);
 
@@ -918,7 +918,7 @@ void siesta_gui_page_generator(gpointer * dialog, GtkWidget * window, struct mod
 
     /* create notebook */
     hbox = gtk_hbox_new(FALSE,0);
-    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(window)->vbox), hbox, TRUE, TRUE, 10);
+    gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)), hbox, TRUE, TRUE, 10);
     vbox = gtk_vbox_new(FALSE, 0);
     gtk_box_pack_start (GTK_BOX(hbox), vbox, FALSE, FALSE, 0);
 
@@ -1665,7 +1665,7 @@ void siesta_file_dialog(GtkWidget *w, struct model_pak * model)
     window = dialog_window(dialog);
 
     vbox = gtk_vbox_new(TRUE,5);
-    gtk_container_add (GTK_CONTAINER (GTK_DIALOG(window)->vbox), vbox);
+    gtk_container_add (GTK_CONTAINER (GDIS_DIALOG_CONTENTS(window)), vbox);
 
     frame = gtk_frame_new(" Atoms in system ");
     gtk_box_pack_start(GTK_BOX(vbox), frame, TRUE, FALSE, 0);
@@ -1701,9 +1701,9 @@ void siesta_file_dialog(GtkWidget *w, struct model_pak * model)
 
     // file location
 
-    gui_stock_button(GTK_STOCK_SAVE, siesta_file_save_loop, model, GTK_DIALOG(window)->action_area);
-    gui_button("Save and Queue", siesta_save_n_queue, model, GTK_DIALOG(window)->action_area, TT);
-    gui_stock_button(GTK_STOCK_CLOSE, dialog_destroy, dialog, GTK_DIALOG(window)->action_area);
+    gui_stock_button(GTK_STOCK_SAVE, siesta_file_save_loop, model, GDIS_DIALOG_ACTIONS(window));
+    gui_button("Save and Queue", siesta_save_n_queue, model, GDIS_DIALOG_ACTIONS(window), TT);
+    gui_stock_button(GTK_STOCK_CLOSE, dialog_destroy, dialog, GDIS_DIALOG_ACTIONS(window));
 
     gtk_widget_show_all (window);
 }

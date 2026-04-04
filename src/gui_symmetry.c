@@ -140,7 +140,15 @@ gint                   StatAccept            = 0 ;
 /*
  *    Point groups I know about
  */
-gint true(void){return 1;}
+static gint point_group_true(void)
+{
+return(1);
+}
+
+#ifdef true
+#undef true
+#endif
+#define true point_group_true
 
 POINT_GROUP PointGroups[] = 
   {
@@ -203,6 +211,8 @@ POINT_GROUP PointGroups[] =
   {"Ih",    "(i) 6*(C5) 10*(C3) 15*(C2) 6*(S10) 10*(S6) 15*(sigma) ", true},
   {"Kh",    "(i) (Cinf) (sigma) ",                                    true},
   };
+
+#undef true
 
 
 #define PointGroupsCount (sizeof(PointGroups)/sizeof(POINT_GROUP))
@@ -2032,4 +2042,3 @@ else
 gtk_tree_view_columns_autosize(GTK_TREE_VIEW(tv));
 
 }
-

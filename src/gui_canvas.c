@@ -77,11 +77,7 @@ switch (action)
 sysenv.refresh_canvas = TRUE;
 }
 
-/*******************/
-/* configure event */
-/*******************/
-#define DEBUG_GL_CONFIG_EVENT 0
-gint canvas_configure(GtkWidget *w, GdkEventConfigure *event, gpointer data)
+static void canvas_configure_size(GtkWidget *w, gint width, gint height)
 {
 gint size;
 GSList *list;
@@ -89,34 +85,45 @@ struct model_pak *model;
 
 g_assert(w != NULL);
 
-/* store new drawing area size */
-if (w->allocation.width > w->allocation.height)
-  size = w->allocation.height;
+if (width > height)
+  size = height;
 else
-  size = w->allocation.width;
+  size = width;
+
 sysenv.x = 0;
 sysenv.y = 0;
-sysenv.width = w->allocation.width;
-sysenv.height = w->allocation.height;
+sysenv.width = width;
+sysenv.height = height;
 sysenv.size = size;
 
-/* update canvases */
 canvas_resize();
 
-#if DEBUG_GL_CONFIG_EVENT
-printf("Relative canvas origin: (%d,%d)\n",sysenv.x,sysenv.y);
-printf("     Canvas dimensions:  %dx%d\n",sysenv.width,sysenv.height);
-#endif
-
-/* update coords */
 for (list=sysenv.mal ; list ; list=g_slist_next(list))
   {
   model = list->data;
   model->redraw = TRUE;
   }
 
-/* new screen size to be saved as default */
 sysenv.write_gdisrc = TRUE;
+}
+
+/*******************/
+/* configure event */
+/*******************/
+#define DEBUG_GL_CONFIG_EVENT 0
+gint canvas_configure(GtkWidget *w, GdkEventConfigure *event, gpointer data)
+{
+(void) event;
+(void) data;
+
+canvas_configure_size(w,
+                      gdis_gtk_widget_get_width(w),
+                      gdis_gtk_widget_get_height(w));
+
+#if DEBUG_GL_CONFIG_EVENT
+printf("Relative canvas origin: (%d,%d)\n",sysenv.x,sysenv.y);
+printf("     Canvas dimensions:  %dx%d\n",sysenv.width,sysenv.height);
+#endif
 
 return(TRUE);
 }
@@ -143,6 +150,154 @@ redraw_canvas(ALL);
 
 return(TRUE);
 }
+
+#if GTK_MAJOR_VERSION >= 3
+static void canvas_glarea_resize(GtkGLArea *area,
+                                 gint width,
+                                 gint height,
+                                 gpointer data)
+{
+(void) data;
+
+canvas_configure_size(GTK_WIDGET(area), width, height);
+}
+
+static gboolean canvas_glarea_render(GtkGLArea *area,
+                                     GdkGLContext *context,
+                                     gpointer data)
+{
+(void) area;
+(void) context;
+(void) data;
+
+#if GTK_MAJOR_VERSION >= 4
+gtk_gl_area_attach_buffers(area);
+#endif
+
+if (g_getenv("GDIS_DEBUG_GL"))
+  {
+  static gboolean reported = FALSE;
+
+  if (!reported)
+    {
+    g_printerr("GtkGLArea render callback reached.\n");
+    reported = TRUE;
+    }
+  }
+
+gl_canvas_refresh();
+
+return(TRUE);
+}
+#endif
+
+#if GTK_MAJOR_VERSION >= 4
+static gboolean canvas_debug_input_enabled(void)
+{
+return(g_getenv("GDIS_DEBUG_INPUT") != NULL);
+}
+
+static void canvas_click_pressed(GtkGestureClick *gesture,
+                                 gint n_press,
+                                 gdouble x,
+                                 gdouble y,
+                                 gpointer data)
+{
+GtkWidget *widget;
+GdkModifierType state;
+guint button;
+
+(void) n_press;
+(void) data;
+
+widget = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(gesture));
+if (!widget)
+  return;
+
+state = gtk_event_controller_get_current_event_state(GTK_EVENT_CONTROLLER(gesture));
+button = gtk_gesture_single_get_current_button(GTK_GESTURE_SINGLE(gesture));
+
+if (canvas_debug_input_enabled())
+  {
+  g_printerr("GDIS input: GTK4 click press button=%u at %.1f,%.1f state=0x%x\n",
+             button, x, y, state);
+  }
+
+gui_press_input(widget, button, x, y, state);
+}
+
+static void canvas_click_released(GtkGestureClick *gesture,
+                                  gint n_press,
+                                  gdouble x,
+                                  gdouble y,
+                                  gpointer data)
+{
+GtkWidget *widget;
+GdkModifierType state;
+guint button;
+
+(void) n_press;
+(void) data;
+
+widget = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(gesture));
+if (!widget)
+  return;
+
+state = gtk_event_controller_get_current_event_state(GTK_EVENT_CONTROLLER(gesture));
+button = gtk_gesture_single_get_current_button(GTK_GESTURE_SINGLE(gesture));
+
+if (canvas_debug_input_enabled())
+  {
+  g_printerr("GDIS input: GTK4 click release button=%u at %.1f,%.1f state=0x%x\n",
+             button, x, y, state);
+  }
+
+gui_release_input(widget, button, x, y, state);
+}
+
+static void canvas_motion_changed(GtkEventControllerMotion *controller,
+                                  gdouble x,
+                                  gdouble y,
+                                  gpointer data)
+{
+GtkWidget *widget;
+GdkModifierType state;
+
+(void) data;
+
+widget = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(controller));
+if (!widget)
+  return;
+
+state = gtk_event_controller_get_current_event_state(GTK_EVENT_CONTROLLER(controller));
+
+gui_motion_input(widget, x, y, state);
+}
+
+static gboolean canvas_scroll_changed(GtkEventControllerScroll *controller,
+                                      gdouble dx,
+                                      gdouble dy,
+                                      gpointer data)
+{
+GtkWidget *widget;
+gdouble delta;
+
+(void) data;
+
+widget = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(controller));
+if (!widget)
+  return(FALSE);
+
+delta = (dy != 0.0) ? dy : dx;
+
+if (canvas_debug_input_enabled())
+  {
+  g_printerr("GDIS input: GTK4 scroll dx=%.3f dy=%.3f\n", dx, dy);
+  }
+
+return(gui_scroll_delta(widget, delta));
+}
+#endif
 
 /*****************************************************/
 /* create a new canvas and place in the canvas table */
@@ -180,19 +335,58 @@ sysenv.canvas_list = g_slist_prepend(sysenv.canvas_list, canvas);
 	/**************************************/
 void canvas_init(GtkWidget *box)
 {
+#if GTK_MAJOR_VERSION >= 4
+GtkEventController *motion;
+GtkEventController *scroll;
+GtkGesture *click;
+#endif
+
 /* create the drawing area */
 sysenv.glarea = gdis_gl_widget_new(sysenv.glconfig);
 gtk_widget_set_size_request(sysenv.glarea, sysenv.width, sysenv.height);
 gtk_box_pack_start(GTK_BOX(box), sysenv.glarea, TRUE, TRUE, 0);
 
 /* init signals */
+#if GTK_MAJOR_VERSION >= 3
+g_signal_connect(GTK_OBJECT(sysenv.glarea), "render",
+                 G_CALLBACK(canvas_glarea_render), NULL);
+g_signal_connect(GTK_OBJECT(sysenv.glarea), "resize",
+                 G_CALLBACK(canvas_glarea_resize), NULL);
+#else
 g_signal_connect(GTK_OBJECT(sysenv.glarea), "expose_event",
                  GTK_SIGNAL_FUNC(canvas_expose), NULL);
 g_signal_connect(GTK_OBJECT(sysenv.glarea), "configure_event",
                  GTK_SIGNAL_FUNC(canvas_configure), NULL);
+#endif
 
 /* TODO - what about the "realize" event??? */
 
+#if GTK_MAJOR_VERSION >= 4
+click = gtk_gesture_click_new();
+gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(click), 0);
+gtk_event_controller_set_propagation_phase(GTK_EVENT_CONTROLLER(click),
+                                           GTK_PHASE_CAPTURE);
+g_signal_connect(click, "pressed",
+                 G_CALLBACK(canvas_click_pressed), NULL);
+g_signal_connect(click, "released",
+                 G_CALLBACK(canvas_click_released), NULL);
+gtk_widget_add_controller(sysenv.glarea, GTK_EVENT_CONTROLLER(click));
+
+motion = gtk_event_controller_motion_new();
+gtk_event_controller_set_propagation_phase(motion, GTK_PHASE_CAPTURE);
+g_signal_connect(motion, "motion",
+                 G_CALLBACK(canvas_motion_changed), NULL);
+gtk_widget_add_controller(sysenv.glarea, motion);
+
+scroll = gtk_event_controller_scroll_new(GTK_EVENT_CONTROLLER_SCROLL_BOTH_AXES
+                                         | GTK_EVENT_CONTROLLER_SCROLL_DISCRETE);
+gtk_event_controller_set_propagation_phase(scroll, GTK_PHASE_CAPTURE);
+g_signal_connect(scroll, "scroll",
+                 G_CALLBACK(canvas_scroll_changed), NULL);
+gtk_widget_add_controller(sysenv.glarea, scroll);
+
+gtk_widget_set_focusable(sysenv.glarea, TRUE);
+#else
 g_signal_connect(GTK_OBJECT(sysenv.glarea), "motion_notify_event",
                  GTK_SIGNAL_FUNC(gui_motion_event), NULL);
 g_signal_connect(GTK_OBJECT(sysenv.glarea), "button_press_event",
@@ -209,8 +403,12 @@ gtk_widget_set_events(GTK_WIDGET(sysenv.glarea), GDK_EXPOSURE_MASK
                                                | GDK_SCROLL_MASK
                                                | GDK_POINTER_MOTION_MASK
                                                | GDK_POINTER_MOTION_HINT_MASK);
+#endif
 
 gtk_widget_show(sysenv.glarea);
+#if GTK_MAJOR_VERSION >= 4
+gtk_widget_grab_focus(sysenv.glarea);
+#endif
 }
 
 /**************************/

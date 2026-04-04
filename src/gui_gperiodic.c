@@ -171,7 +171,7 @@ window = dialog_window(dialog);
 
 /* top frame */
 frame = gtk_frame_new(NULL);
-gtk_box_pack_start(GTK_BOX(GTK_DIALOG(window)->vbox), frame, TRUE, FALSE, 0);
+gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)), frame, TRUE, FALSE, 0);
 gtk_container_set_border_width(GTK_CONTAINER(frame), PANEL_SPACING);
 vbox = gtk_vbox_new(TRUE,1);
 gtk_container_add(GTK_CONTAINER(frame), vbox);
@@ -225,7 +225,7 @@ gui_colour_box("Colour: ", elem_edit.colour, vbox);
 
 /* application buttons/check boxes */
 frame = gtk_frame_new(NULL);
-gtk_box_pack_start(GTK_BOX(GTK_DIALOG(window)->vbox), frame, TRUE, FALSE, 0);
+gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)), frame, TRUE, FALSE, 0);
 gtk_container_set_border_width(GTK_CONTAINER(frame), PANEL_SPACING);
 
 /* two column element data display */
@@ -237,7 +237,7 @@ gui_button_x("Apply globally", elem_change_global, &elem_edit, vbox);
 gui_button_x("Reset values", elem_reset, &elem_edit, vbox);
 
 gui_stock_button(GTK_STOCK_CLOSE, dialog_destroy, dialog,
-                   GTK_DIALOG(window)->action_area);
+                   GDIS_DIALOG_ACTIONS(window));
 
 gtk_widget_show_all(window);
 }
@@ -319,7 +319,7 @@ gtk_widget_modify_bg(GTK_WIDGET(w), GTK_STATE_NORMAL, &colour);
 /* use a vbox for the menubar and the table of elements... */
 vbox = gtk_vbox_new(FALSE, PANEL_SPACING);
 gtk_container_border_width(GTK_CONTAINER(vbox), PANEL_SPACING);
-gtk_container_add(GTK_CONTAINER(GTK_DIALOG(w)->vbox), vbox);
+gtk_container_add(GTK_CONTAINER(GDIS_DIALOG_CONTENTS(w)), vbox);
 
 /* nice heading */
 label = gtk_label_new("Periodic Table of the Elements");
@@ -372,10 +372,10 @@ gtk_table_set_col_spacings(GTK_TABLE(periodic_table), PANEL_SPACING);
 
 /* terminating buttons */
 gui_stock_button(GTK_STOCK_REFRESH, refresh_model_from_table, NULL, 
-                   GTK_DIALOG(w)->action_area);
+                   GDIS_DIALOG_ACTIONS(w));
 
 gui_stock_button(GTK_STOCK_CLOSE, dialog_destroy, dialog,
-                   GTK_DIALOG(w)->action_area);
+                   GDIS_DIALOG_ACTIONS(w));
 
 gtk_widget_show_all(w);
 }
