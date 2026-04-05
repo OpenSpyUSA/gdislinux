@@ -192,6 +192,7 @@ gboolean gui_widget_handler(void);
 void gui_refresh(gint);
 
 void gui_refresh_selection(void);
+void gui_debug_queue_startup_action(void);
 
 gpointer camera_new(void);
 gpointer camera_dup(gpointer);

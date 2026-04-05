@@ -1,0 +1,4 @@
+bin/gdis usr/lib/gdis/
+bin/gdis.elements usr/lib/gdis/
+bin/gdis.library usr/lib/gdis/
+bin/gdis.manual usr/lib/gdis/

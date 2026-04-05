@@ -382,6 +382,12 @@ dialog->cleanup = cleanup;
 /* widget setup */
 dialog->window = gtk_dialog_new();
 gtk_window_set_title(GTK_WINDOW(dialog->window), title);
+if (sysenv.main_window && GTK_IS_WINDOW(sysenv.main_window))
+  {
+  gtk_window_set_transient_for(GTK_WINDOW(dialog->window),
+                               GTK_WINDOW(sysenv.main_window));
+  gtk_window_set_destroy_with_parent(GTK_WINDOW(dialog->window), TRUE);
+  }
 g_signal_connect(GTK_OBJECT(dialog->window), "destroy",
                  GTK_SIGNAL_FUNC(dialog_free), (gpointer) dialog);
 

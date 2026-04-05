@@ -1,0 +1,10 @@
+551839b6309a05554f8efbee346b5382  usr/bin/gdis
+af62f2f237b3013c05e6fd5d860faa34  usr/lib/gdis/gdis
+e0310caaf79c69ad6870483d1efec955  usr/lib/gdis/gdis.elements
+f9da9366488db928908eb9ffe3fff6a0  usr/lib/gdis/gdis.library
+465197ef652dfe81ff8ed689f48a050d  usr/lib/gdis/gdis.manual
+c409445159386c8a0a84f8b4658e8e9a  usr/share/doc/gdis/CONTRIBUTING.md
+f976efe18c1706d43fe5f121e5ee3b0b  usr/share/doc/gdis/README.md.gz
+ba127ec48f40b7afec0ce17a33b0458f  usr/share/doc/gdis/changelog.Debian.gz
+663b0556c5654fb6cbffbd61389fa15f  usr/share/doc/gdis/copyright
+bb258138751d83305b3a6948cc3531bc  usr/share/man/man1/gdis.1.gz

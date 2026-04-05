@@ -1639,6 +1639,7 @@ if (data->gulp.trj_file && !data->gulp.orig_cores)
 /* finished - only now we destroy the file dialog */
 dialog_destroy_type(FILE_SELECT);
 tree_select_active();
+gui_debug_queue_startup_action();
 
 error_table_print_all();
 }
@@ -1954,4 +1955,3 @@ while(current){
 }
 return TRUE;
 }
-

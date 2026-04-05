@@ -1,0 +1,36 @@
+#!/usr/bin/make -f
+
+export DH_VERBOSE = 1
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+export PKG_CONFIG = pkg-config
+export GDIS_GTK_TARGET = gtk4
+export GDIS_BASE_PKG_CONFIG_PACKAGES = gtk4 gthread-2.0 gmodule-2.0
+export GDIS_GUI_PKG_CONFIG_PACKAGES = $(GDIS_BASE_PKG_CONFIG_PACKAGES) gl glu epoxy
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+
+override_dh_auto_build:
+	$(MAKE) -C src \
+		PKG_CONFIG="$(PKG_CONFIG)" \
+		GDIS_GTK_TARGET="$(GDIS_GTK_TARGET)" \
+		GDIS_BASE_PKG_CONFIG_PACKAGES="$(GDIS_BASE_PKG_CONFIG_PACKAGES)" \
+		GDIS_GUI_PKG_CONFIG_PACKAGES="$(GDIS_GUI_PKG_CONFIG_PACKAGES)" \
+		gdis
+
+override_dh_auto_install:
+
+override_dh_auto_test:
+
+override_dh_install:
+	dh_install
+	install -D -m0755 debian/gdis-wrapper debian/gdis/usr/bin/gdis
+	install -D -m0644 debian/gdis.desktop debian/gdis/usr/share/applications/gdis.desktop
+	install -D -m0644 src/methane.xpm debian/gdis/usr/share/pixmaps/gdis.xpm
+	desktop-file-validate debian/gdis/usr/share/applications/gdis.desktop
+
+override_dh_auto_clean:
+	$(MAKE) -C src clean
+	rm -f src/modules/*.o src/modules/*.d

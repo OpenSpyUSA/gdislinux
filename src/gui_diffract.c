@@ -705,6 +705,17 @@ static void diff_calc_cb(GtkWidget *w, gpointer data)
 {
 diff_calc(data);
 }
+
+static gboolean diff_debug_auto_execute(gpointer data)
+{
+struct diffract_ui *ui = data;
+
+if (!ui)
+  return(FALSE);
+
+diff_calc(ui);
+return(FALSE);
+}
 /****************************/
 /* diffraction setup dialog */
 /****************************/
@@ -730,6 +741,7 @@ dialog = dialog_request(DIFFAX, "Powder Diffraction", NULL, NULL, data);
 if (!dialog)
   return;
 window = dialog_window(dialog);
+gtk_window_set_default_size(GTK_WINDOW(window), 560, 420);
 ui = g_malloc0(sizeof(struct diffract_ui));
 ui->model = data;
 g_signal_connect(window, "destroy", G_CALLBACK(diff_ui_free), ui);
@@ -900,4 +912,7 @@ gui_stock_button(GTK_STOCK_CLOSE,
                    GDIS_DIALOG_ACTIONS(window));
 
 gtk_widget_show_all(window);
+
+if (g_getenv("GDIS_DEBUG_AUTO_EXECUTE_DIFFRACTION"))
+  g_idle_add(diff_debug_auto_execute, ui);
 }

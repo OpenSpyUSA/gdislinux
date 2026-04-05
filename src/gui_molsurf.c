@@ -62,6 +62,8 @@ gpointer pulldown_colour;
 GtkWidget *epot_vbox, *surf_epot_min, *surf_epot_max, *surf_epot_div;
 GtkWidget *epot_pts;
 
+static void ms_calculate(void);
+
 static void ms_update_epot_sensitivity(void)
 {
 gboolean sensitive;
@@ -74,6 +76,17 @@ if (model && model->epot_autoscale)
 
 if (epot_vbox)
   gtk_widget_set_sensitive(epot_vbox, sensitive);
+}
+
+static gboolean ms_debug_auto_execute(gpointer data)
+{
+(void) data;
+
+if (!sysenv.active_model)
+  return(FALSE);
+
+ms_calculate();
+return(FALSE);
 }
 
 /***************************************/
@@ -262,6 +275,7 @@ dialog = dialog_request(SURF, "Iso-Surfaces", NULL, NULL, data);
 if (!dialog)
   return;
 window = dialog_window(dialog);
+gtk_window_set_default_size(GTK_WINDOW(window), 500, 460);
 
 /* isosurface type */
 frame = gtk_frame_new(NULL);
@@ -369,4 +383,7 @@ gui_stock_button(GTK_STOCK_CLOSE, dialog_destroy, dialog,
 /* done */
 gtk_widget_show_all(window);
 ms_update_epot_sensitivity();
+
+if (g_getenv("GDIS_DEBUG_AUTO_EXECUTE_ISOSURF"))
+  g_idle_add(ms_debug_auto_execute, NULL);
 }

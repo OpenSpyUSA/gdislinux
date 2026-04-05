@@ -1,0 +1,15 @@
+libEGL warning: DRI3 error: Could not get DRI3 device
+libEGL warning: Ensure your X server supports DRI3 to get accelerated rendering
+tree_selection_changed: depth=0
+tree_selection_changed(root): model=0xbc46d22ecda0 graph=(nil)
+gui_model_select(before): model=0xbc46d22ecda0 active=0xbc46d22ecda0 graph=(nil)
+gui_model_select(after): model=0xbc46d22ecda0 active=0xbc46d22ecda0 graph=(nil)
+gl_core_draw_model: model=0xbc46d22ecda0 active_model=0xbc46d22ecda0 graph_active=(nil) graphs=0 picture=(nil)
+GDIS core-profile renderer is active in limited mode: atom spheres, bond/stick geometry, cell frames, graph plots/text, spatial surfaces, colour scales, and several overlays render, while some legacy overlays and interaction paths still need porting.
+tree_selection_changed: depth=1
+tree_selection_changed(graph-before): model=0xbc46d22ecda0 graph=0xbc46d5c18020 active=0xbc46d5c18020
+gui_model_select(before): model=0xbc46d22ecda0 active=0xbc46d22ecda0 graph=0xbc46d5c18020
+gui_model_select(after): model=0xbc46d22ecda0 active=0xbc46d22ecda0 graph=(nil)
+tree_selection_changed(graph-after): model=0xbc46d22ecda0 graph=0xbc46d5c18020 active=0xbc46d5c18020
+diff: model=0xbc46d22ecda0 graph=0xbc46d5c18020 active=0xbc46d5c18020 graphs=1
+gl_core_draw_model: model=0xbc46d22ecda0 active_model=0xbc46d22ecda0 graph_active=0xbc46d5c18020 graphs=1 picture=(nil)

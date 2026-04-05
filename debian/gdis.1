@@ -1,0 +1,38 @@
+.TH GDIS 1 "April 2026" "gdis 1.00+git20260405" "User Commands"
+.SH NAME
+gdis \- GTK/OpenGL viewer and editor for atomistic structures
+.SH SYNOPSIS
+.B gdis
+[\fIfile\fR ...]
+.SH DESCRIPTION
+.B gdis
+is an interactive desktop application for building, viewing, and analyzing
+atomistic and crystallographic structures.
+.
+This Debian packaging refresh uses the GTK4 renewal build of GDIS and
+installs the runtime payload under
+.I /usr/lib/gdis
+with a wrapper exposed as
+.IR /usr/bin/gdis .
+.SH FILES
+.TP
+.I /usr/bin/gdis
+Launcher wrapper for the packaged GDIS binary.
+.TP
+.I /usr/lib/gdis/gdis
+Actual packaged executable.
+.TP
+.I /usr/lib/gdis/gdis.elements
+Element database used by GDIS at runtime.
+.TP
+.I /usr/lib/gdis/gdis.library
+Bundled structure/library data.
+.TP
+.I /usr/lib/gdis/gdis.manual
+Bundled help/manual data.
+.SH AUTHORS
+GDIS was originally written by Sean David Fleming with later work by Andrew
+Rohl and other contributors.
+.SH LICENSE
+GDIS is distributed under the GNU General Public License version 2 or, at
+your option, any later version.

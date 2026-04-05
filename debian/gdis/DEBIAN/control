@@ -1,0 +1,18 @@
+Package: gdis
+Version: 1.00+git20260405-1
+Architecture: arm64
+Maintainer: GDIS Community Maintainers <gdis@example.invalid>
+Installed-Size: 2591
+Depends: libc6 (>= 2.34), libcairo2 (>= 1.2.4), libepoxy0 (>= 1.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libgl1, libglib2.0-0t64 (>= 2.75.3), libglu1-mesa | libglu1, libgtk-4-1 (>= 4.12.0), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0)
+Section: science
+Priority: optional
+Homepage: https://github.com/arohl/gdis
+Description: GTK/OpenGL editor and viewer for atomistic structures
+ GDIS is a desktop application for building, visualizing, and analyzing
+ atomistic and crystallographic structures.
+ .
+ This packaging refresh targets the renewed GTK4 backend so the package no
+ longer depends on the obsolete GTK2 and gtkglext stack that led to removal
+ from Debian unstable. The GTK4 port is still a modernization branch, but it
+ already restores practical molecule rendering, selection overlays,
+ diffraction graphs, and iso-surface workflows.

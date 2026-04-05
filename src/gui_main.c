@@ -84,6 +84,7 @@ gint pane_width=65;
 GtkWidget *viewing_mode;
 /* angle for rotating model */
 GtkWidget *angle_spin;
+static gboolean gui_debug_startup_action_pending = FALSE;
 
 /************************/
 /* EVENT - button press */
@@ -92,6 +93,39 @@ GtkWidget *angle_spin;
 static gboolean gui_debug_input_enabled(void)
 {
 return(g_getenv("GDIS_DEBUG_INPUT") != NULL);
+}
+
+static gboolean gui_debug_run_startup_action(gpointer data)
+{
+const gchar *action;
+
+(void) data;
+
+gui_debug_startup_action_pending = FALSE;
+
+action = g_getenv("GDIS_DEBUG_OPEN_DIALOG");
+if (!action || !sysenv.active_model)
+  return(FALSE);
+
+if (g_ascii_strcasecmp(action, "isosurface") == 0 ||
+    g_ascii_strcasecmp(action, "iso-surface") == 0)
+  gui_isosurf_dialog();
+else if (g_ascii_strcasecmp(action, "diffraction") == 0)
+  gui_diffract_dialog();
+
+return(FALSE);
+}
+
+void gui_debug_queue_startup_action(void)
+{
+if (!g_getenv("GDIS_DEBUG_OPEN_DIALOG"))
+  return;
+
+if (gui_debug_startup_action_pending)
+  return;
+
+gui_debug_startup_action_pending = TRUE;
+g_idle_add(gui_debug_run_startup_action, NULL);
 }
 
 static gboolean gui_event_get_local_position(GtkWidget *w,

@@ -1,0 +1,13 @@
+Package: gdis-dbgsym
+Package-Type: ddeb
+Source: gdis
+Version: 1.00+git20260405-1
+Auto-Built-Package: debug-symbols
+Architecture: arm64
+Maintainer: GDIS Community Maintainers <gdis@example.invalid>
+Installed-Size: 2528
+Depends: gdis (= 1.00+git20260405-1)
+Section: debug
+Priority: optional
+Description: debug symbols for gdis
+Build-Ids: dd3338834dfd06300d0335e2dacd4a1fe84dd2fa

@@ -1,0 +1,39 @@
+Source: gdis
+Section: science
+Priority: optional
+Maintainer: OpenSpyUSA <2243199932hym@gmail.com>
+Build-Depends:
+ debhelper-compat (= 13),
+ desktop-file-utils,
+ libepoxy-dev,
+ libgl-dev,
+ libglu1-mesa-dev,
+ libgtk-4-dev,
+ perl,
+ pkgconf
+Standards-Version: 4.6.2
+Rules-Requires-Root: no
+Homepage: https://github.com/arohl/gdis
+Vcs-Browser: https://github.com/arohl/gdis
+Vcs-Git: https://github.com/arohl/gdis.git
+
+Package: gdis
+Architecture: any
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends}
+Suggests:
+ ffmpeg,
+ grace,
+ imagemagick,
+ openbabel,
+ povray
+Description: GTK/OpenGL editor and viewer for atomistic structures
+ GDIS is a desktop application for building, visualizing, and analyzing
+ atomistic and crystallographic structures.
+ .
+ This packaging refresh targets the renewed GTK4 backend so the package no
+ longer depends on the obsolete GTK2 and gtkglext stack that led to removal
+ from Debian unstable. The GTK4 port is still a modernization branch, but it
+ already restores practical molecule rendering, selection overlays,
+ diffraction graphs, and iso-surface workflows.

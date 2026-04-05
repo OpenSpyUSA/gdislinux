@@ -58,6 +58,42 @@ extern struct elem_pak elements[];
 /* main model database */
 struct model_pak *models[MAX_MODELS];
 
+static void model_debug_visual_overlays(struct model_pak *data)
+{
+GSList *list;
+struct bond_pak *bond;
+struct core_pak *pair[2];
+
+g_return_if_fail(data != NULL);
+
+if (!g_getenv("GDIS_DEBUG_VISUAL_OVERLAYS"))
+  return;
+if (data->selection || data->measure_list)
+  return;
+
+for (list=data->bonds ; list ; list=g_slist_next(list))
+  {
+  bond = list->data;
+  if (!bond || bond->status == DELETED || bond->status == HIDDEN)
+    continue;
+  if (bond->type == BOND_HBOND)
+    continue;
+
+  pair[0] = bond->atom1;
+  pair[1] = bond->atom2;
+  if (!pair[0] || !pair[1])
+    continue;
+
+  select_add_core(pair[0], data);
+  measure_distance_test(MEASURE_BOND, pair, 0.0, 0.0, data);
+
+  if (g_getenv("GDIS_DEBUG_GL_VERBOSE"))
+    g_printerr("GDIS visual test: selected %s and added bond overlay %s-%s\n",
+               pair[0]->atom_label, pair[0]->atom_label, pair[1]->atom_label);
+  break;
+  }
+}
+
 /***********************************/
 /* unified initialization/cleaning */
 /***********************************/
@@ -831,6 +867,8 @@ coords_init(CENT_COORDS, data);
 if (sysenv.canvas)
   camera_init(data);
 
+model_debug_visual_overlays(data);
+
 #if DEBUG_PREP_MODEL
 printf("end prep: %p\n", data);
 #endif
@@ -1416,4 +1454,3 @@ struct property_pak *p = ptr_property;
 
 return(p->value);
 }
-

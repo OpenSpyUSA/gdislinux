@@ -173,6 +173,120 @@ static gint qbox_parse_vector_string(const gchar *text, gdouble *x)
   return(0);
 }
 
+static gboolean qbox_should_hide_cell(struct model_pak *model)
+{
+  GSList *list;
+  struct core_pak *core;
+  gdouble min[3], max[3], span[3];
+  gdouble a[3], b[3], c[3];
+  gdouble min_cell, max_span;
+  gboolean first;
+
+  g_return_val_if_fail(model != NULL, FALSE);
+
+  if (model->periodic != 3)
+    return(FALSE);
+
+  first = TRUE;
+  for (list=model->cores ; list ; list=g_slist_next(list))
+    {
+    core = list->data;
+    if (!core || (core->status & DELETED))
+      continue;
+
+    if (first)
+      {
+      ARR3SET(min, core->x);
+      ARR3SET(max, core->x);
+      first = FALSE;
+      }
+    else
+      {
+      min[0] = MIN(min[0], core->x[0]);
+      min[1] = MIN(min[1], core->x[1]);
+      min[2] = MIN(min[2], core->x[2]);
+      max[0] = MAX(max[0], core->x[0]);
+      max[1] = MAX(max[1], core->x[1]);
+      max[2] = MAX(max[2], core->x[2]);
+      }
+    }
+
+  if (first)
+    return(FALSE);
+
+  span[0] = max[0] - min[0];
+  span[1] = max[1] - min[1];
+  span[2] = max[2] - min[2];
+  max_span = MAX(span[0], MAX(span[1], span[2]));
+  if (max_span < FRACTION_TOLERANCE)
+    return(FALSE);
+
+  VEC3SET(a, model->latmat[0], model->latmat[1], model->latmat[2]);
+  VEC3SET(b, model->latmat[3], model->latmat[4], model->latmat[5]);
+  VEC3SET(c, model->latmat[6], model->latmat[7], model->latmat[8]);
+  min_cell = MIN(VEC3MAG(a), MIN(VEC3MAG(b), VEC3MAG(c)));
+
+  return(min_cell > 2.5 * max_span);
+}
+
+static void qbox_debug_model_summary(const gchar *filename, struct model_pak *model)
+{
+  GSList *list;
+  struct bond_pak *bond;
+  struct core_pak *core1, *core2;
+  const gchar *flag;
+
+  g_return_if_fail(filename != NULL);
+  g_return_if_fail(model != NULL);
+
+  if (!g_getenv("GDIS_QBOX_DEBUG"))
+    return;
+
+  fprintf(stderr,
+          "[qbox] file=%s atoms=%d bonds=%d periodic=%d construct_pbc=%d "
+          "show_cell=%d rmax=%.4f centroid=(%.4f %.4f %.4f)\n",
+          filename,
+          g_slist_length(model->cores),
+          g_slist_length(model->bonds),
+          model->periodic,
+          model->construct_pbc,
+          model->show_cell,
+          model->rmax,
+          model->centroid[0],
+          model->centroid[1],
+          model->centroid[2]);
+
+  for (list=model->bonds ; list ; list=g_slist_next(list))
+    {
+    gdouble dx[3];
+    gdouble dist;
+
+    bond = list->data;
+    if (!bond)
+      continue;
+
+    core1 = bond->atom1;
+    core2 = bond->atom2;
+    if (!core1 || !core2)
+      continue;
+
+    ARR3SET(dx, bond->offset);
+    VEC3MUL(dx, 2.0);
+    vecmat(model->latmat, dx);
+    dist = VEC3MAG(dx);
+
+    flag = connect_split(bond) ? "split" : "direct";
+    fprintf(stderr,
+            "[qbox] bond %-4s %-4s type=%d %s dist=%.4f\n",
+            core1->atom_label,
+            core2->atom_label,
+            bond->type,
+            flag,
+            dist);
+    }
+  fflush(stderr);
+}
+
 static void qbox_model_reset_atomset(struct model_pak *model)
 {
   g_return_if_fail(model != NULL);
@@ -190,6 +304,7 @@ static void qbox_set_cell_from_cart(gdouble *a, gdouble *b, gdouble *c,
   g_return_if_fail(model != NULL);
 
   model->periodic = 3;
+  model->construct_pbc = TRUE;
   model->latmat[0] = a[0] * scale;
   model->latmat[1] = a[1] * scale;
   model->latmat[2] = a[2] * scale;
@@ -304,6 +419,8 @@ static void qbox_add_atom(struct model_pak *model, GHashTable *species_table,
 
 static gint qbox_finish_read(gchar *filename, struct model_pak *model)
 {
+  gboolean hide_cell;
+
   g_return_val_if_fail(filename != NULL, 1);
   g_return_val_if_fail(model != NULL, 1);
 
@@ -318,7 +435,14 @@ static gint qbox_finish_read(gchar *filename, struct model_pak *model)
     model->title = g_strdup(model->basename);
 
   model->coord_units = ANGSTROM;
+  hide_cell = qbox_should_hide_cell(model);
+  if (hide_cell)
+    {
+    model->show_cell = FALSE;
+    model->show_cell_images = FALSE;
+    }
   model_prep(model);
+  qbox_debug_model_summary(filename, model);
 
   return(0);
 }

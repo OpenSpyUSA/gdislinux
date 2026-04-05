@@ -450,9 +450,12 @@ if (n)
   VEC3MUL(data->centroid, 1.0 / (gdouble) n);
   }
 
-/* always make a pbc/2 the centroid in periodic cases */
-for (i=data->periodic ; i-- ; )
-  data->centroid[i] = 0.5; 
+/* keep the full cell centered only when the cell itself is framing the view */
+if (data->periodic && data->show_cell)
+  {
+  for (i=data->periodic ; i-- ; )
+    data->centroid[i] = 0.5;
+  }
 
 /* adjust for images */
 n=1;
@@ -502,8 +505,8 @@ for (list=data->cores ; list ; list=g_slist_next(list))
   while (ilist);
   }
 
-/* check cell vertices */
-if (data->periodic)
+/* check cell vertices only when the cell itself is meant to frame the view */
+if (data->periodic && data->show_cell)
   {
   for (i=8 ; i-- ; )
     {

@@ -3194,6 +3194,16 @@ if (err != GL_NO_ERROR)
   g_printerr("GDIS core debug: GL error 0x%x at %s\n", err, stage);
 }
 
+static void gl_core_clear_gl_errors(void)
+{
+if (!gl_core_debug_enabled())
+  return;
+
+while (glGetError() != GL_NO_ERROR)
+  {
+  }
+}
+
 static void gl_core_mat4_look_at(const gdouble *eye,
                                  const gdouble *center,
                                  const gdouble *up_hint,
@@ -4741,6 +4751,8 @@ for (gsize i=0 ; i<pixels ; i++)
   rgba_data[4*i + 3] = surface_data[4*i + 3];
   }
 
+gl_core_clear_gl_errors();
+
 glDisable(GL_DEPTH_TEST);
 glDepthMask(GL_FALSE);
 glDisable(GL_CULL_FACE);
@@ -4748,19 +4760,25 @@ glEnable(GL_BLEND);
 glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 glViewport(0, 0, width, height);
 
-if (!gl_core_renderer.overlay_texture ||
-    !glIsTexture(gl_core_renderer.overlay_texture))
-  glGenTextures(1, &gl_core_renderer.overlay_texture);
+if (!gl_core_prepare_overlay_texture(width, height))
+  {
+  g_free(rgba_data);
+  return;
+  }
 
 glUseProgram(gl_core_renderer.overlay_program);
+gl_core_log_gl_error("overlay use program");
 glBindVertexArray(gl_core_renderer.overlay_vao);
+gl_core_log_gl_error("overlay bind vao");
 glActiveTexture(GL_TEXTURE0);
 glBindTexture(GL_TEXTURE_2D, gl_core_renderer.overlay_texture);
+glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0,
              GL_RGBA, GL_UNSIGNED_BYTE, rgba_data);
 gl_core_log_gl_error("overlay tex upload");
@@ -5883,6 +5901,7 @@ gint num_indices;
 gint num_vertices;
 gsize vertex_bytes;
 gdouble v1[3], v2[3];
+gdouble axis[3], len, trim;
 GSList *list, *ilist;
 struct pipe_pak *pipe;
 struct image_pak *image;
@@ -5918,6 +5937,21 @@ for (list=pipe_list ; list ; list=g_slist_next(list))
       }
     else
       ilist = model->images;
+
+    ARR3SET(axis, v2);
+    ARR3SUB(axis, v1);
+    len = VEC3MAG(axis);
+    if (len > FRACTION_TOLERANCE)
+      {
+      trim = gl_get_radius(pipe->core, model);
+      if (trim > 0.0 && trim < len)
+        {
+        normalize(axis, 3);
+        v1[0] += trim * axis[0];
+        v1[1] += trim * axis[1];
+        v1[2] += trim * axis[2];
+        }
+      }
 
     glUniform4f(gl_core_renderer.u_colour,
                 pipe->colour[0],

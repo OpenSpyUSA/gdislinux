@@ -1,0 +1,23 @@
+GDIS Debian packaging notes
+===========================
+
+This packaging refresh intentionally builds the renewed GTK4/OpenGL path and
+does not use the legacy GTK2 + gtkglext stack that remains in the upstream
+tree for historical compatibility.
+
+The packaged executable is installed as:
+
+  /usr/lib/gdis/gdis
+
+Runtime data files expected by GDIS live beside that binary:
+
+  /usr/lib/gdis/gdis.elements
+  /usr/lib/gdis/gdis.library
+  /usr/lib/gdis/gdis.manual
+
+A small wrapper is installed as:
+
+  /usr/bin/gdis
+
+That wrapper preserves the current runtime lookup behavior without needing a
+larger upstream path-handling refactor during the initial Debian refresh.

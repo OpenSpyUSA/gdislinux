@@ -192,9 +192,30 @@ return(TRUE);
 #endif
 
 #if GTK_MAJOR_VERSION >= 4
+static GdkModifierType canvas_gtk4_button_state = 0;
+
 static gboolean canvas_debug_input_enabled(void)
 {
 return(g_getenv("GDIS_DEBUG_INPUT") != NULL);
+}
+
+static GdkModifierType canvas_button_mask(guint button)
+{
+switch (button)
+  {
+  case 1:
+    return(GDK_BUTTON1_MASK);
+  case 2:
+    return(GDK_BUTTON2_MASK);
+  case 3:
+    return(GDK_BUTTON3_MASK);
+  case 4:
+    return(GDK_BUTTON4_MASK);
+  case 5:
+    return(GDK_BUTTON5_MASK);
+  default:
+    return(0);
+  }
 }
 
 static void canvas_click_pressed(GtkGestureClick *gesture,
@@ -216,6 +237,8 @@ if (!widget)
 
 state = gtk_event_controller_get_current_event_state(GTK_EVENT_CONTROLLER(gesture));
 button = gtk_gesture_single_get_current_button(GTK_GESTURE_SINGLE(gesture));
+state |= canvas_button_mask(button);
+canvas_gtk4_button_state |= canvas_button_mask(button);
 
 if (canvas_debug_input_enabled())
   {
@@ -245,6 +268,8 @@ if (!widget)
 
 state = gtk_event_controller_get_current_event_state(GTK_EVENT_CONTROLLER(gesture));
 button = gtk_gesture_single_get_current_button(GTK_GESTURE_SINGLE(gesture));
+state |= canvas_gtk4_button_state;
+canvas_gtk4_button_state &= ~canvas_button_mask(button);
 
 if (canvas_debug_input_enabled())
   {
@@ -270,6 +295,13 @@ if (!widget)
   return;
 
 state = gtk_event_controller_get_current_event_state(GTK_EVENT_CONTROLLER(controller));
+state |= canvas_gtk4_button_state;
+
+if (canvas_debug_input_enabled() && canvas_gtk4_button_state)
+  {
+  g_printerr("GDIS input: GTK4 motion at %.1f,%.1f state=0x%x tracked=0x%x\n",
+             x, y, state, canvas_gtk4_button_state);
+  }
 
 gui_motion_input(widget, x, y, state);
 }
