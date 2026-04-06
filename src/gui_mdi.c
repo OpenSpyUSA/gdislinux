@@ -202,7 +202,7 @@ void gui_mdi_dialog(void)
 {
 gint i;
 gpointer dialog;
-GtkWidget *window, *vbox, *label, *frame;
+GtkWidget *window, *swin, *contents, *vbox, *label, *frame;
 GtkAdjustment *adj;
 GString *frame_label;
 GSList *list;
@@ -228,13 +228,24 @@ dialog = dialog_request(MDI, "MD initializer", NULL, NULL, data);
 if (!dialog)
   return;
 window = dialog_window(dialog);
+gtk_window_set_default_size(GTK_WINDOW(window), 460, 420);
+
+swin = gtk_scrolled_window_new(NULL, NULL);
+gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(swin),
+                               GTK_POLICY_AUTOMATIC,
+                               GTK_POLICY_AUTOMATIC);
+gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)), swin, TRUE, TRUE, 0);
+
+contents = gtk_vbox_new(FALSE, PANEL_SPACING);
+gtk_container_set_border_width(GTK_CONTAINER(contents), PANEL_SPACING);
+gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(swin), contents);
 
 /* create input (spin) widgets */
 /* box dimensions */
 frame_label = g_string_new(NULL);
 g_string_printf(frame_label,"Box dimension");//g_string_sprintf deprecated
 frame = gtk_frame_new(frame_label->str);
-gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)), frame, TRUE, TRUE, 0);
+gtk_box_pack_start(GTK_BOX(contents), frame, FALSE, FALSE, 0);
 vbox = gtk_vbox_new(FALSE, 0);
 gtk_container_set_border_width(GTK_CONTAINER(vbox), PANEL_SPACING);
 gtk_container_add(GTK_CONTAINER(frame), vbox);
@@ -252,7 +263,7 @@ gtk_box_pack_start(GTK_BOX (vbox), spinner[0], FALSE, TRUE, 0);
 g_string_printf(frame_label,"Model: %s",data->basename);//g_string_sprintf deprecated
 
 frame = gtk_frame_new(frame_label->str);
-gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)), frame, TRUE, TRUE, 0);
+gtk_box_pack_start(GTK_BOX(contents), frame, FALSE, FALSE, 0);
 vbox = gtk_vbox_new(FALSE, 0);
 gtk_container_set_border_width(GTK_CONTAINER (vbox), PANEL_SPACING);
 gtk_container_add(GTK_CONTAINER(frame), vbox);
@@ -272,7 +283,7 @@ while (list)
   g_string_printf(frame_label,"Model: %s",data->basename);//g_string_sprintf deprecated
 
   frame = gtk_frame_new(frame_label->str);
-  gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)), frame, TRUE, TRUE, 0);
+  gtk_box_pack_start(GTK_BOX(contents), frame, FALSE, FALSE, 0);
   vbox = gtk_vbox_new(FALSE, 0);
   gtk_container_set_border_width(GTK_CONTAINER(vbox), PANEL_SPACING);
   gtk_container_add(GTK_CONTAINER(frame), vbox);

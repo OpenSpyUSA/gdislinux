@@ -537,12 +537,18 @@ gtk_widget_set_vexpand(sysenv.tree, TRUE);
 
 /* setup the model pixmap rendering colum */
 renderer = gtk_cell_renderer_pixbuf_new();
+#if GTK_MAJOR_VERSION >= 4
+g_object_set(renderer, "xpad", 1, "ypad", 0, NULL);
+#endif
 column = gtk_tree_view_column_new_with_attributes("image", renderer,
                                                   "pixbuf", TREE_PIXMAP, NULL);
 gtk_tree_view_append_column(GTK_TREE_VIEW(sysenv.tree), column);
 
 /* setup the model name rendering colum */
 renderer = gtk_cell_renderer_text_new();
+#if GTK_MAJOR_VERSION >= 4
+g_object_set(renderer, "xpad", 2, "ypad", 0, NULL);
+#endif
 column = gtk_tree_view_column_new_with_attributes("name", renderer,
                                                   "text", TREE_NAME, NULL);
 gtk_tree_view_append_column(GTK_TREE_VIEW(sysenv.tree), column);
@@ -555,6 +561,9 @@ g_signal_connect(G_OBJECT(select), "changed",
                  NULL);
 
 gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(sysenv.tree), FALSE);
+#if GTK_MAJOR_VERSION >= 4
+gtk_tree_view_set_level_indentation(GTK_TREE_VIEW(sysenv.tree), 10);
+#endif
 
 gtk_widget_show(swin);
 }

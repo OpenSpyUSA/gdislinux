@@ -803,6 +803,8 @@ gtk_widget_set_margin_end(container, border_width);
 static inline void gdis_gtk_widget_show_all(GtkWidget *widget)
 {
 gtk_widget_set_visible(widget, TRUE);
+if (GTK_IS_WINDOW(widget))
+  gtk_window_present(GTK_WINDOW(widget));
 }
 
 static inline GtkTooltips *gdis_gtk_tooltips_new(void)

@@ -106,6 +106,24 @@ done
 
 GDIS_EXEC="$(resolve_gdis_executable "$GTK_TARGET")"
 
+if [ "$GTK_TARGET" = "gtk4" ] && command -v systemd-detect-virt >/dev/null 2>&1; then
+  virt_type="$(systemd-detect-virt 2>/dev/null || true)"
+  if [ -n "$virt_type" ] && [ "$virt_type" != "none" ]; then
+    if [ -z "${LIBGL_ALWAYS_SOFTWARE-}" ]; then
+      export LIBGL_ALWAYS_SOFTWARE=1
+    fi
+    if [ -z "${LIBGL_DRI3_DISABLE-}" ]; then
+      export LIBGL_DRI3_DISABLE=1
+    fi
+  fi
+fi
+
+if [ "$GTK_TARGET" = "gtk4" ] &&
+   [ -z "${GDIS_SUPPRESS_LIMITED_MODE_NOTICE-}" ] &&
+   [ -z "${GDIS_RUN_VERBOSE-}" ]; then
+  export GDIS_SUPPRESS_LIMITED_MODE_NOTICE=1
+fi
+
 if [ $# -gt 0 ]; then
   mapfile -d '' NORMALIZED_ARGS < <(normalize_run_args "$@")
   exec "$GDIS_EXEC" "${NORMALIZED_ARGS[@]}"

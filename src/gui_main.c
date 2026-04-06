@@ -1806,6 +1806,16 @@ switch (gdk_event_get_event_type(event))
 return(FALSE);
 }
 
+static gboolean gdis_window_present_cb(gpointer user_data)
+{
+GtkWidget *widget = GTK_WIDGET(user_data);
+
+if (widget && GTK_IS_WINDOW(widget))
+  gtk_window_present(GTK_WINDOW(widget));
+
+return(FALSE);
+}
+
 static gboolean gdis_close_request(GtkWindow *win, gpointer data)
 {
 (void) win;
@@ -1858,6 +1868,7 @@ gint x, y, depth;
 gint screen_width, screen_height;
 gint max_width, max_height;
 gint max_tree_width, max_tray_height;
+gint min_tree_width;
 gint min_tree_divider, max_tree_divider;
 gboolean changed = FALSE;
 
@@ -1894,17 +1905,19 @@ if (sysenv.height > max_height)
   }
 
 #if GTK_MAJOR_VERSION >= 4
-max_tree_width = sysenv.width / 4;
-if (max_tree_width > 260)
-  max_tree_width = 260;
-if (max_tree_width < 180)
-  max_tree_width = 180;
+min_tree_width = 150;
+max_tree_width = sysenv.width / 5;
+if (max_tree_width > 220)
+  max_tree_width = 220;
+if (max_tree_width < min_tree_width)
+  max_tree_width = min_tree_width;
 #else
+min_tree_width = 180;
 max_tree_width = sysenv.width / 3;
 if (max_tree_width > 360)
   max_tree_width = 360;
-if (max_tree_width < 220)
-  max_tree_width = 220;
+if (max_tree_width < min_tree_width)
+  max_tree_width = min_tree_width;
 #endif
 
 if (sysenv.tree_width > max_tree_width)
@@ -1912,9 +1925,9 @@ if (sysenv.tree_width > max_tree_width)
   sysenv.tree_width = max_tree_width;
   changed = TRUE;
   }
-if (sysenv.tree_width < 180)
+if (sysenv.tree_width < min_tree_width)
   {
-  sysenv.tree_width = 180;
+  sysenv.tree_width = min_tree_width;
   changed = TRUE;
   }
 
@@ -2264,9 +2277,6 @@ GtkAccelGroup *accel;
 GdkColor colour;
 #if GTK_MAJOR_VERSION >= 4
 GtkEventController *legacy;
-
-if (!g_getenv("GDK_BACKEND") && g_getenv("WAYLAND_DISPLAY") && g_getenv("DISPLAY"))
-  g_setenv("GDK_BACKEND", "x11", FALSE);
 #endif
 
 gtk_init(&argc, &argv);
@@ -2306,6 +2316,7 @@ sysenv.main_window = window; /* FIXME: move to sysenv. --OVHPA */
 gtk_window_set_policy(GTK_WINDOW(window), TRUE, TRUE, FALSE);
 gtk_window_set_title(GTK_WINDOW(window),"GTK Display Interface for Structures");
 gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
+gtk_window_set_default_size(GTK_WINDOW(window), sysenv.width, sysenv.height);
 
 #if GTK_MAJOR_VERSION >= 4
 legacy = gtk_event_controller_legacy_new();
@@ -2731,7 +2742,9 @@ gtk_paned_pack1(GTK_PANED(hpaned), sysenv.mpane, TRUE, TRUE);
 gtk_widget_set_size_request(sysenv.mpane, sysenv.tree_width, -1);
 
 tree_paned = gtk_vpaned_new();
-#if GTK_MAJOR_VERSION >= 3
+#if GTK_MAJOR_VERSION >= 4
+gtk_paned_set_wide_handle(GTK_PANED(tree_paned), FALSE);
+#elif GTK_MAJOR_VERSION >= 3
 gtk_paned_set_wide_handle(GTK_PANED(tree_paned), TRUE);
 #endif
 gtk_box_pack_start(GTK_BOX(sysenv.mpane), tree_paned, TRUE, TRUE, 0);
@@ -2859,6 +2872,11 @@ gtk_widget_grab_focus(sysenv.glarea);
 
 /* show all */
 gtk_widget_show_all(window);
+#if GTK_MAJOR_VERSION >= 4
+gtk_window_present(GTK_WINDOW(window));
+g_timeout_add(120, gdis_window_present_cb, window);
+g_timeout_add(450, gdis_window_present_cb, window);
+#endif
 
 /* Reapply saved split positions after widgets become visible. */
 gtk_paned_set_position(GTK_PANED(hpaned), sysenv.tree_width);

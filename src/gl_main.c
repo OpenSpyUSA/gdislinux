@@ -6150,7 +6150,8 @@ if (model->graph_active)
   return;
   }
 
-if (!gl_core_renderer.warned_limited)
+if (!gl_core_renderer.warned_limited &&
+    !g_getenv("GDIS_SUPPRESS_LIMITED_MODE_NOTICE"))
   {
   g_printerr("GDIS core-profile renderer is active in limited mode: atom "
              "spheres, bond/stick geometry, cell frames, graph plots/text, "

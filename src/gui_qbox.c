@@ -831,4 +831,6 @@ void gui_qbox_dialog(void)
   gui_button("Write Input", qbox_write_input_cb, dialog, GDIS_DIALOG_ACTIONS(window), TT);
   gui_stock_button(GTK_STOCK_EXECUTE, qbox_run_cb, dialog, GDIS_DIALOG_ACTIONS(window));
   gui_stock_button(GTK_STOCK_CLOSE, dialog_destroy, dialog, GDIS_DIALOG_ACTIONS(window));
+
+  gtk_widget_show_all(window);
 }

@@ -494,6 +494,10 @@ if ($use_grisu)
 #  $libs .= "`pkg-config --libs /home/sean/apps/lib/pkgconfig/gsoapssl.pc libssl` ";
   }
 
+# math functions (eg exp, sqrt) are used throughout numeric/model paths.
+# Explicitly link libm to avoid platform-dependent linker ordering failures.
+$libs .= "-lm ";
+
 print OUT "CFLAGS := \$(CFLAGS) $cflags \$(GDIS_EXTRA_CFLAGS)\n";
 print OUT "INCS := \$(INCS) $incs \$(GDIS_EXTRA_INCS)\n";
 print OUT "LIBS := \$(LIBS) $libs \$(GDIS_EXTRA_LIBS)\n\n";
