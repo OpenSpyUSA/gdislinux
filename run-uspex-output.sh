@@ -9,10 +9,10 @@ Usage:
   ./run-uspex-output.sh <results-dir>
   ./run-uspex-output.sh <results-dir>/OUTPUT.txt
   ./run-uspex-output.sh --gtk2 <results-dir>
-  ./run-uspex-output.sh --gtk3 <results-dir>
   ./run-uspex-output.sh --gtk4 <results-dir>
 
 Notes:
+  - GTK4 is the default runtime target unless you pass `--gtk2`.
   - GDIS's USPEX loader expects a real USPEX results bundle.
   - Minimum practical files are:
       OUTPUT.txt
@@ -23,7 +23,7 @@ Notes:
 EOF
 }
 
-GTK_TARGET="${GDIS_GTK_TARGET:-}"
+GTK_TARGET="${GDIS_GTK_TARGET:-gtk4}"
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -31,7 +31,7 @@ while [ $# -gt 0 ]; do
       usage
       exit 0
       ;;
-    --gtk2|--gtk3|--gtk4)
+    --gtk2|--gtk4)
       GTK_TARGET="${1#--}"
       shift
       ;;
@@ -50,6 +50,14 @@ while [ $# -gt 0 ]; do
       ;;
   esac
 done
+
+if [ -n "$GTK_TARGET" ] &&
+   [ "$GTK_TARGET" != "gtk2" ] &&
+   [ "$GTK_TARGET" != "gtk4" ]; then
+  echo "Unsupported GTK target: $GTK_TARGET" >&2
+  echo "Supported targets are gtk2 and gtk4." >&2
+  exit 1
+fi
 
 if [ "${1:-}" = "" ]; then
   usage

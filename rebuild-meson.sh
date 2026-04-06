@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-GTK_TARGET="${GDIS_GTK_TARGET:-gtk2}"
+GTK_TARGET="${GDIS_GTK_TARGET:-gtk4}"
 BUILD_DIR=""
 WITH_GUI="true"
 WITH_GRISU="false"
@@ -15,7 +15,6 @@ usage() {
 Usage:
   ./rebuild-meson.sh
   ./rebuild-meson.sh --gtk2
-  ./rebuild-meson.sh --gtk3
   ./rebuild-meson.sh --gtk4
   ./rebuild-meson.sh --builddir .build/custom
   ./rebuild-meson.sh --no-gui
@@ -26,6 +25,7 @@ Usage:
 
 Notes:
   - This is a Meson/Ninja-based alternative to the legacy Perl + make build.
+  - GTK4 is the default target unless you pass `--gtk2`.
   - The built executable is staged back into `bin/gdis` and `bin/gdis-<target>`
     so the existing launcher scripts keep working.
   - Runtime data files remain in `bin/`, matching how GDIS locates them.
@@ -38,7 +38,7 @@ while [ $# -gt 0 ]; do
       usage
       exit 0
       ;;
-    --gtk2|--gtk3|--gtk4)
+    --gtk2|--gtk4)
       GTK_TARGET="${1#--}"
       shift
       ;;
@@ -74,6 +74,12 @@ while [ $# -gt 0 ]; do
       ;;
   esac
 done
+
+if [ "$GTK_TARGET" != "gtk2" ] && [ "$GTK_TARGET" != "gtk4" ]; then
+  echo "Unsupported GDIS_GTK_TARGET: $GTK_TARGET" >&2
+  echo "Supported values: gtk2, gtk4" >&2
+  exit 1
+fi
 
 if [ -z "$BUILD_DIR" ]; then
   BUILD_DIR="$ROOT_DIR/.build/meson-$GTK_TARGET"

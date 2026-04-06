@@ -28,12 +28,11 @@ Completed baseline maintenance work in this repository:
   `GDIS_BASE_PKG_CONFIG_PACKAGES` and `GDIS_GUI_PKG_CONFIG_PACKAGES`
 - direct live `gtkglext` calls in the application code are centralized in
   `src/gui_gl.c`
-- source-level build targets now exist for `gtk+3` and `gtk4`, even though
-  the stable runtime path is still GTK2
-- the GTK3 branch can now be bootstrapped locally without root access via a
-  project-local sysroot helper
-- the GTK3 and GTK4 branches now both survive non-legacy `GtkGLArea` contexts
-  by switching to a limited core renderer that already restores atom spheres,
+- source-level build targets now exist for `gtk+2` and `gtk4`
+- GTK3 build targeting has been removed to reduce maintenance surface
+- GTK4 and GTK2 are the only maintained toolkit targets in this tree
+- the GTK4 branch survives non-legacy `GtkGLArea` contexts by switching to a
+  limited core renderer that already restores atom spheres,
   bond cylinders, stick geometry, and visible atom selection
 - the GTK4 branch now also uses a compact compatibility menu layer, which
   avoids the earlier giant off-screen window layout and makes the molecule
@@ -122,18 +121,17 @@ Goal: remove the dependency that blocks many modern distributions.
 
 Possible directions:
 
-- GTK3 plus `GtkGLArea`
+- GTK4 plus `GtkGLArea`
 - a different maintained OpenGL area binding
 - a custom compatibility layer if absolutely necessary
 
 Recommended order:
 
-- try GTK3 first as the bridge target
-- use that result to decide whether the renderer can survive on compatibility
-  contexts a little longer
-- if GTK3 still yields core-profile contexts on the target platform, stop
-  spending time on widget-only migration and move the effort into renderer work
-- only then plan a real GTK4/core-profile renderer port
+- focus directly on GTK4 as the modern toolkit target
+- use runtime context checks to keep the GTK2 path stable while renderer
+  migration continues
+- prioritize renderer work over widget-only migration when core-profile context
+  constraints appear
 
 This phase should not start until Phase 2 has reduced the number of direct
 touchpoints.
@@ -162,7 +160,7 @@ Recommended first renderer slice:
 
 Progress on that slice:
 
-- complete enough to show atom views again on GTK3/GTK4
+- complete enough to show atom views again on GTK4
 - still incomplete for bond cylinders, overlays, labels, graphs, and text
 
 See also:

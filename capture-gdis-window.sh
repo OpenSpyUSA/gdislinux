@@ -34,6 +34,11 @@ resolve_gdis_executable() {
     return
   fi
 
+  if [ -x "$ROOT_DIR/bin/gdis-gtk4" ]; then
+    printf '%s\n' "$ROOT_DIR/bin/gdis-gtk4"
+    return
+  fi
+
   if [ -x "$ROOT_DIR/bin/gdis-gtk2" ]; then
     printf '%s\n' "$ROOT_DIR/bin/gdis-gtk2"
     return
@@ -55,7 +60,7 @@ need_tool() {
   fi
 }
 
-GTK_TARGET="${GDIS_GTK_TARGET:-}"
+GTK_TARGET="${GDIS_GTK_TARGET:-gtk4}"
 KEEP_OPEN=0
 WAIT_SECS=15
 OUTPUT_FILE=""
@@ -66,7 +71,7 @@ while [ $# -gt 0 ]; do
       usage
       exit 0
       ;;
-    --gtk2|--gtk3|--gtk4)
+    --gtk2|--gtk4)
       GTK_TARGET="${1#--}"
       shift
       ;;
@@ -96,6 +101,14 @@ while [ $# -gt 0 ]; do
       ;;
   esac
 done
+
+if [ -n "$GTK_TARGET" ] &&
+   [ "$GTK_TARGET" != "gtk2" ] &&
+   [ "$GTK_TARGET" != "gtk4" ]; then
+  echo "Unsupported GTK target: $GTK_TARGET" >&2
+  echo "Supported targets are gtk2 and gtk4." >&2
+  exit 1
+fi
 
 if [ $# -lt 1 ]; then
   usage >&2

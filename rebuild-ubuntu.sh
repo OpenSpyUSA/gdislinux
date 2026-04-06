@@ -3,18 +3,13 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PKG_CONFIG_BIN="${PKG_CONFIG:-pkg-config}"
-GTK_TARGET="${GDIS_GTK_TARGET:-gtk2}"
+GTK_TARGET="${GDIS_GTK_TARGET:-gtk4}"
 
 case "$GTK_TARGET" in
   gtk2)
     DEFAULT_BASE_PKG_CONFIG_PACKAGES="gtk+-2.0 gthread-2.0 gmodule-2.0"
     DEFAULT_GUI_PKG_CONFIG_PACKAGES="$DEFAULT_BASE_PKG_CONFIG_PACKAGES gtkglext-1.0"
     UBUNTU_PACKAGES=(build-essential pkg-config libgtk2.0-dev libgtkglext1-dev)
-    ;;
-  gtk3)
-    DEFAULT_BASE_PKG_CONFIG_PACKAGES="gtk+-3.0 gthread-2.0 gmodule-2.0"
-    DEFAULT_GUI_PKG_CONFIG_PACKAGES="$DEFAULT_BASE_PKG_CONFIG_PACKAGES gl glu epoxy"
-    UBUNTU_PACKAGES=(build-essential pkg-config libgtk-3-dev libgl1-mesa-dev libglu1-mesa-dev libepoxy-dev)
     ;;
   gtk4)
     DEFAULT_BASE_PKG_CONFIG_PACKAGES="gtk4 gthread-2.0 gmodule-2.0"
@@ -23,7 +18,7 @@ case "$GTK_TARGET" in
     ;;
   *)
     echo "Unsupported GDIS_GTK_TARGET: $GTK_TARGET" >&2
-    echo "Supported values: gtk2, gtk3, gtk4" >&2
+    echo "Supported values: gtk2, gtk4" >&2
     exit 1
     ;;
 esac
@@ -44,7 +39,6 @@ missing_packages=()
 missing_modules=()
 pkg_map=(
   "gtk+-2.0:libgtk2.0-dev"
-  "gtk+-3.0:libgtk-3-dev"
   "gtk4:libgtk-4-dev"
   "gl:libgl1-mesa-dev"
   "glu:libglu1-mesa-dev"

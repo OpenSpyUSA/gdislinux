@@ -124,8 +124,8 @@ After the first push:
    `.gitignore` was in place.
 2. Tag the first public state, for example `fork-bootstrap`.
 3. Keep one issue or project note for the GTK/OpenGL migration plan.
-4. Make the next technical milestone a cleaner GTK3 plus `GtkGLArea` path, not
-   an immediate GTK4 rewrite.
+4. Make the next technical milestone renderer parity on the GTK4 path while
+   keeping GTK2 stable for users who need the legacy stack.
 
 ## License And Attribution
 

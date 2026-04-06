@@ -17,12 +17,8 @@ Original authorship remains credited to Sean Fleming and Andrew Rohl.
 
 ### Current Status
 
-- The current stable runtime target is `gtk+2` plus `gtkglext`.
-- It builds successfully on Ubuntu 24.04 with the legacy development packages
-  installed.
-- The GTK3 renewal branch now builds and launches against `GtkGLArea`, with a
-  limited core-profile renderer that shows atom views while legacy-only
-  features are still being ported.
+- The default runtime and build target is GTK4.
+- GTK2 remains available as a legacy fallback target for compatibility testing.
 - The GTK4 renewal branch now builds and launches with a compact compatibility
   menu layer and the same limited atom renderer, so the molecule view is
   visible again instead of blank.
@@ -58,29 +54,8 @@ For the experimental GTK4 renewal build:
 GDIS_GTK_TARGET=gtk4 ./rebuild-ubuntu.sh
 ```
 
-For the intermediate GTK3 renewal build:
-
-```bash
-GDIS_GTK_TARGET=gtk3 ./rebuild-ubuntu.sh
-```
-
-If you do not have `sudo`, you can build the GTK3 branch with a project-local
-sysroot:
-
-```bash
-./build-gtk3-local.sh
-```
-
-Each rebuild also saves a target-specific executable such as `bin/gdis-gtk2`,
-`bin/gdis-gtk3`, or `bin/gdis-gtk4`. Plain `./rebuild-ubuntu.sh` defaults to
-GTK2. The `./build-gtk3-local.sh` helper keeps `bin/gdis-gtk2` as the default
-`bin/gdis` when that stable build is already present.
-
-To override the pkg-config module set for an experimental backend branch:
-
-```bash
-GDIS_GUI_PKG_CONFIG_PACKAGES="gtk+-2.0 gthread-2.0 gmodule-2.0 gtkglext-1.0" ./rebuild-ubuntu.sh
-```
+Each rebuild also saves a target-specific executable such as `bin/gdis-gtk4`
+and `bin/gdis-gtk2`. Plain `./rebuild-ubuntu.sh` now defaults to GTK4.
 
 To launch the main application:
 
@@ -107,7 +82,7 @@ To launch an example with a specific target build:
 ./run-example.sh --gtk4 methane
 ```
 
-For reliable interactive use today, prefer GTK2:
+To run the legacy GTK2 fallback explicitly:
 
 ```bash
 ./run-gdis.sh --gtk2
@@ -123,55 +98,32 @@ GDIS_GTK_TARGET=gtk4 ./rebuild-ubuntu.sh
 ./run-example.sh --gtk4 methane
 ```
 
-For the GTK3 renewal target:
-
-```bash
-sudo apt-get update
-sudo apt-get install -y libgtk-3-dev libgl1-mesa-dev libglu1-mesa-dev libepoxy-dev
-GDIS_GTK_TARGET=gtk3 ./rebuild-ubuntu.sh
-./run-example.sh --gtk3 methane
-```
-
-If you cannot install packages globally, the local helper does the GTK3 dev
-bootstrap into `.localdeps/gtk3` and then builds against that sysroot:
-
-```bash
-./build-gtk3-local.sh
-./run-example.sh --gtk3 methane
-```
-
 ### Build Requirements
 
-Today, the practical Linux build requirements are:
+Today, the practical Linux build requirements for the default GTK4 path are:
 
 - `build-essential`
 - `perl`
 - `pkg-config`
-- `libgtk2.0-dev`
-- `libgtkglext1-dev`
+- `libgtk-4-dev`
+- `libgl1-mesa-dev`
+- `libglu1-mesa-dev`
+- `libepoxy-dev`
 
 On Ubuntu 24.04:
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y build-essential pkg-config libgtk2.0-dev libgtkglext1-dev
+sudo apt-get install -y build-essential pkg-config libgtk-4-dev libgl1-mesa-dev libglu1-mesa-dev libepoxy-dev
 ./rebuild-ubuntu.sh
 ```
 
-For the GTK3 renewal target:
+For the optional GTK2 fallback path:
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y build-essential pkg-config libgtk-3-dev libgl1-mesa-dev libglu1-mesa-dev
-GDIS_GTK_TARGET=gtk3 ./rebuild-ubuntu.sh
-```
-
-For the Meson/Ninja path on GTK2:
-
-```bash
-sudo apt-get update
-sudo apt-get install -y build-essential pkg-config meson ninja-build libgtk2.0-dev libgtkglext1-dev
-./rebuild-meson.sh --gtk2
+sudo apt-get install -y build-essential pkg-config libgtk2.0-dev libgtkglext1-dev
+GDIS_GTK_TARGET=gtk2 ./rebuild-ubuntu.sh
 ```
 
 For the Meson/Ninja path on GTK4:
@@ -211,23 +163,14 @@ Advanced build overrides:
   Opens one of the curated examples from [`examples/`](examples/).
 - `./run-example.sh --gtk4 <name>`
   Uses a target-specific executable such as `bin/gdis-gtk4` when present.
-- `./run-example.sh --gtk3 <name>`
-  Uses `bin/gdis-gtk3` when you have built the GTK3 branch locally.
 - `./run-gdis.sh`
-  Launches GDIS directly and prefers `bin/gdis-gtk2` automatically when it is
-  available.
+  Launches GDIS directly and defaults to GTK4.
 - `./run-uspex-output.sh <results-dir-or-output.txt>`
   Validates a USPEX results folder and launches GDIS on its `OUTPUT.txt` file.
-  Accepts `--gtk2`, `--gtk3`, or `--gtk4` like the other launch helpers.
-- `./bootstrap-gtk3-local.sh`
-  Downloads the missing GTK3 development packages into a project-local sysroot
-  so the GTK3 branch can be built without root access.
-- `./build-gtk3-local.sh`
-  Bootstraps the local GTK3 sysroot and rebuilds `bin/gdis-gtk3` against it,
-  while restoring `bin/gdis` to the GTK2 build when available.
+  Defaults to GTK4 and accepts `--gtk2` as an explicit fallback.
 - `./audit-core-gl.sh`
   Reports the fixed-function OpenGL patterns that still block a core-profile
-  GTK3/GTK4 renderer path.
+  GTK4 renderer path.
 - `./verify-optional-tools.sh`
   Checks optional helpers such as Qbox, POV-Ray, ImageMagick, Open Babel,
   FFmpeg, and xmgrace.
@@ -242,25 +185,25 @@ Advanced build overrides:
 - `./smoke-test-examples.sh`
   Launches curated examples under a timeout and flags obvious startup/runtime
   failures. Uses `xvfb-run` automatically if no display is present and accepts
-  `--gtk2`, `--gtk3`, or `--gtk4` for target-specific binaries.
+  `--gtk4` by default and `--gtk2` as a fallback.
 
 ### Maintenance Notes
 
 - The most important technical debt is the legacy GUI stack:
   `gtk+2`, `gtkglext`, and many deprecated GTK APIs.
-- GTK3 and GTK4 now survive modern non-legacy GL contexts by switching to a
-  limited core renderer for atom views.
+- GTK4 now survives modern non-legacy GL contexts by switching to a limited
+  core renderer for atom views.
 - GTK4 also now uses a compact compatibility menu layer so the main window no
   longer stretches far off-screen before the canvas is visible.
 - The modern renderer is still incomplete: atom spheres, bond cylinders, stick
-  geometry, and selection overlays now work in GTK3/GTK4, but labels, graphs,
+  geometry, and selection overlays now work in GTK4, but labels, graphs,
   bitmap text, and many fixed-function-era drawing paths still need migration.
 - The next realistic renewal target is still renderer modernization, with text,
   labels, graph canvases, and other overlay-era drawing as the next useful
   slices after restored picking and bond geometry.
 - The first maintenance priority is repository hygiene and repeatable builds.
 - The second priority is isolating GUI and OpenGL integration points so a later
-  GTK3/GTK4 migration is realistic.
+  GTK4 migration is realistic.
 - See [`CONTRIBUTING.md`](CONTRIBUTING.md) for development workflow guidance.
 - If you want to turn this local tree into your own public fork, start with
   [`docs/github-fork-guide.md`](docs/github-fork-guide.md).

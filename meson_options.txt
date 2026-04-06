@@ -1,8 +1,8 @@
 option(
   'gtk_target',
   type: 'combo',
-  choices: ['gtk2', 'gtk3', 'gtk4'],
-  value: 'gtk2',
+  choices: ['gtk2', 'gtk4'],
+  value: 'gtk4',
   description: 'GTK/OpenGL frontend target to build',
 )
 

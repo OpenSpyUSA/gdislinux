@@ -8,12 +8,10 @@ usage() {
 Usage:
   ./run-gdis.sh
   ./run-gdis.sh --gtk2
-  ./run-gdis.sh --gtk3 examples/methane.gin
   ./run-gdis.sh --gtk4 examples/methane.gin
 
 Notes:
-  - If no target is given, GTK2 is preferred when `bin/gdis-gtk2` exists.
-  - GTK3 is the next renewal target once `libgtk-3-dev` is installed and built.
+  - If no target is given, GTK4 is used by default.
   - GTK4 is still experimental, but it now renders atom views in a limited
     core-profile mode. Bonds, labels, graphs, and overlays still use the
     legacy path.
@@ -33,6 +31,11 @@ resolve_gdis_executable() {
       exit 1
     fi
     printf '%s\n' "$gdis_exec"
+    return
+  fi
+
+  if [ -x "$ROOT_DIR/bin/gdis-gtk4" ]; then
+    printf '%s\n' "$ROOT_DIR/bin/gdis-gtk4"
     return
   fi
 
@@ -76,7 +79,64 @@ normalize_run_args() {
   printf '%s\0' "${args[@]}"
 }
 
-GTK_TARGET="${GDIS_GTK_TARGET:-}"
+resolve_path_for_run() {
+  local candidate="$1"
+
+  if [ -e "$candidate" ]; then
+    printf '%s\n' "$candidate"
+    return
+  fi
+
+  if [ -e "$ROOT_DIR/$candidate" ]; then
+    printf '%s\n' "$ROOT_DIR/$candidate"
+    return
+  fi
+
+  printf '\n'
+}
+
+is_non_structure_sample() {
+  local candidate="$1"
+
+  case "$(basename "$candidate")" in
+    INPUT.txt)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+filter_run_args() {
+  local args=()
+  local candidate
+  local resolved
+
+  while [ $# -gt 0 ]; do
+    candidate="$1"
+    resolved="$(resolve_path_for_run "$candidate")"
+
+    if [ -n "$resolved" ] && [ -d "$resolved" ]; then
+      echo "Skipping directory argument: $candidate" >&2
+      shift
+      continue
+    fi
+
+    if [ -n "$resolved" ] && [ -f "$resolved" ] && is_non_structure_sample "$resolved"; then
+      echo "Skipping non-structure sample file: $candidate" >&2
+      shift
+      continue
+    fi
+
+    args+=("$candidate")
+    shift
+  done
+
+  printf '%s\0' "${args[@]}"
+}
+
+GTK_TARGET="${GDIS_GTK_TARGET:-gtk4}"
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -84,7 +144,7 @@ while [ $# -gt 0 ]; do
       usage
       exit 0
       ;;
-    --gtk2|--gtk3|--gtk4)
+    --gtk2|--gtk4)
       GTK_TARGET="${1#--}"
       shift
       ;;
@@ -103,6 +163,14 @@ while [ $# -gt 0 ]; do
       ;;
   esac
 done
+
+if [ -n "$GTK_TARGET" ] &&
+   [ "$GTK_TARGET" != "gtk2" ] &&
+   [ "$GTK_TARGET" != "gtk4" ]; then
+  echo "Unsupported GTK target: $GTK_TARGET" >&2
+  echo "Supported targets are gtk2 and gtk4." >&2
+  exit 1
+fi
 
 GDIS_EXEC="$(resolve_gdis_executable "$GTK_TARGET")"
 
@@ -126,7 +194,10 @@ fi
 
 if [ $# -gt 0 ]; then
   mapfile -d '' NORMALIZED_ARGS < <(normalize_run_args "$@")
-  exec "$GDIS_EXEC" "${NORMALIZED_ARGS[@]}"
+  mapfile -d '' FILTERED_ARGS < <(filter_run_args "${NORMALIZED_ARGS[@]}")
+  if [ "${#FILTERED_ARGS[@]}" -gt 0 ]; then
+    exec "$GDIS_EXEC" "${FILTERED_ARGS[@]}"
+  fi
 fi
 
 exec "$GDIS_EXEC"

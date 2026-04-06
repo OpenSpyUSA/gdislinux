@@ -1330,7 +1330,9 @@ if (GTK_IS_CELL_LAYOUT(combo))
                  "ellipsize", PANGO_ELLIPSIZE_END,
                  "ellipsize-set", TRUE,
                  "width-chars", 14,
+#if GTK_MAJOR_VERSION >= 3
                  "max-width-chars", 18,
+#endif
                  NULL);
     }
   g_list_free(cells);

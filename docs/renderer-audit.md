@@ -1,14 +1,14 @@
 # GDIS Renderer Audit
 
 This note records the concrete OpenGL compatibility blockers that showed up
-while testing the GTK3 and GTK4 renewal branches on a machine that provides a
+while testing the GTK4 renewal branch on a machine that provides a
 modern core-profile context through `GtkGLArea`.
 
 The short version is simple:
 
-- GTK3 and GTK4 now build here
-- both branches launch here
-- both branches receive a non-legacy context at runtime
+- GTK4 now builds here
+- GTK4 launches here
+- GTK4 receives a non-legacy context at runtime
 - GTK4 now shows atom views again through a limited core-profile renderer
 - the renderer is still mostly written around fixed-function OpenGL
 - therefore the next renewal step is still renderer work, not more blind
@@ -18,7 +18,6 @@ The short version is simple:
 
 Observed during runtime testing with `GDIS_DEBUG_GL=1`:
 
-- GTK3: `GDIS GL context: 4.5 legacy=0 es=0`
 - GTK4: `GDIS GL context: 4.5 legacy=0 es=0`
 
 That means the modern branches are no longer failing at first paint, but they

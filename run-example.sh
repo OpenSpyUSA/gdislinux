@@ -7,7 +7,6 @@ usage() {
   cat <<'EOF'
 Usage:
   ./run-example.sh <name>
-  ./run-example.sh --gtk3 <name>
   ./run-example.sh --gtk4 <name>
   ./run-example.sh --list
 
@@ -22,43 +21,12 @@ Available examples:
 
 Examples:
   ./run-example.sh methane
-  ./run-example.sh --gtk3 methane
   ./run-example.sh --gtk4 methane
   ./run-example.sh adp1
 EOF
 }
 
-resolve_gdis_executable() {
-  local gtk_target="${1:-}"
-  local gdis_exec
-
-  if [ -n "$gtk_target" ]; then
-    gdis_exec="$ROOT_DIR/bin/gdis-$gtk_target"
-    if [ ! -x "$gdis_exec" ]; then
-      echo "Missing executable: $gdis_exec" >&2
-      echo "Build it first with: GDIS_GTK_TARGET=$gtk_target ./rebuild-ubuntu.sh" >&2
-      exit 1
-    fi
-    printf '%s\n' "$gdis_exec"
-    return
-  fi
-
-  if [ -x "$ROOT_DIR/bin/gdis-gtk2" ]; then
-    printf '%s\n' "$ROOT_DIR/bin/gdis-gtk2"
-    return
-  fi
-
-  gdis_exec="$ROOT_DIR/bin/gdis"
-  if [ ! -x "$gdis_exec" ]; then
-    echo "Missing executable: $gdis_exec" >&2
-    echo "Run ./rebuild-ubuntu.sh first." >&2
-    exit 1
-  fi
-
-  printf '%s\n' "$gdis_exec"
-}
-
-GTK_TARGET="${GDIS_GTK_TARGET:-}"
+GTK_TARGET="${GDIS_GTK_TARGET:-gtk4}"
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -70,7 +38,7 @@ while [ $# -gt 0 ]; do
       usage
       exit 0
       ;;
-    --gtk2|--gtk3|--gtk4)
+    --gtk2|--gtk4)
       GTK_TARGET="${1#--}"
       shift
       ;;
@@ -89,6 +57,14 @@ while [ $# -gt 0 ]; do
       ;;
   esac
 done
+
+if [ -n "$GTK_TARGET" ] &&
+   [ "$GTK_TARGET" != "gtk2" ] &&
+   [ "$GTK_TARGET" != "gtk4" ]; then
+  echo "Unsupported GTK target: $GTK_TARGET" >&2
+  echo "Supported targets are gtk2 and gtk4." >&2
+  exit 1
+fi
 
 if [ "${1:-}" = "" ]; then
   usage
@@ -110,6 +86,8 @@ case "$1" in
     ;;
 esac
 
-GDIS_EXEC="$(resolve_gdis_executable "$GTK_TARGET")"
+if [ -n "$GTK_TARGET" ]; then
+  exec "$ROOT_DIR/run-gdis.sh" "--$GTK_TARGET" "$ROOT_DIR/$example_file"
+fi
 
-exec "$GDIS_EXEC" "$ROOT_DIR/$example_file"
+exec "$ROOT_DIR/run-gdis.sh" "$ROOT_DIR/$example_file"

@@ -8,13 +8,12 @@ usage() {
   cat <<'EOF'
 Usage:
   ./smoke-test-examples.sh
-  ./smoke-test-examples.sh --gtk3
   ./smoke-test-examples.sh --gtk4
   ./smoke-test-examples.sh methane water adp1
 
 Environment:
   GDIS_SMOKE_TIMEOUT   Per-example timeout in seconds (default: 8)
-  GDIS_GTK_TARGET      Optional target-specific binary to use (gtk2/gtk3/gtk4)
+  GDIS_GTK_TARGET      Optional target-specific binary to use (default: gtk4)
 EOF
 }
 
@@ -49,6 +48,11 @@ resolve_gdis_executable() {
     return
   fi
 
+  if [[ -x "$ROOT_DIR/bin/gdis-gtk4" ]]; then
+    printf '%s\n' "$ROOT_DIR/bin/gdis-gtk4"
+    return
+  fi
+
   if [[ -x "$ROOT_DIR/bin/gdis-gtk2" ]]; then
     printf '%s\n' "$ROOT_DIR/bin/gdis-gtk2"
     return
@@ -64,7 +68,7 @@ resolve_gdis_executable() {
   printf '%s\n' "$gdis_exec"
 }
 
-GTK_TARGET="${GDIS_GTK_TARGET:-}"
+GTK_TARGET="${GDIS_GTK_TARGET:-gtk4}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -72,7 +76,7 @@ while [[ $# -gt 0 ]]; do
       usage
       exit 0
       ;;
-    --gtk2|--gtk3|--gtk4)
+    --gtk2|--gtk4)
       GTK_TARGET="${1#--}"
       shift
       ;;
@@ -90,6 +94,14 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+if [[ -n "$GTK_TARGET" ]] &&
+   [[ "$GTK_TARGET" != "gtk2" ]] &&
+   [[ "$GTK_TARGET" != "gtk4" ]]; then
+  echo "Unsupported GTK target: $GTK_TARGET" >&2
+  echo "Supported targets are gtk2 and gtk4." >&2
+  exit 1
+fi
 
 GDIS_EXEC="$(resolve_gdis_executable "$GTK_TARGET")"
 

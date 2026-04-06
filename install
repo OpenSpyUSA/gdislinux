@@ -12,17 +12,12 @@ my $use_grisu=0;
 my $wsdl2h = "wsdl2h";
 my $soapcpp2 = "soapcpp2";
 my $pkg_config = $ENV{PKG_CONFIG} || "pkg-config";
-my $gtk_target = lc($ENV{GDIS_GTK_TARGET} || "gtk2");
+my $gtk_target = lc($ENV{GDIS_GTK_TARGET} || "gtk4");
 my %gtk_target_config = (
   gtk2 => {
     base => "gtk+-2.0 gthread-2.0 gmodule-2.0",
     gui => "gtk+-2.0 gthread-2.0 gmodule-2.0 gtkglext-1.0",
     hint => "sudo apt-get update && sudo apt-get install -y build-essential pkg-config libgtk2.0-dev libgtkglext1-dev",
-  },
-  gtk3 => {
-    base => "gtk+-3.0 gthread-2.0 gmodule-2.0",
-    gui => "gtk+-3.0 gthread-2.0 gmodule-2.0 gl glu epoxy",
-    hint => "sudo apt-get update && sudo apt-get install -y build-essential pkg-config libgtk-3-dev libgl1-mesa-dev libglu1-mesa-dev libepoxy-dev",
   },
   gtk4 => {
     base => "gtk4 gthread-2.0 gmodule-2.0",
@@ -286,7 +281,7 @@ printf "%-20s  ",$_[0];
 if (system("$pkg_config --exists $_[0]"))
   {
   print "[not found]\n";
-  if ($_[0] eq "gtk+-2.0" || $_[0] eq "gtk+-3.0" || $_[0] eq "gtk4" || $_[0] eq "gtkglext-1.0" || $_[0] eq "gl" || $_[0] eq "glu" || $_[0] eq "epoxy")
+  if ($_[0] eq "gtk+-2.0" || $_[0] eq "gtk4" || $_[0] eq "gtkglext-1.0" || $_[0] eq "gl" || $_[0] eq "glu" || $_[0] eq "epoxy")
     {
     print "Install the core build dependencies with:\n  $linux_core_pkg_hint\n";
     }

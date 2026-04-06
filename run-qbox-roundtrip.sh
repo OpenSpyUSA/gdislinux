@@ -33,7 +33,7 @@ while [ $# -gt 0 ]; do
       OPEN_RESULT=1
       shift
       ;;
-    --gtk2|--gtk3|--gtk4)
+    --gtk2|--gtk4)
       GTK_TARGET="$1"
       shift
       ;;
@@ -48,6 +48,14 @@ while [ $# -gt 0 ]; do
       ;;
   esac
 done
+
+if [ -n "$GTK_TARGET" ] &&
+   [ "$GTK_TARGET" != "--gtk2" ] &&
+   [ "$GTK_TARGET" != "--gtk4" ]; then
+  echo "Unsupported GTK option: $GTK_TARGET" >&2
+  echo "Supported options are --gtk2 and --gtk4." >&2
+  exit 1
+fi
 
 if [ ! -x "$QBOX_EXEC" ]; then
   echo "Missing Qbox executable: $QBOX_EXEC" >&2

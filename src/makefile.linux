@@ -4,13 +4,10 @@ CC ?= gcc
 CFLAGS ?= -g -Wall -O2
 LDLIBS += -lm
 PKG_CONFIG ?= pkg-config
-GDIS_GTK_TARGET ?= gtk2
+GDIS_GTK_TARGET ?= gtk4
 
 ifeq ($(GDIS_GTK_TARGET),gtk4)
 GDIS_BASE_PKG_CONFIG_PACKAGES ?= gtk4 gthread-2.0 gmodule-2.0
-GDIS_GUI_PKG_CONFIG_PACKAGES ?= $(GDIS_BASE_PKG_CONFIG_PACKAGES) gl glu epoxy
-else ifeq ($(GDIS_GTK_TARGET),gtk3)
-GDIS_BASE_PKG_CONFIG_PACKAGES ?= gtk+-3.0 gthread-2.0 gmodule-2.0
 GDIS_GUI_PKG_CONFIG_PACKAGES ?= $(GDIS_BASE_PKG_CONFIG_PACKAGES) gl glu epoxy
 else
 GDIS_BASE_PKG_CONFIG_PACKAGES ?= gtk+-2.0 gthread-2.0 gmodule-2.0
