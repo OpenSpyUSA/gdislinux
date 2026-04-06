@@ -1595,7 +1595,7 @@ typedef gpointer GdkPixmap;
             gtk_widget_set_tooltip_text(GTK_WIDGET(widget), text); \
         } while (0)
 
-static inline GtkWidget *gdis_gtk3_entry_new_with_max_length(gint max)
+static inline GtkWidget *gdis_gtk_entry_new_with_max_length(gint max)
 {
 GtkWidget *entry;
 
@@ -1606,7 +1606,7 @@ return(entry);
 }
 
 #define gtk_entry_new_with_max_length(max) \
-        gdis_gtk3_entry_new_with_max_length(max)
+        gdis_gtk_entry_new_with_max_length(max)
 
 typedef struct
 {
@@ -1905,6 +1905,14 @@ if (GTK_IS_LABEL(widget))
         gdis_gtk_combo_box_append_text(GTK_COMBO_BOX(combo), text)
 #define gtk_combo_box_get_active_text(combo) \
         gdis_gtk_combo_box_get_active_text(GTK_COMBO_BOX(combo))
+
+static inline void gdis_gtk_label_set_xalign(GtkLabel *label, gfloat xalign)
+{
+gtk_misc_set_alignment(GTK_MISC(label), xalign, 0.5);
+}
+
+#define gtk_label_set_xalign(label, xalign) \
+        gdis_gtk_label_set_xalign(GTK_LABEL(label), xalign)
 
 static inline gint gdis_gdk_visual_get_depth(GdkVisual *visual)
 {
