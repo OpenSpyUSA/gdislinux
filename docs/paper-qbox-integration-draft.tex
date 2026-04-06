@@ -1,0 +1,151 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\setlist{itemsep=0.3em, topsep=0.3em}
+
+\title{New Developments in the GDIS Simulation Package:\\Integration of Qbox}
+\author{Author 1 \and Author 2 \and Author 3}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Graphical workflow integration remains a practical bottleneck for first-principles studies that require rapid model setup, repeated electronic-structure runs, and continuous interpretation of intermediate results.
+Building on prior GDIS external-code integration work, this paper presents a new Qbox integration path in GDIS that combines structure export, executable orchestration, pseudopotential management, asynchronous run monitoring, and restart/output re-import into a single interactive environment.
+In addition to a guided setup mode, we introduce an expert pass-through mode that preserves access to advanced Qbox commands without forcing one-by-one GUI hardcoding.
+The implementation supports runnable input generation, XML-based restart loading, extraction of key run observables (including total energy and maximum force), and profile presets for common workflows (SCF, geometry optimization, frozen phonons, band-structure setup, and HOMO--LUMO analysis).
+Validation is shown through reproducible round-trip tests and chemistry-oriented use cases.
+This integration is designed to reduce workflow friction while retaining flexibility for advanced users.
+\end{abstract}
+
+\section{Introduction}
+GDIS has long served as a visualization and pre/post-processing environment for atomistic simulation.
+Recent development cycles have focused on renewing code paths, modernizing rendering/UI behavior, and extending practical interoperability with external engines.
+While previous GDIS integration work emphasized VASP and USPEX, Qbox remained underrepresented in integrated GUI-to-run workflows.
+
+Qbox itself exposes a rich command set and variable space for electronic-structure optimization, ionic dynamics, response workflows, and post-processing.
+However, many users still rely on fragmented command-line scripts for run preparation and result inspection, especially in teaching and exploratory workflows.
+The goal of this work is to provide a Qbox path in GDIS that is simple for common tasks, while preserving access to advanced command-level control.
+
+\section{Design Goals}
+The implementation was guided by four requirements:
+\begin{enumerate}
+  \item \textbf{Round-trip operability}: create runnable Qbox inputs from active GDIS models, run Qbox, and reload saved outputs in one loop.
+  \item \textbf{Practical defaults}: provide robust default settings and species-path handling for rapid startup.
+  \item \textbf{Expert extensibility}: avoid GUI lock-in by allowing arbitrary Qbox command insertion and include-file workflows.
+  \item \textbf{Traceable execution}: preserve log files and asynchronous task visibility through existing GDIS task infrastructure.
+\end{enumerate}
+
+\section{Implementation}
+\subsection{Qbox File I/O Layer}
+We implemented a dedicated Qbox I/O layer with:
+\begin{itemize}
+  \item structure-to-input writer support (\texttt{cell}, \texttt{species}, \texttt{atom});
+  \item direct parser support for Qbox-like input files;
+  \item restart/output XML ingestion for structure updates and key observables.
+\end{itemize}
+
+For non-periodic models, export logic automatically places the structure in a vacuum box.
+For restart/output parsing, atom positions are updated and scalar observables (e.g., final total energy and max force) are mapped into model properties for inspection.
+
+\subsection{Qbox Runtime Integration in GDIS}
+The Qbox dialog integrates model metadata, working-directory paths, default run controls, and pseudopotential file assignment.
+Runtime input generation enforces a runnable script path and validates pseudopotential URI existence before run submission.
+When valid, jobs are launched asynchronously through the existing task manager and write run logs to user-specified locations.
+
+\subsection{Expert Pass-Through Mode}
+A major extension in this work is an expert mode that supports command-level composition without waiting for dedicated GUI widgets for each Qbox feature.
+The expert mode includes:
+\begin{itemize}
+  \item optional model export block enable/disable;
+  \item optional default settings block enable/disable;
+  \item pre-default and post-default free-form command blocks;
+  \item optional include-command-file injection (e.g., displacement scripts such as \texttt{moves.i});
+  \item auto-save and auto-quit toggles with duplicate-command suppression.
+\end{itemize}
+
+This design allows users to directly pass advanced commands (e.g., \texttt{kpoint}, \texttt{set scf\_tol}, \texttt{set nempty}, \texttt{compute\_mlwf}, \texttt{response}, \texttt{spectrum}, custom \texttt{run} schedules) while keeping an accessible GUI entry point.
+
+\subsection{Preset Profiles}
+To bridge novice and advanced usage, preset profiles auto-fill expert fields for common workflows:
+\begin{itemize}
+  \item SCF
+  \item Band
+  \item GeoOpt
+  \item FrozenPhonon
+  \item HOMO--LUMO
+\end{itemize}
+Presets populate fields but do not auto-run; users review and edit before execution.
+
+\section{Validation and Demonstration Plan}
+\subsection{Functional Validation}
+Minimum reproducible checks include:
+\begin{enumerate}
+  \item build validation for GTK4 primary and GTK2 fallback targets;
+  \item Qbox round-trip smoke test from generated input to saved XML re-import;
+  \item optional dependency detection and executable-path verification.
+\end{enumerate}
+
+\subsection{Scientific Workflow Demonstrations}
+Suggested demonstration cases:
+\begin{itemize}
+  \item methane SCF convergence (\texttt{ecut} sweep and \texttt{etotal} extraction);
+  \item geometry optimization with force threshold tracking;
+  \item frozen-phonon displacement scripting via include-file mode;
+  \item HOMO--LUMO setup and wavefunction-plot command generation;
+  \item monolayer band-structure setup using k-point command injection.
+\end{itemize}
+
+\subsection{Proposed Figures and Tables}
+\textbf{Figure candidates}
+\begin{itemize}
+  \item Qbox dialog: Setup, Potentials, and Expert tabs;
+  \item round-trip workflow diagram (GDIS model $\rightarrow$ Qbox run $\rightarrow$ XML reload);
+  \item representative model reloaded from Qbox XML;
+  \item log/status view during asynchronous execution.
+\end{itemize}
+
+\textbf{Table candidates}
+\begin{itemize}
+  \item capability matrix: guided mode vs expert mode coverage;
+  \item validation checklist and outcomes;
+  \item mapping of paper use cases to preset profiles.
+\end{itemize}
+
+\section{Discussion}
+The integration prioritizes a hybrid architecture: guided defaults for speed and expert pass-through for completeness.
+This approach scales better than hardcoding every Qbox command into separate widgets and reduces maintenance overhead as upstream Qbox evolves.
+
+Current limitations include incomplete command-semantic validation in expert free-form blocks and remaining UI modernization tasks outside the Qbox workflow.
+Future work should add stronger command linting, richer result parsing (band/eigenvalue extraction helpers), and automated regression tests for command templates.
+
+\section{Conclusion}
+We introduced a practical and extensible Qbox integration path in GDIS that supports end-to-end run orchestration, output re-ingestion, and expert-level command flexibility.
+By combining structured defaults with pass-through control and reusable presets, the implementation improves usability without reducing access to advanced Qbox workflows.
+This work provides a concrete foundation for both teaching and research pipelines that rely on Qbox within a graphical simulation environment.
+
+\section*{Reproducibility Notes}
+\begin{itemize}
+  \item Record repository URL and commit hash in final camera-ready manuscript.
+  \item Archive benchmark inputs, include files, and generated logs used for figures/tables.
+  \item Include exact build target (GTK4 or GTK2) in Methods.
+\end{itemize}
+
+\section*{References}
+\begin{enumerate}
+  \item H. Okadome Valencia, B. Wang, G. Frapper, A. L. Rohl, \emph{New developments in the GDIS simulation package: Integration of VASP and USPEX}, J. Comput. Chem. 42 (2021) 1602--1626. doi:10.1002/jcc.26697.
+  \item Qbox Documentation, \url{http://www.qboxcode.org/doc/html/index.html}.
+  \item Qbox Command Reference, \url{http://qboxcode.org/doc/html/usage/commands.html}.
+  \item Qbox Variables Reference, \url{http://qboxcode.org/doc/html/usage/variables.html}.
+\end{enumerate}
+
+\end{document}

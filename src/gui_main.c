@@ -112,6 +112,8 @@ if (g_ascii_strcasecmp(action, "isosurface") == 0 ||
   gui_isosurf_dialog();
 else if (g_ascii_strcasecmp(action, "diffraction") == 0)
   gui_diffract_dialog();
+else if (g_ascii_strcasecmp(action, "qbox") == 0)
+  gui_qbox_dialog();
 
 return(FALSE);
 }

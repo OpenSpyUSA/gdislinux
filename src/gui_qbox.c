@@ -49,6 +49,28 @@ struct qbox_gui_pak
   gdouble ecutprec;
   gint randomize_wf;
   gint load_saved_xml;
+  gint write_model_block;
+  gint write_default_block;
+  gint auto_save_xml_cmd;
+  gint auto_quit;
+  gchar *run_cmd;
+  gchar *include_cmd_file;
+  gchar *pre_commands;
+  gchar *post_commands;
+  GtkTextBuffer *pre_buffer;
+  GtkTextBuffer *post_buffer;
+  gulong pre_buffer_handler;
+  gulong post_buffer_handler;
+  GtkWidget *entry_xc;
+  GtkWidget *entry_wf_dyn;
+  GtkWidget *entry_run_cmd;
+  GtkWidget *entry_include_cmd_file;
+  GtkWidget *check_randomize_wf;
+  GtkWidget *check_load_saved_xml;
+  GtkWidget *check_write_model_block;
+  GtkWidget *check_write_default_block;
+  GtkWidget *check_auto_save_xml_cmd;
+  GtkWidget *check_auto_quit;
   GSList *species;
 };
 
@@ -69,6 +91,14 @@ struct qbox_task_pak
   gdouble ecutprec;
   gint randomize_wf;
   gint load_saved_xml;
+  gint write_model_block;
+  gint write_default_block;
+  gint auto_save_xml_cmd;
+  gint auto_quit;
+  gchar *run_cmd;
+  gchar *include_cmd_file;
+  gchar *pre_commands;
+  gchar *post_commands;
   GSList *species;
   gchar *message;
   gchar *error;
@@ -268,6 +298,10 @@ static void qbox_gui_state_free(struct qbox_gui_pak *state)
   g_free(state->log_name);
   g_free(state->xc);
   g_free(state->wf_dyn);
+  g_free(state->run_cmd);
+  g_free(state->include_cmd_file);
+  g_free(state->pre_commands);
+  g_free(state->post_commands);
   g_slist_free_full(state->species, qbox_species_free);
   g_free(state);
 }
@@ -291,6 +325,10 @@ static void qbox_task_free(struct qbox_task_pak *job)
   g_free(job->log_name);
   g_free(job->xc);
   g_free(job->wf_dyn);
+  g_free(job->run_cmd);
+  g_free(job->include_cmd_file);
+  g_free(job->pre_commands);
+  g_free(job->post_commands);
   g_free(job->input_path);
   g_free(job->xml_path);
   g_free(job->log_path);
@@ -298,6 +336,360 @@ static void qbox_task_free(struct qbox_task_pak *job)
   g_free(job->message);
   g_free(job->error);
   g_free(job);
+}
+
+static void qbox_write_line(FILE *dest, const gchar *text)
+{
+  gchar *tmp;
+
+  g_return_if_fail(dest != NULL);
+
+  if (!text)
+    return;
+
+  tmp = g_strdup(text);
+  g_strstrip(tmp);
+  if (strlen(tmp))
+    fprintf(dest, "%s\n", tmp);
+  g_free(tmp);
+}
+
+static void qbox_write_text_block(FILE *dest, const gchar *text)
+{
+  gchar **line;
+  gchar **lines;
+
+  g_return_if_fail(dest != NULL);
+
+  if (!text || !strlen(text))
+    return;
+
+  lines = g_strsplit(text, "\n", -1);
+  for (line=lines ; line && *line ; line++)
+    {
+    gchar *tmp;
+
+    tmp = g_strdup(*line);
+    g_strstrip(tmp);
+    if (!strlen(tmp))
+      {
+      g_free(tmp);
+      continue;
+      }
+    fprintf(dest, "%s\n", tmp);
+    g_free(tmp);
+    }
+  g_strfreev(lines);
+}
+
+static gboolean qbox_line_has_command(const gchar *line, const gchar *cmd)
+{
+  gchar *tmp;
+  gint len;
+  gboolean match = FALSE;
+
+  g_return_val_if_fail(cmd != NULL, FALSE);
+
+  if (!line)
+    return(FALSE);
+
+  tmp = g_strdup(line);
+  g_strstrip(tmp);
+
+  if (!strlen(tmp) || tmp[0] == '#')
+    {
+    g_free(tmp);
+    return(FALSE);
+    }
+
+  len = strlen(cmd);
+  if (g_ascii_strncasecmp(tmp, cmd, len) == 0)
+    {
+    gchar tail = tmp[len];
+    if (tail == '\0' || g_ascii_isspace(tail))
+      match = TRUE;
+    }
+
+  g_free(tmp);
+  return(match);
+}
+
+static gboolean qbox_text_has_command(const gchar *text, const gchar *cmd)
+{
+  gchar **line;
+  gchar **lines;
+
+  g_return_val_if_fail(cmd != NULL, FALSE);
+
+  if (!text || !strlen(text))
+    return(FALSE);
+
+  lines = g_strsplit(text, "\n", -1);
+  for (line=lines ; line && *line ; line++)
+    {
+    if (qbox_line_has_command(*line, cmd))
+      {
+      g_strfreev(lines);
+      return(TRUE);
+      }
+    }
+  g_strfreev(lines);
+
+  return(FALSE);
+}
+
+enum
+{
+  QBOX_PRESET_SCF = 0,
+  QBOX_PRESET_BAND,
+  QBOX_PRESET_GEOOPT,
+  QBOX_PRESET_FROZEN_PHONON,
+  QBOX_PRESET_HOMO_LUMO
+};
+
+static void qbox_text_buffer_changed(GtkTextBuffer *buffer, gpointer data)
+{
+  gchar **target = data;
+  GtkTextIter start, end;
+
+  g_return_if_fail(buffer != NULL);
+  g_return_if_fail(target != NULL);
+
+  gtk_text_buffer_get_bounds(buffer, &start, &end);
+  g_free(*target);
+  *target = gtk_text_buffer_get_text(buffer, &start, &end, FALSE);
+}
+
+static GtkWidget *qbox_text_window_new(gchar **text, GtkTextBuffer **buffer_out,
+                                       gulong *handler_out)
+{
+  GtkWidget *swin;
+  GtkWidget *view;
+  GtkTextBuffer *buffer;
+
+  g_return_val_if_fail(text != NULL, NULL);
+  g_return_val_if_fail(buffer_out != NULL, NULL);
+  g_return_val_if_fail(handler_out != NULL, NULL);
+
+  swin = gtk_scrolled_window_new(NULL, NULL);
+  gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(swin),
+                                 GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+
+  view = gtk_text_view_new();
+  gtk_text_view_set_editable(GTK_TEXT_VIEW(view), TRUE);
+  gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(view), GTK_WRAP_WORD_CHAR);
+  g_object_set(G_OBJECT(view), "monospace", TRUE, NULL);
+  gtk_container_add(GTK_CONTAINER(swin), view);
+
+  buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(view));
+  if (*text && strlen(*text))
+    gtk_text_buffer_set_text(buffer, *text, -1);
+
+  *handler_out = g_signal_connect(G_OBJECT(buffer), "changed",
+                                  GTK_SIGNAL_FUNC(qbox_text_buffer_changed), text);
+
+  *buffer_out = buffer;
+  return(swin);
+}
+
+static void qbox_state_set_bool(gint *target, gint value, GtkWidget *widget)
+{
+  g_return_if_fail(target != NULL);
+
+  *target = value;
+
+  if (!widget)
+    return;
+
+#if GTK_MAJOR_VERSION >= 4
+  if (GTK_IS_CHECK_BUTTON(widget))
+    {
+    gtk_check_button_set_active(GTK_CHECK_BUTTON(widget), value ? TRUE : FALSE);
+    return;
+    }
+#endif
+  if (GTK_IS_TOGGLE_BUTTON(widget))
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget), value ? TRUE : FALSE);
+}
+
+static void qbox_state_set_string(gchar **target, const gchar *value, GtkWidget *entry)
+{
+  const gchar *text;
+
+  g_return_if_fail(target != NULL);
+
+  text = (value && strlen(value)) ? value : "";
+
+  g_free(*target);
+  if (strlen(text))
+    *target = g_strdup(text);
+  else
+    *target = NULL;
+
+  if (entry && GTK_IS_ENTRY(entry))
+    {
+    const gchar *current;
+
+    current = gtk_entry_get_text(GTK_ENTRY(entry));
+    if (g_strcmp0(current, text) != 0)
+      gtk_entry_set_text(GTK_ENTRY(entry), text);
+    }
+}
+
+static void qbox_state_set_textblock(gchar **target, GtkTextBuffer *buffer,
+                                     gulong handler, const gchar *value)
+{
+  const gchar *text;
+
+  g_return_if_fail(target != NULL);
+
+  text = (value && strlen(value)) ? value : "";
+
+  if (buffer)
+    {
+    if (handler)
+      g_signal_handler_block(buffer, handler);
+    gtk_text_buffer_set_text(buffer, text, -1);
+    if (handler)
+      g_signal_handler_unblock(buffer, handler);
+    }
+
+  g_free(*target);
+  *target = g_strdup(text);
+}
+
+static const gchar *qbox_preset_name(gint preset)
+{
+  switch (preset)
+    {
+    case QBOX_PRESET_SCF:
+      return("SCF");
+    case QBOX_PRESET_BAND:
+      return("Band");
+    case QBOX_PRESET_GEOOPT:
+      return("GeoOpt");
+    case QBOX_PRESET_FROZEN_PHONON:
+      return("FrozenPhonon");
+    case QBOX_PRESET_HOMO_LUMO:
+      return("HOMO-LUMO");
+    }
+
+  return("Unknown");
+}
+
+static void qbox_apply_preset(struct qbox_gui_pak *state, gint preset)
+{
+  g_return_if_fail(state != NULL);
+
+/*
+ * Expert presets should update expert command composition fields only.
+ * Keep setup run parameters (XC/WF dyn/default run/randomize/load) unchanged.
+ */
+  qbox_state_set_bool(&state->write_model_block, TRUE, state->check_write_model_block);
+  qbox_state_set_bool(&state->write_default_block, TRUE, state->check_write_default_block);
+  qbox_state_set_bool(&state->auto_save_xml_cmd, TRUE, state->check_auto_save_xml_cmd);
+  qbox_state_set_bool(&state->auto_quit, TRUE, state->check_auto_quit);
+  qbox_state_set_string(&state->include_cmd_file, NULL, state->entry_include_cmd_file);
+  qbox_state_set_textblock(&state->pre_commands, state->pre_buffer, state->pre_buffer_handler, NULL);
+  qbox_state_set_textblock(&state->post_commands, state->post_buffer, state->post_buffer_handler, NULL);
+
+  switch (preset)
+    {
+    case QBOX_PRESET_SCF:
+      qbox_state_set_textblock(&state->pre_commands, state->pre_buffer, state->pre_buffer_handler,
+                               "set scf_tol 1e-8");
+      break;
+
+    case QBOX_PRESET_BAND:
+      qbox_state_set_textblock(&state->pre_commands, state->pre_buffer, state->pre_buffer_handler,
+                               "set scf_tol 1e-8\n"
+                               "set nempty 8");
+      qbox_state_set_textblock(&state->post_commands, state->post_buffer, state->post_buffer_handler,
+                               "set wf_dyn JD\n"
+                               "kpoint delete 0 0 0\n"
+                               "# Add your path points with zero weights:\n"
+                               "# kpoint add kx ky kz 0.0\n"
+                               "run 0 1 200\n"
+                               "run 0 1");
+      break;
+
+    case QBOX_PRESET_GEOOPT:
+      qbox_state_set_textblock(&state->pre_commands, state->pre_buffer, state->pre_buffer_handler,
+                               "set scf_tol 1e-8");
+      qbox_state_set_textblock(&state->post_commands, state->post_buffer, state->post_buffer_handler,
+                               "set atoms_dyn CG\n"
+                               "set dt 20\n"
+                               "run 100 50");
+      break;
+
+    case QBOX_PRESET_FROZEN_PHONON:
+      qbox_state_set_textblock(&state->pre_commands, state->pre_buffer, state->pre_buffer_handler,
+                               "set scf_tol 1e-8");
+      qbox_state_set_string(&state->include_cmd_file, "moves.i", state->entry_include_cmd_file);
+      qbox_state_set_textblock(&state->post_commands, state->post_buffer, state->post_buffer_handler,
+                               "# moves.i should contain move/run sequences for +/- displacements.");
+      break;
+
+    case QBOX_PRESET_HOMO_LUMO:
+      qbox_state_set_textblock(&state->pre_commands, state->pre_buffer, state->pre_buffer_handler,
+                               "set scf_tol 1e-8\n"
+                               "set nempty 1");
+      qbox_state_set_textblock(&state->post_commands, state->post_buffer, state->post_buffer_handler,
+                               "set wf_dyn JD\n"
+                               "set nempty 1\n"
+                               "run 0 100\n"
+                               "# plot -wf X HOMO.cube\n"
+                               "# plot -wf Y LUMO.cube");
+      break;
+    }
+}
+
+static void qbox_apply_preset_from_dialog(gpointer dialog, gint preset)
+{
+  struct qbox_gui_pak *state;
+  gchar *msg;
+
+  g_return_if_fail(dialog != NULL);
+
+  state = dialog_child_get(dialog, "qbox_state");
+  if (!state)
+    return;
+
+  qbox_apply_preset(state, preset);
+
+  msg = g_strdup_printf("Applied Qbox preset: %s\n", qbox_preset_name(preset));
+  gui_text_show(INFO, msg);
+  g_free(msg);
+}
+
+static void qbox_preset_scf_cb(GtkWidget *w, gpointer dialog)
+{
+  (void) w;
+  qbox_apply_preset_from_dialog(dialog, QBOX_PRESET_SCF);
+}
+
+static void qbox_preset_band_cb(GtkWidget *w, gpointer dialog)
+{
+  (void) w;
+  qbox_apply_preset_from_dialog(dialog, QBOX_PRESET_BAND);
+}
+
+static void qbox_preset_geoopt_cb(GtkWidget *w, gpointer dialog)
+{
+  (void) w;
+  qbox_apply_preset_from_dialog(dialog, QBOX_PRESET_GEOOPT);
+}
+
+static void qbox_preset_frozen_phonon_cb(GtkWidget *w, gpointer dialog)
+{
+  (void) w;
+  qbox_apply_preset_from_dialog(dialog, QBOX_PRESET_FROZEN_PHONON);
+}
+
+static void qbox_preset_homo_lumo_cb(GtkWidget *w, gpointer dialog)
+{
+  (void) w;
+  qbox_apply_preset_from_dialog(dialog, QBOX_PRESET_HOMO_LUMO);
 }
 
 static gint qbox_prepare_paths(struct qbox_task_pak *job)
@@ -323,94 +715,125 @@ static gint qbox_prepare_paths(struct qbox_task_pak *job)
 
 static gint qbox_write_runtime_input(struct qbox_task_pak *job)
 {
-  FILE *src, *dest;
+  FILE *src = NULL;
+  FILE *dest = NULL;
   gchar *line;
-  gchar *temp_path;
+  gchar *temp_path = NULL;
+  gboolean has_save;
+  gboolean has_quit;
   GSList *missing = NULL;
   GSList *invalid = NULL;
 
   g_return_val_if_fail(job != NULL, 1);
 
-  temp_path = g_strdup_printf("%s.export", job->input_path);
-
-  if (write_qbox(temp_path, job->model))
-    {
-    job->error = g_strdup_printf("Qbox input export failed for:\n%s\n", job->input_path);
-    g_free(temp_path);
-    return(1);
-    }
-
-  src = fopen(temp_path, "rt");
-  if (!src)
-    {
-    job->error = g_strdup_printf("Unable to reopen temporary Qbox input:\n%s\n", temp_path);
-    g_free(temp_path);
-    return(1);
-    }
-
   dest = fopen(job->input_path, "wt");
   if (!dest)
     {
-    fclose(src);
     job->error = g_strdup_printf("Unable to write Qbox input:\n%s\n", job->input_path);
-    g_free(temp_path);
     return(1);
     }
 
-  while ((line = file_read_line(src)))
+  if (job->write_model_block)
     {
-    gchar *tmp;
+    temp_path = g_strdup_printf("%s.export", job->input_path);
 
-    tmp = g_strdup(line);
-    g_strstrip(tmp);
-
-    if (g_str_has_prefix(tmp, "species "))
+    if (write_qbox(temp_path, job->model))
       {
-      gint num_tokens;
-      gchar **buff;
-      struct qbox_species_pak *species;
-
-      buff = tokenize(tmp, &num_tokens);
-      species = NULL;
-
-      if (num_tokens >= 2)
-        species = qbox_species_lookup(job->species, buff[1]);
-
-      if (species && species->path && strlen(species->path))
-        {
-        fprintf(dest, "species %-4s %s\n", species->symbol, species->path);
-        if (!g_file_test(species->path, G_FILE_TEST_EXISTS))
-          invalid = qbox_symbol_list_add_unique(invalid, species->symbol);
-        g_strfreev(buff);
-        g_free(tmp);
-        g_free(line);
-        continue;
-        }
-
-      if (num_tokens >= 2)
-        missing = qbox_symbol_list_add_unique(missing, buff[1]);
-
-      g_strfreev(buff);
+      fclose(dest);
+      job->error = g_strdup_printf("Qbox input export failed for:\n%s\n", job->input_path);
+      g_free(temp_path);
+      return(1);
       }
 
-    fputs(line, dest);
-    g_free(tmp);
-    g_free(line);
+    src = fopen(temp_path, "rt");
+    if (!src)
+      {
+      fclose(dest);
+      job->error = g_strdup_printf("Unable to reopen temporary Qbox input:\n%s\n", temp_path);
+      g_free(temp_path);
+      return(1);
+      }
+
+    while ((line = file_read_line(src)))
+      {
+      gchar *tmp;
+
+      tmp = g_strdup(line);
+      g_strstrip(tmp);
+
+      if (g_str_has_prefix(tmp, "species "))
+        {
+        gint num_tokens;
+        gchar **buff;
+        struct qbox_species_pak *species;
+
+        buff = tokenize(tmp, &num_tokens);
+        species = NULL;
+
+        if (num_tokens >= 2)
+          species = qbox_species_lookup(job->species, buff[1]);
+
+        if (species && species->path && strlen(species->path))
+          {
+          fprintf(dest, "species %-4s %s\n", species->symbol, species->path);
+          if (!g_file_test(species->path, G_FILE_TEST_EXISTS))
+            invalid = qbox_symbol_list_add_unique(invalid, species->symbol);
+          g_strfreev(buff);
+          g_free(tmp);
+          g_free(line);
+          continue;
+          }
+
+        if (num_tokens >= 2)
+          missing = qbox_symbol_list_add_unique(missing, buff[1]);
+
+        g_strfreev(buff);
+        }
+
+      fputs(line, dest);
+      g_free(tmp);
+      g_free(line);
+      }
+
+    fclose(src);
+    g_remove(temp_path);
+    g_free(temp_path);
+    }
+  else
+    {
+    fprintf(dest, "# Qbox input generated by GDIS (model export disabled)\n");
+    fprintf(dest, "# Provide your own cell/species/atom or load command below.\n");
     }
 
-  fprintf(dest, "set ecut %.1f\n", job->ecut);
-  fprintf(dest, "set xc %s\n", job->xc && strlen(job->xc) ? job->xc : "PBE");
-  if (job->randomize_wf)
-    fprintf(dest, "randomize_wf\n");
-  fprintf(dest, "set wf_dyn %s\n", job->wf_dyn && strlen(job->wf_dyn) ? job->wf_dyn : "PSDA");
-  fprintf(dest, "set ecutprec %.1f\n", job->ecutprec);
-  fprintf(dest, "save %s\n", job->xml_path);
-  fprintf(dest, "quit\n");
+  qbox_write_text_block(dest, job->pre_commands);
 
-  fclose(src);
+  if (job->write_default_block)
+    {
+    fprintf(dest, "set ecut %.1f\n", job->ecut);
+    fprintf(dest, "set xc %s\n", job->xc && strlen(job->xc) ? job->xc : "PBE");
+    if (job->randomize_wf)
+      fprintf(dest, "randomize_wf\n");
+    fprintf(dest, "set wf_dyn %s\n", job->wf_dyn && strlen(job->wf_dyn) ? job->wf_dyn : "PSDA");
+    fprintf(dest, "set ecutprec %.1f\n", job->ecutprec);
+    qbox_write_line(dest, job->run_cmd);
+    }
+
+  qbox_write_line(dest, job->include_cmd_file);
+  qbox_write_text_block(dest, job->post_commands);
+
+  has_save = qbox_line_has_command(job->run_cmd, "save")
+             || qbox_text_has_command(job->pre_commands, "save")
+             || qbox_text_has_command(job->post_commands, "save");
+  has_quit = qbox_line_has_command(job->run_cmd, "quit")
+             || qbox_text_has_command(job->pre_commands, "quit")
+             || qbox_text_has_command(job->post_commands, "quit");
+
+  if (job->auto_save_xml_cmd && !has_save)
+    fprintf(dest, "save %s\n", job->xml_path);
+  if (job->auto_quit && !has_quit)
+    fprintf(dest, "quit\n");
+
   fclose(dest);
-  g_remove(temp_path);
-  g_free(temp_path);
 
   if (missing || invalid)
     {
@@ -497,9 +920,19 @@ static void cleanup_qbox_task(gpointer ptr)
 
   if (!job->xml_path || !g_file_test(job->xml_path, G_FILE_TEST_EXISTS))
     {
-    text = g_strdup_printf("Qbox finished, but no saved XML file was found:\n%s\n",
-                           job->xml_path ? job->xml_path : "(unknown)");
-    gui_text_show(ERROR, text);
+    if (job->load_saved_xml)
+      {
+      text = g_strdup_printf("Qbox finished, but no saved XML file was found:\n%s\n",
+                             job->xml_path ? job->xml_path : "(unknown)");
+      gui_text_show(ERROR, text);
+      g_free(text);
+      qbox_task_free(job);
+      return;
+      }
+
+    text = g_strdup_printf("Qbox finished.\nLog:\n%s\n(no XML file detected)\n",
+                           job->log_path ? job->log_path : "(unknown)");
+    gui_text_show(STANDARD, text);
     g_free(text);
     qbox_task_free(job);
     return;
@@ -543,6 +976,14 @@ static struct qbox_task_pak *qbox_task_new_from_dialog(gpointer dialog)
   job->ecutprec = state->ecutprec;
   job->randomize_wf = state->randomize_wf;
   job->load_saved_xml = state->load_saved_xml;
+  job->write_model_block = state->write_model_block;
+  job->write_default_block = state->write_default_block;
+  job->auto_save_xml_cmd = state->auto_save_xml_cmd;
+  job->auto_quit = state->auto_quit;
+  job->run_cmd = g_strdup(state->run_cmd);
+  job->include_cmd_file = g_strdup(state->include_cmd_file);
+  job->pre_commands = g_strdup(state->pre_commands);
+  job->post_commands = g_strdup(state->post_commands);
   job->species = qbox_species_copy_list(state->species);
 
   return(job);
@@ -659,7 +1100,7 @@ static void qbox_run_cb(GtkWidget *w, gpointer dialog)
     return;
     }
 
-  text = g_strdup_printf("Queued Qbox save for model: %s\n",
+  text = g_strdup_printf("Queued Qbox job for model: %s\n",
                          job->model->basename ? job->model->basename : "model");
   gui_text_show(INFO, text);
   g_free(text);
@@ -726,6 +1167,14 @@ void gui_qbox_dialog(void)
   state->ecutprec = 5.0;
   state->randomize_wf = TRUE;
   state->load_saved_xml = TRUE;
+  state->write_model_block = TRUE;
+  state->write_default_block = TRUE;
+  state->auto_save_xml_cmd = TRUE;
+  state->auto_quit = TRUE;
+  state->run_cmd = g_strdup("run 0 40");
+  state->include_cmd_file = NULL;
+  state->pre_commands = NULL;
+  state->post_commands = NULL;
   state->species = qbox_collect_species(model);
   g_free(stem);
 
@@ -777,14 +1226,17 @@ void gui_qbox_dialog(void)
 
   gui_direct_spin("Ecut", &state->ecut, 5.0, 300.0, 5.0, NULL, NULL, vbox);
   gui_direct_spin("Ecut precision", &state->ecutprec, 1.0, 40.0, 1.0, NULL, NULL, vbox);
-  gui_text_entry("XC", &state->xc, TRUE, TRUE, vbox);
-  gui_text_entry("WF dyn", &state->wf_dyn, TRUE, TRUE, vbox);
-  gui_direct_check("Randomize wavefunction", &state->randomize_wf, NULL, NULL, vbox);
-  gui_direct_check("Load saved XML after Qbox finishes", &state->load_saved_xml,
-                   NULL, NULL, vbox);
+  state->entry_xc = gui_text_entry("XC", &state->xc, TRUE, TRUE, vbox);
+  state->entry_wf_dyn = gui_text_entry("WF dyn", &state->wf_dyn, TRUE, TRUE, vbox);
+  state->entry_run_cmd = gui_text_entry("Default run command", &state->run_cmd, TRUE, TRUE, vbox);
+  state->check_randomize_wf = gui_direct_check("Randomize wavefunction", &state->randomize_wf,
+                                               NULL, NULL, vbox);
+  state->check_load_saved_xml = gui_direct_check("Load saved XML after Qbox finishes", &state->load_saved_xml,
+                                                 NULL, NULL, vbox);
 
-  label = qbox_note_label_new("Write Input now writes a runnable Qbox input file using the current settings."
-                              " Execute runs Qbox and loads the saved XML when it finishes.");
+  label = qbox_note_label_new("Write Input writes a runnable script with model export + defaults."
+                              " Use the Expert tab to add any official Qbox commands, include external command files,"
+                              " or disable auto-generated sections.");
   gtk_box_pack_start(GTK_BOX(page), label, FALSE, FALSE, 0);
 
   gtk_notebook_append_page(GTK_NOTEBOOK(notebook), page, gtk_label_new("Setup"));
@@ -827,6 +1279,77 @@ void gui_qbox_dialog(void)
     }
 
   gtk_notebook_append_page(GTK_NOTEBOOK(notebook), page, gtk_label_new("Potentials"));
+
+  page = gtk_vbox_new(FALSE, PANEL_SPACING);
+  gtk_container_set_border_width(GTK_CONTAINER(page), PANEL_SPACING);
+
+  frame = gtk_frame_new("Preset Profiles");
+  gtk_box_pack_start(GTK_BOX(page), frame, FALSE, FALSE, 0);
+  gtk_container_set_border_width(GTK_CONTAINER(frame), PANEL_SPACING);
+  vbox = gtk_vbox_new(FALSE, PANEL_SPACING);
+  gtk_container_add(GTK_CONTAINER(frame), vbox);
+
+  label = qbox_note_label_new("Profiles auto-fill command fields. Review/edit, then use Write Input or Execute.");
+  gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
+
+  hbox = gtk_hbox_new(FALSE, PANEL_SPACING);
+  gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 0);
+  gui_button("SCF", qbox_preset_scf_cb, dialog, hbox, TT);
+  gui_button("Band", qbox_preset_band_cb, dialog, hbox, TT);
+  gui_button("GeoOpt", qbox_preset_geoopt_cb, dialog, hbox, TT);
+
+  hbox = gtk_hbox_new(FALSE, PANEL_SPACING);
+  gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 0);
+  gui_button("FrozenPhonon", qbox_preset_frozen_phonon_cb, dialog, hbox, TT);
+  gui_button("HOMO-LUMO", qbox_preset_homo_lumo_cb, dialog, hbox, TT);
+
+  frame = gtk_frame_new("Input Composition");
+  gtk_box_pack_start(GTK_BOX(page), frame, FALSE, FALSE, 0);
+  gtk_container_set_border_width(GTK_CONTAINER(frame), PANEL_SPACING);
+  vbox = gtk_vbox_new(FALSE, PANEL_SPACING);
+  gtk_container_add(GTK_CONTAINER(frame), vbox);
+
+  state->check_write_model_block = gui_direct_check("Write model block (cell/species/atom)", &state->write_model_block,
+                                                    NULL, NULL, vbox);
+  state->check_write_default_block = gui_direct_check("Write default settings block", &state->write_default_block,
+                                                      NULL, NULL, vbox);
+  state->check_auto_save_xml_cmd = gui_direct_check("Auto save Saved XML filename", &state->auto_save_xml_cmd,
+                                                    NULL, NULL, vbox);
+  state->check_auto_quit = gui_direct_check("Auto append quit", &state->auto_quit,
+                                            NULL, NULL, vbox);
+  state->entry_include_cmd_file = gui_text_entry("Include command file (optional)", &state->include_cmd_file, TRUE, TRUE, vbox);
+
+  label = qbox_note_label_new("Include command file can be a relative path such as moves.i."
+                              " Disable model/default blocks for full manual scripts.");
+  gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
+
+  frame = gtk_frame_new("Pre-default Commands");
+  gtk_box_pack_start(GTK_BOX(page), frame, TRUE, TRUE, 0);
+  gtk_container_set_border_width(GTK_CONTAINER(frame), PANEL_SPACING);
+  vbox = gtk_vbox_new(FALSE, PANEL_SPACING);
+  gtk_container_add(GTK_CONTAINER(frame), vbox);
+  label = qbox_note_label_new("Commands inserted before default settings block.");
+  gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
+  swin = qbox_text_window_new(&state->pre_commands, &state->pre_buffer, &state->pre_buffer_handler);
+  gtk_widget_set_size_request(swin, -1, 110);
+  gtk_box_pack_start(GTK_BOX(vbox), swin, TRUE, TRUE, 0);
+
+  frame = gtk_frame_new("Post/default-override Commands");
+  gtk_box_pack_start(GTK_BOX(page), frame, TRUE, TRUE, 0);
+  gtk_container_set_border_width(GTK_CONTAINER(frame), PANEL_SPACING);
+  vbox = gtk_vbox_new(FALSE, PANEL_SPACING);
+  gtk_container_add(GTK_CONTAINER(frame), vbox);
+  label = qbox_note_label_new("Commands inserted after defaults. Use for kpoint/additional run/plot/response/spectrum/constraints.");
+  gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
+  swin = qbox_text_window_new(&state->post_commands, &state->post_buffer, &state->post_buffer_handler);
+  gtk_widget_set_size_request(swin, -1, 140);
+  gtk_box_pack_start(GTK_BOX(vbox), swin, TRUE, TRUE, 0);
+
+  label = qbox_note_label_new("Examples: set scf_tol 1e-8, set nempty 8, kpoint add ... 0.0,"
+                              " compute_mlwf, response, plot -wf, move atom1 by ..., run ...");
+  gtk_box_pack_start(GTK_BOX(page), label, FALSE, FALSE, 0);
+
+  gtk_notebook_append_page(GTK_NOTEBOOK(notebook), page, gtk_label_new("Expert"));
 
   gui_button("Write Input", qbox_write_input_cb, dialog, GDIS_DIALOG_ACTIONS(window), TT);
   gui_stock_button(GTK_STOCK_EXECUTE, qbox_run_cb, dialog, GDIS_DIALOG_ACTIONS(window));

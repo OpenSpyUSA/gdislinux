@@ -63,6 +63,20 @@ To launch the main application:
 ./run-gdis.sh
 ```
 
+To install a user-level `gdis` command (recommended):
+
+```bash
+./install-user-launcher.sh
+gdis ./models/*
+```
+
+If `gdis` is not found after installation, add this once:
+
+```bash
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+```
+
 To launch a curated example:
 
 ```bash
@@ -115,7 +129,11 @@ On Ubuntu 24.04:
 ```bash
 sudo apt-get update
 sudo apt-get install -y build-essential pkg-config libgtk-4-dev libgl1-mesa-dev libglu1-mesa-dev libepoxy-dev
+git clone https://github.com/OpenSpyUSA/gdislinux.git
+cd gdislinux
 ./rebuild-ubuntu.sh
+./install-user-launcher.sh
+gdis ./models/*
 ```
 
 For the optional GTK2 fallback path:
@@ -165,6 +183,9 @@ Advanced build overrides:
   Uses a target-specific executable such as `bin/gdis-gtk4` when present.
 - `./run-gdis.sh`
   Launches GDIS directly and defaults to GTK4.
+- `./install-user-launcher.sh`
+  Installs a user-level `gdis` command in `~/.local/bin` so you can launch
+  from anywhere (for example: `gdis ./models/*` inside this repository).
 - `./run-uspex-output.sh <results-dir-or-output.txt>`
   Validates a USPEX results folder and launches GDIS on its `OUTPUT.txt` file.
   Defaults to GTK4 and accepts `--gtk2` as an explicit fallback.
@@ -245,11 +266,24 @@ This tree now includes first-pass Qbox integration in GDIS:
 - Qbox restart/output files: `*.r`, `*.qboxr`, and Qbox-style XML detected by
   content sniffing
 - Setup dialog field: `Qbox`
+- Expert pass-through tab in `Tools > Computation > Qbox...`:
+  - preset profiles: `SCF`, `Band`, `GeoOpt`, `FrozenPhonon`, `HOMO-LUMO`
+    (auto-fill fields; review/edit before run)
+  - optional model export block (`cell/species/atom`) on/off
+  - optional default settings block on/off
+  - free-form pre/post command blocks
+  - optional include command file line (for scripts such as `moves.i`)
+  - auto-save/auto-quit toggles
+
+This lets you drive advanced Qbox commands directly (for example `kpoint`,
+`set scf_tol`, `set nempty`, `compute_mlwf`, `response`, `spectrum`, `move`,
+custom `run` schedules) without waiting for one-by-one hardcoded widgets.
 
 Two smoke-test samples are included:
 
 - `models/qbox_methane.qbox`
 - `models/qbox_methane.xml`
+- `models/qbox_expert_demo.i` (advanced command include template)
 
 On Ubuntu 24.04, the practical install flow is:
 
