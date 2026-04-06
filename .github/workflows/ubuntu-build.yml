@@ -7,6 +7,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-24.04
+    env:
+      GDIS_GTK_TARGET: gtk2
 
     steps:
       - name: Checkout
