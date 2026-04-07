@@ -234,9 +234,7 @@ return(0);
 #define DEBUG_READ_XYZ 0
 gint read_xyz(gchar *filename, struct model_pak *data)
 {
-#ifdef UNUSED_BUT_SET
-gint flag;
-#endif
+gint frame = 0;
 FILE *fp;
 
 /* checks */
@@ -247,14 +245,23 @@ fp = fopen(filename,"rt");
 if (!fp)
   return(3);
 
-/* loop while there's data */
-#ifdef UNUSED_BUT_SET
-flag=0;
-#endif
-data->num_frames = 0;
+/* reset any previous offsets before indexing this trajectory */
+free_list(data->frame_list);
+data->frame_list = NULL;
 
-read_xyz_block(fp, data);
+/*
+ * Load the first frame into the model and then probe later frames without
+ * mutating the currently displayed coordinates. read_xyz_block(data) will
+ * trim cores if it sees EOF, so the EOF probe must always use NULL.
+ */
+add_frame_offset(fp, data);
+if (read_xyz_block(fp, data))
+  {
+  fclose(fp);
+  return(4);
+  }
 
+frame = 1;
 for (;;)
   {
   add_frame_offset(fp, data);
@@ -262,14 +269,25 @@ for (;;)
   if (read_xyz_block(fp, NULL))
     break;
 
-  data->num_frames++;
+  frame++;
   }
 
-/* get rid of frame list if only one frame */
-if (data->num_frames == 1)
+data->num_frames = frame;
+data->cur_frame = 0;
+
+/* single-frame XYZ should not be marked as animation */
+if (data->num_frames <= 1)
   {
   free_list(data->frame_list);
   data->frame_list = NULL;
+  }
+else
+  {
+  gchar *msg;
+
+  msg = g_strdup_printf("XYZ: %d frames detected.\n", data->num_frames);
+  gui_text_show(ITALIC, msg);
+  g_free(msg);
   }
 
 /* model setup */
@@ -277,7 +295,7 @@ strcpy(data->filename, filename);
 g_free(data->basename);
 data->basename = parse_strip(filename);
 model_prep(data);
+fclose(fp);
 
 return(0);
 }
-

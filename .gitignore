@@ -22,6 +22,7 @@ src/gdis.xcodeproj/xcuserdata/
 .cache/
 .build/
 .localdeps/
+tmp/
 *.swp
 *.swo
 *~

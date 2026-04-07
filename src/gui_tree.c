@@ -63,6 +63,27 @@ TREE_DATA,
 TREE_NCOLS
 };
 
+/* Prefer showing the loaded filename (including suffix) in the model tree. */
+static gchar *tree_model_display_name(struct model_pak *model)
+{
+  gchar *name = NULL;
+
+  g_return_val_if_fail(model != NULL, g_strdup("model"));
+
+  if (strlen(model->filename))
+    {
+    name = g_path_get_basename(model->filename);
+    if (name && strlen(name))
+      return(name);
+    g_free(name);
+    }
+
+  if (model->basename && strlen(model->basename))
+    return(g_strdup(model->basename));
+
+  return(g_strdup("model"));
+}
+
 /*****************************************************/
 /* select new iter, assuming current will be deleted */
 /*****************************************************/
@@ -259,6 +280,7 @@ GSList *list;
 GtkTreeIter root, branch, active;
 GdkPixbuf *pixbuf;
 GtkTreeSelection *selection;
+gchar *model_name;
 
 /* checks */
 if (!model)
@@ -269,7 +291,9 @@ if (!tree_model_iter(&root, model))
 selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(sysenv.tree)); 
 
 /* update name */
-gtk_tree_store_set(sysenv.tree_store, &root, TREE_NAME, model->basename, -1);
+model_name = tree_model_display_name(model);
+gtk_tree_store_set(sysenv.tree_store, &root, TREE_NAME, model_name, -1);
+g_free(model_name);
 
 /* update pixmap <- if tracking ON -- OVHPA*/
 if (model->track_me){
@@ -350,6 +374,7 @@ void tree_model_add(struct model_pak *model)
 GSList *list;
 GtkTreeIter root, branch;
 GdkPixbuf *pixbuf;
+gchar *model_name;
 
 /* checks */
 g_assert(model != NULL);
@@ -387,12 +412,14 @@ else
 
 
 /* set the parent iterator data */
+model_name = tree_model_display_name(model);
 gtk_tree_store_set(sysenv.tree_store, &root,
                    TREE_PIXMAP, pixbuf, 
-                   TREE_NAME, model->basename,
+                   TREE_NAME, model_name,
                    TREE_POINTER, model,
                    TREE_DATA, NULL,
                    -1);
+g_free(model_name);
 /*
 gdk_pixbuf_unref(pixbuf);
 */

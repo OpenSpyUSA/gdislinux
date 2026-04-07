@@ -301,10 +301,10 @@ After that, a working local smoke round-trip is:
 ./run-qbox-roundtrip.sh --open --gtk4
 ```
 
-The Qbox writer emits `species` lines with placeholder pseudopotential XML
-filenames such as `C.xml` and `H.xml`. Update those URIs to match the
-pseudopotential files available in your own Qbox installation before running a
-real Qbox job.
+The Qbox writer emits `species` lines that point to per-element XML
+pseudopotentials. In the GUI, `Use Demo Potentials` now auto-resolves files
+from bundled legacy demos plus `external/pseudos/qbox-xml-oncv-sr` (when
+present). For generation and lookup details, see `docs/qbox-potentials.md`.
 
 ### USPEX Notes
 

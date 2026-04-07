@@ -453,6 +453,7 @@ gint write_qbox(gchar *filename, struct model_pak *model)
   GHashTable *species_table;
   struct core_pak *core;
   struct elem_pak elem;
+  gint atom_serial[MAX_ELEMENTS];
   gdouble x[3], min[3], max[3], cell[3], shift[3];
   FILE *fp;
   gboolean first;
@@ -466,6 +467,7 @@ gint write_qbox(gchar *filename, struct model_pak *model)
 
   species_table = g_hash_table_new_full(&g_str_hash, &hash_strcmp, &g_free, NULL);
   species_list = NULL;
+  memset(atom_serial, 0, sizeof(atom_serial));
 
   first = TRUE;
   for (list=model->cores ; list ; list=g_slist_next(list))
@@ -474,13 +476,16 @@ gint write_qbox(gchar *filename, struct model_pak *model)
     if (core->status & DELETED)
       continue;
 
-    if (get_elem_data(core->atom_code, &elem, model))
+    if (get_elem_data(core->atom_code, &elem, NULL))
+      continue;
+
+    if (!elem.symbol || !strlen(elem.symbol))
       continue;
 
     if (!g_hash_table_lookup(species_table, elem.symbol))
       {
-      g_hash_table_insert(species_table, elem.symbol, elem.symbol);
-      species_list = g_slist_append(species_list, elem.symbol);
+      g_hash_table_insert(species_table, g_strdup(elem.symbol), GINT_TO_POINTER(1));
+      species_list = g_slist_append(species_list, g_strdup(elem.symbol));
       }
 
     ARR3SET(x, core->x);
@@ -506,7 +511,7 @@ gint write_qbox(gchar *filename, struct model_pak *model)
 
   if (first)
     {
-    g_slist_free(species_list);
+    g_slist_free_full(species_list, g_free);
     g_hash_table_destroy(species_table);
     fclose(fp);
     return(3);
@@ -557,10 +562,14 @@ gint write_qbox(gchar *filename, struct model_pak *model)
 
   for (list=model->cores ; list ; list=g_slist_next(list))
     {
+    gchar atom_name[32];
+
     core = list->data;
     if (core->status & DELETED)
       continue;
-    if (get_elem_data(core->atom_code, &elem, model))
+    if (get_elem_data(core->atom_code, &elem, NULL))
+      continue;
+    if (!elem.symbol || !strlen(elem.symbol))
       continue;
 
     ARR3SET(x, core->x);
@@ -568,15 +577,22 @@ gint write_qbox(gchar *filename, struct model_pak *model)
       vecmat(model->latmat, x);
     ARR3ADD(x, shift);
 
+    if (elem.number >= 0 && elem.number < MAX_ELEMENTS)
+      atom_serial[elem.number]++;
+    else
+      atom_serial[0]++;
+    g_snprintf(atom_name, sizeof(atom_name), "%s%d", elem.symbol,
+               (elem.number >= 0 && elem.number < MAX_ELEMENTS) ? atom_serial[elem.number] : atom_serial[0]);
+
     fprintf(fp, "atom %-8s %-4s %14.9f %14.9f %14.9f\n",
-            core->atom_label ? core->atom_label : elem.symbol,
+            atom_name,
             elem.symbol,
             x[0] / BOHR_TO_ANGS,
             x[1] / BOHR_TO_ANGS,
             x[2] / BOHR_TO_ANGS);
     }
 
-  g_slist_free(species_list);
+  g_slist_free_full(species_list, g_free);
   g_hash_table_destroy(species_table);
   fclose(fp);
 

@@ -1,0 +1,18 @@
+set cell   33.922471203 0.0 0.0 0.0   34.144325034 0.0 0.0 0.0   34.749037350
+species S    /home/hym/Desktop/gdislinux/external/pseudos/qbox-xml-oncv-sr/S_ONCV_PBE_sr.xml
+species O    /home/hym/Desktop/gdislinux/.localdeps/qbox-public/test/potentials/O_HSCV_PBE-1.0.xml
+atom S1       S      16.040561100   17.723551065   17.374518675
+atom O1       O      18.804663302   17.723551065   17.374518675
+atom O2       O      15.117807901   15.117807901   17.374518675
+atom O3       O      15.117807901   19.026517133   19.631229449
+atom O4       O      15.117807901   19.026517133   15.117807901
+set ecut 15.0
+set xc PBE
+set scf_tol 1e-3
+randomize_wf
+set wf_dyn PSDA
+set ecutprec 5.0
+set atoms_dyn CG
+run 20 3
+save /home/hym/Desktop/gdislinux/models/tmp/qbox-gui/so4_iso1.xml
+quit

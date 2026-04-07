@@ -17,9 +17,11 @@ The GNU GPL can also be found at http://www.gnu.org
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/wait.h>
 #include <glib/gstdio.h>
 
 #include "gdis.h"
+#include "coords.h"
 #include "dialog.h"
 #include "file.h"
 #include "gui_shorts.h"
@@ -43,11 +45,44 @@ struct qbox_gui_pak
   gchar *input_name;
   gchar *xml_name;
   gchar *log_name;
+  gchar *xyz_name;
+  gchar *mpirun_path;
   gchar *xc;
+  gchar *scf_tol;
   gchar *wf_dyn;
+  gchar *atoms_dyn;
+  gchar *cell_dyn;
+  gchar *thermostat;
+  gchar *run_timeout;
   gdouble ecut;
   gdouble ecutprec;
+  gdouble dt;
+  gdouble randomize_v;
+  gdouble force_tol;
+  gdouble stress_tol;
+  gdouble th_temp;
+  gdouble th_time;
+  gdouble th_width;
+  gdouble mpi_ranks;
+  gdouble omp_threads;
   gint randomize_wf;
+  gdouble nempty;
+  gint use_mpi;
+  gint use_atoms_dyn;
+  gint use_dt;
+  gint use_randomize_v;
+  gint use_nempty;
+  gint use_force_tol;
+  gint use_cell_dyn;
+  gint use_stress;
+  gint use_stress_tol;
+  gint use_thermostat;
+  gint use_th_temp;
+  gint use_th_time;
+  gint use_th_width;
+  gint auto_convert_xyz;
+  gint load_xyz_after_convert;
+  gint open_animation_after_xyz;
   gint load_saved_xml;
   gint write_model_block;
   gint write_default_block;
@@ -62,10 +97,30 @@ struct qbox_gui_pak
   gulong pre_buffer_handler;
   gulong post_buffer_handler;
   GtkWidget *entry_xc;
+  GtkWidget *entry_scf_tol;
   GtkWidget *entry_wf_dyn;
+  GtkWidget *entry_atoms_dyn;
+  GtkWidget *entry_cell_dyn;
+  GtkWidget *entry_thermostat;
+  GtkWidget *entry_run_timeout;
   GtkWidget *entry_run_cmd;
   GtkWidget *entry_include_cmd_file;
   GtkWidget *check_randomize_wf;
+  GtkWidget *check_use_atoms_dyn;
+  GtkWidget *check_use_dt;
+  GtkWidget *check_use_randomize_v;
+  GtkWidget *check_use_nempty;
+  GtkWidget *check_use_force_tol;
+  GtkWidget *check_use_cell_dyn;
+  GtkWidget *check_use_stress;
+  GtkWidget *check_use_stress_tol;
+  GtkWidget *check_use_thermostat;
+  GtkWidget *check_use_th_temp;
+  GtkWidget *check_use_th_time;
+  GtkWidget *check_use_th_width;
+  GtkWidget *check_auto_convert_xyz;
+  GtkWidget *check_load_xyz_after_convert;
+  GtkWidget *check_open_animation_after_xyz;
   GtkWidget *check_load_saved_xml;
   GtkWidget *check_write_model_block;
   GtkWidget *check_write_default_block;
@@ -82,14 +137,48 @@ struct qbox_task_pak
   gchar *input_name;
   gchar *xml_name;
   gchar *log_name;
+  gchar *xyz_name;
+  gchar *mpirun_path;
   gchar *xc;
+  gchar *scf_tol;
   gchar *wf_dyn;
+  gchar *atoms_dyn;
+  gchar *cell_dyn;
+  gchar *thermostat;
+  gchar *run_timeout;
   gchar *input_path;
   gchar *xml_path;
   gchar *log_path;
+  gchar *xyz_path;
   gdouble ecut;
   gdouble ecutprec;
+  gdouble dt;
+  gdouble randomize_v;
+  gdouble force_tol;
+  gdouble stress_tol;
+  gdouble th_temp;
+  gdouble th_time;
+  gdouble th_width;
+  gdouble mpi_ranks;
+  gdouble omp_threads;
   gint randomize_wf;
+  gdouble nempty;
+  gint use_mpi;
+  gint use_atoms_dyn;
+  gint use_dt;
+  gint use_randomize_v;
+  gint use_nempty;
+  gint use_force_tol;
+  gint use_cell_dyn;
+  gint use_stress;
+  gint use_stress_tol;
+  gint use_thermostat;
+  gint use_th_temp;
+  gint use_th_time;
+  gint use_th_width;
+  gint auto_convert_xyz;
+  gint load_xyz_after_convert;
+  gint open_animation_after_xyz;
   gint load_saved_xml;
   gint write_model_block;
   gint write_default_block;
@@ -174,6 +263,32 @@ static void qbox_string_replace(gchar **target, const gchar *value)
   gui_relation_update_widget(target);
 }
 
+static gint qbox_resource_count(gdouble value)
+{
+  gint count;
+
+  count = (gint) (value + 0.5);
+  if (count < 1)
+    count = 1;
+
+  return(count);
+}
+
+static gchar *qbox_resolve_executable(const gchar *value)
+{
+  if (!value || !strlen(value))
+    return(NULL);
+
+  if (g_path_is_absolute(value) || strchr(value, G_DIR_SEPARATOR))
+    {
+    if (g_file_test(value, G_FILE_TEST_IS_EXECUTABLE))
+      return(g_strdup(value));
+    return(NULL);
+    }
+
+  return(g_find_program_in_path(value));
+}
+
 static gchar *qbox_model_stem(struct model_pak *model)
 {
   if (model && model->basename && strlen(model->basename))
@@ -187,35 +302,267 @@ static gchar *qbox_default_workdir(void)
   return(g_build_filename(sysenv.cwd, "tmp", "qbox-gui", NULL));
 }
 
+static gchar *qbox_find_symbol_xml_in_dir(const gchar *dir_path, const gchar *symbol_canon)
+{
+  gchar *candidate;
+  gchar *path;
+  gchar *best = NULL;
+  GDir *dir;
+  const gchar *name;
+
+  g_return_val_if_fail(symbol_canon != NULL, NULL);
+
+  if (!dir_path || !strlen(dir_path))
+    return(NULL);
+  if (!g_file_test(dir_path, G_FILE_TEST_IS_DIR))
+    return(NULL);
+  if (g_getenv("GDIS_QBOX_DEBUG"))
+    {
+    fprintf(stderr, "[qbox-ui] lookup symbol=%s dir=%s\n", symbol_canon, dir_path);
+    fflush(stderr);
+    }
+
+  candidate = g_strdup_printf("%s_ONCV_PBE_sr.xml", symbol_canon);
+  path = g_build_filename(dir_path, candidate, NULL);
+  g_free(candidate);
+  if (g_file_test(path, G_FILE_TEST_EXISTS))
+    {
+    if (g_getenv("GDIS_QBOX_DEBUG"))
+      {
+      fprintf(stderr, "[qbox-ui] found %s\n", path);
+      fflush(stderr);
+      }
+    return(path);
+    }
+  g_free(path);
+
+  candidate = g_strdup_printf("%s_ONCV_PBE_fr.xml", symbol_canon);
+  path = g_build_filename(dir_path, candidate, NULL);
+  g_free(candidate);
+  if (g_file_test(path, G_FILE_TEST_EXISTS))
+    {
+    if (g_getenv("GDIS_QBOX_DEBUG"))
+      {
+      fprintf(stderr, "[qbox-ui] found %s\n", path);
+      fflush(stderr);
+      }
+    return(path);
+    }
+  g_free(path);
+
+  candidate = g_strdup_printf("%s.xml", symbol_canon);
+  path = g_build_filename(dir_path, candidate, NULL);
+  g_free(candidate);
+  if (g_file_test(path, G_FILE_TEST_EXISTS))
+    {
+    if (g_getenv("GDIS_QBOX_DEBUG"))
+      {
+      fprintf(stderr, "[qbox-ui] found %s\n", path);
+      fflush(stderr);
+      }
+    return(path);
+    }
+  g_free(path);
+
+  dir = g_dir_open(dir_path, 0, NULL);
+  if (!dir)
+    return(NULL);
+
+  candidate = g_strdup_printf("%s_", symbol_canon);
+  while ((name = g_dir_read_name(dir)))
+    {
+    if (!g_str_has_prefix(name, candidate) || !g_str_has_suffix(name, ".xml"))
+      continue;
+    if (!best || g_strrstr(name, "_sr.xml"))
+      {
+      g_free(best);
+      best = g_build_filename(dir_path, name, NULL);
+      if (g_strrstr(name, "_sr.xml"))
+        break;
+      }
+    }
+  g_free(candidate);
+  g_dir_close(dir);
+  if (best && g_getenv("GDIS_QBOX_DEBUG"))
+    {
+    fprintf(stderr, "[qbox-ui] found %s\n", best);
+    fflush(stderr);
+    }
+
+  return(best);
+}
+
 static gchar *qbox_demo_potential_path(const gchar *symbol)
 {
-  const gchar *filename = NULL;
-  gchar *path;
+  const gchar *legacy_name = NULL;
+  gchar *path = NULL;
+  gchar *symbol_canon = NULL;
+  gchar *project_root = NULL;
+  const gchar *env_dir;
+  const gchar *search_dirs[3];
+  gint i;
+
+  static const gchar *legacy_demo_dir[] =
+  {
+    ".localdeps", "qbox-public", "test", "potentials", NULL
+  };
 
   if (!symbol)
     return(NULL);
 
   if (g_ascii_strcasecmp(symbol, "C") == 0)
-    filename = "C_HSCV_PBE-1.0.xml";
+    legacy_name = "C_HSCV_PBE-1.0.xml";
   else if (g_ascii_strcasecmp(symbol, "H") == 0)
-    filename = "H_HSCV_PBE-1.0.xml";
+    legacy_name = "H_HSCV_PBE-1.0.xml";
   else if (g_ascii_strcasecmp(symbol, "O") == 0)
-    filename = "O_HSCV_PBE-1.0.xml";
+    legacy_name = "O_HSCV_PBE-1.0.xml";
   else if (g_ascii_strcasecmp(symbol, "Si") == 0)
-    filename = "Si_VBC_LDA-1.0.xml";
+    legacy_name = "Si_VBC_LDA-1.0.xml";
 
-  if (!filename)
-    return(NULL);
-
-  path = g_build_filename(sysenv.cwd, ".localdeps", "qbox-public",
-                          "test", "potentials", filename, NULL);
-  if (!g_file_test(path, G_FILE_TEST_EXISTS))
+  symbol_canon = g_strdup(symbol);
+  if (symbol_canon[0])
     {
-    g_free(path);
-    return(NULL);
+    gchar *p;
+    symbol_canon[0] = g_ascii_toupper(symbol_canon[0]);
+    for (p=symbol_canon+1 ; *p ; p++)
+      *p = g_ascii_tolower(*p);
     }
 
-  return(path);
+  env_dir = g_getenv("GDIS_QBOX_POTENTIAL_DIR");
+  search_dirs[0] = "external/pseudos/qbox-xml-oncv-sr";
+  search_dirs[1] = "external/pseudos/qbox-xml-oncv";
+  search_dirs[2] = NULL;
+  if (sysenv.gdis_path && strlen(sysenv.gdis_path))
+    project_root = g_path_get_dirname(sysenv.gdis_path);
+  if (g_getenv("GDIS_QBOX_DEBUG"))
+    {
+    fprintf(stderr, "[qbox-ui] demo lookup symbol=%s cwd=%s gdis_path=%s project_root=%s\n",
+            symbol_canon,
+            sysenv.cwd ? sysenv.cwd : "(null)",
+            sysenv.gdis_path ? sysenv.gdis_path : "(null)",
+            project_root ? project_root : "(null)");
+    fflush(stderr);
+    }
+
+  if (legacy_name)
+    {
+    path = g_build_filename(sysenv.cwd,
+                            legacy_demo_dir[0], legacy_demo_dir[1], legacy_demo_dir[2],
+                            legacy_demo_dir[3], legacy_name, NULL);
+    if (!g_file_test(path, G_FILE_TEST_EXISTS) && project_root)
+      {
+      g_free(path);
+      path = g_build_filename(project_root,
+                              legacy_demo_dir[0], legacy_demo_dir[1], legacy_demo_dir[2],
+                              legacy_demo_dir[3], legacy_name, NULL);
+      }
+    if (g_file_test(path, G_FILE_TEST_EXISTS))
+      {
+      g_free(project_root);
+      g_free(symbol_canon);
+      return(path);
+      }
+    g_free(path);
+    path = NULL;
+    }
+
+  if (env_dir && strlen(env_dir))
+    {
+    const gchar *base_dirs[3];
+    gint j;
+
+    if (g_path_is_absolute(env_dir))
+      {
+      path = qbox_find_symbol_xml_in_dir(env_dir, symbol_canon);
+      if (path)
+        {
+        g_free(project_root);
+        g_free(symbol_canon);
+        return(path);
+        }
+      }
+    else
+      {
+      base_dirs[0] = sysenv.cwd;
+      base_dirs[1] = project_root;
+      base_dirs[2] = NULL;
+      for (j=0 ; base_dirs[j] ; j++)
+        {
+        gchar *dir_path;
+
+        if (!strlen(base_dirs[j]))
+          continue;
+
+        dir_path = g_build_filename(base_dirs[j], env_dir, NULL);
+        if (g_getenv("GDIS_QBOX_DEBUG"))
+          {
+          fprintf(stderr, "[qbox-ui] try env dir=%s\n", dir_path);
+          fflush(stderr);
+          }
+        path = qbox_find_symbol_xml_in_dir(dir_path, symbol_canon);
+        g_free(dir_path);
+        if (path)
+          {
+          g_free(project_root);
+          g_free(symbol_canon);
+          return(path);
+          }
+        }
+      }
+    }
+
+  for (i=0 ; search_dirs[i] ; i++)
+    {
+    const gchar *dir_text = search_dirs[i];
+    const gchar *base_dirs[3];
+    gint j;
+
+    if (!dir_text || !strlen(dir_text))
+      continue;
+
+    if (g_path_is_absolute(dir_text))
+      {
+      path = qbox_find_symbol_xml_in_dir(dir_text, symbol_canon);
+      if (path)
+        {
+        g_free(project_root);
+        g_free(symbol_canon);
+        return(path);
+        }
+      continue;
+      }
+
+    base_dirs[0] = sysenv.cwd;
+    base_dirs[1] = project_root;
+    base_dirs[2] = NULL;
+
+    for (j=0 ; base_dirs[j] ; j++)
+      {
+      gchar *dir_path;
+
+      if (!strlen(base_dirs[j]))
+        continue;
+
+      dir_path = g_build_filename(base_dirs[j], dir_text, NULL);
+      if (g_getenv("GDIS_QBOX_DEBUG"))
+        {
+        fprintf(stderr, "[qbox-ui] try relative dir=%s\n", dir_path);
+        fflush(stderr);
+        }
+      path = qbox_find_symbol_xml_in_dir(dir_path, symbol_canon);
+      g_free(dir_path);
+      if (path)
+        {
+        g_free(project_root);
+        g_free(symbol_canon);
+        return(path);
+        }
+      }
+    }
+
+  g_free(project_root);
+  g_free(symbol_canon);
+  return(NULL);
 }
 
 static GSList *qbox_symbol_list_add_unique(GSList *list, const gchar *symbol)
@@ -257,32 +604,47 @@ static void qbox_symbol_list_free(GSList *list)
 static GSList *qbox_collect_species(struct model_pak *model)
 {
   GSList *species = NULL;
-  GSList *labels;
   GSList *item;
+  GHashTable *seen;
+  struct elem_pak elem;
 
   g_return_val_if_fail(model != NULL, NULL);
 
-  labels = find_unique(ELEMENT, model);
-  for (item=labels ; item ; item=g_slist_next(item))
+  seen = g_hash_table_new_full(&g_str_hash, &hash_strcmp, &g_free, NULL);
+
+  for (item=model->cores ; item ; item=g_slist_next(item))
     {
-    gint code;
     const gchar *symbol;
+    struct core_pak *core;
     gchar *demo_path;
 
-    code = GPOINTER_TO_INT(item->data);
-    if (code < 0 || code >= MAX_ELEMENTS)
+    core = item->data;
+    if (!core || (core->status & DELETED))
       continue;
 
-    symbol = elements[code].symbol;
+    if (get_elem_data(core->atom_code, &elem, NULL))
+      continue;
+
+    symbol = elem.symbol;
     if (!symbol || !strlen(symbol))
       continue;
+    if (g_hash_table_lookup(seen, symbol))
+      continue;
+
+    g_hash_table_insert(seen, g_strdup(symbol), GINT_TO_POINTER(1));
 
     demo_path = qbox_demo_potential_path(symbol);
+    if (g_getenv("GDIS_QBOX_DEBUG"))
+      {
+      fprintf(stderr, "[qbox-ui] collect species=%s demo=%s\n",
+              symbol, demo_path ? demo_path : "(none)");
+      fflush(stderr);
+      }
     species = g_slist_append(species, qbox_species_new(symbol, demo_path));
     g_free(demo_path);
     }
 
-  g_slist_free(labels);
+  g_hash_table_destroy(seen);
 
   return(species);
 }
@@ -296,8 +658,15 @@ static void qbox_gui_state_free(struct qbox_gui_pak *state)
   g_free(state->input_name);
   g_free(state->xml_name);
   g_free(state->log_name);
+  g_free(state->xyz_name);
+  g_free(state->mpirun_path);
   g_free(state->xc);
+  g_free(state->scf_tol);
   g_free(state->wf_dyn);
+  g_free(state->atoms_dyn);
+  g_free(state->cell_dyn);
+  g_free(state->thermostat);
+  g_free(state->run_timeout);
   g_free(state->run_cmd);
   g_free(state->include_cmd_file);
   g_free(state->pre_commands);
@@ -323,8 +692,15 @@ static void qbox_task_free(struct qbox_task_pak *job)
   g_free(job->input_name);
   g_free(job->xml_name);
   g_free(job->log_name);
+  g_free(job->xyz_name);
+  g_free(job->mpirun_path);
   g_free(job->xc);
+  g_free(job->scf_tol);
   g_free(job->wf_dyn);
+  g_free(job->atoms_dyn);
+  g_free(job->cell_dyn);
+  g_free(job->thermostat);
+  g_free(job->run_timeout);
   g_free(job->run_cmd);
   g_free(job->include_cmd_file);
   g_free(job->pre_commands);
@@ -332,6 +708,7 @@ static void qbox_task_free(struct qbox_task_pak *job)
   g_free(job->input_path);
   g_free(job->xml_path);
   g_free(job->log_path);
+  g_free(job->xyz_path);
   g_slist_free_full(job->species, qbox_species_free);
   g_free(job->message);
   g_free(job->error);
@@ -694,6 +1071,8 @@ static void qbox_preset_homo_lumo_cb(GtkWidget *w, gpointer dialog)
 
 static gint qbox_prepare_paths(struct qbox_task_pak *job)
 {
+  gchar *dot;
+
   g_return_val_if_fail(job != NULL, 1);
 
   if (g_mkdir_with_parents(job->workdir, 0755) != 0)
@@ -706,11 +1085,240 @@ static gint qbox_prepare_paths(struct qbox_task_pak *job)
   g_free(job->input_path);
   g_free(job->xml_path);
   g_free(job->log_path);
+  g_free(job->xyz_path);
+
+  if (job->auto_convert_xyz && (!job->xyz_name || !strlen(job->xyz_name)))
+    {
+    gchar *base;
+
+    if (job->log_name && strlen(job->log_name))
+      base = g_strdup(job->log_name);
+    else if (job->input_name && strlen(job->input_name))
+      base = g_strdup(job->input_name);
+    else
+      base = g_strdup("qbox");
+
+    dot = g_strrstr(base, ".");
+    if (dot)
+      *dot = '\0';
+    if (!strlen(base))
+      {
+      g_free(base);
+      base = g_strdup("qbox");
+      }
+    g_free(job->xyz_name);
+    job->xyz_name = g_strdup_printf("%s.xyz", base);
+    g_free(base);
+    }
+
   job->input_path = g_build_filename(job->workdir, job->input_name, NULL);
   job->xml_path = g_build_filename(job->workdir, job->xml_name, NULL);
   job->log_path = g_build_filename(job->workdir, job->log_name, NULL);
+  if (job->xyz_name && strlen(job->xyz_name))
+    job->xyz_path = g_build_filename(job->workdir, job->xyz_name, NULL);
+  else
+    job->xyz_path = NULL;
 
   return(0);
+}
+
+static gchar *qbox_find_xyz_converter(void)
+{
+  gchar *path;
+  gchar *project_root;
+
+  path = g_build_filename(sysenv.cwd, "qbox-out-to-xyz.sh", NULL);
+  if (g_file_test(path, G_FILE_TEST_IS_EXECUTABLE))
+    return(path);
+  g_free(path);
+
+  if (sysenv.gdis_path && strlen(sysenv.gdis_path))
+    {
+    project_root = g_path_get_dirname(sysenv.gdis_path);
+    path = g_build_filename(project_root, "qbox-out-to-xyz.sh", NULL);
+    g_free(project_root);
+    if (g_file_test(path, G_FILE_TEST_IS_EXECUTABLE))
+      return(path);
+    g_free(path);
+    }
+
+  path = g_find_program_in_path("qbox-out-to-xyz.sh");
+  if (path && g_file_test(path, G_FILE_TEST_IS_EXECUTABLE))
+    return(path);
+  g_free(path);
+
+  return(NULL);
+}
+
+static gchar *qbox_convert_log_to_xyz(struct qbox_task_pak *job, gboolean *converted_ok)
+{
+  gchar *converter;
+  gchar *argv[4];
+  gchar *stdout_text = NULL;
+  gchar *stderr_text = NULL;
+  gchar *stderr_trim = NULL;
+  gchar *note;
+  GError *error = NULL;
+  gint status = 0;
+
+  if (converted_ok)
+    *converted_ok = FALSE;
+
+  g_return_val_if_fail(job != NULL, NULL);
+
+  if (!job->auto_convert_xyz)
+    return(NULL);
+
+  if (!job->log_path || !g_file_test(job->log_path, G_FILE_TEST_EXISTS))
+    return(g_strdup("XYZ conversion skipped: Qbox log file was not found.\n"));
+
+  if (!job->xyz_path || !strlen(job->xyz_path))
+    return(g_strdup("XYZ conversion skipped: XYZ trajectory filename is empty.\n"));
+
+  converter = qbox_find_xyz_converter();
+  if (!converter)
+    return(g_strdup("XYZ conversion skipped: qbox-out-to-xyz.sh was not found.\n"));
+
+  argv[0] = converter;
+  argv[1] = job->log_path;
+  argv[2] = job->xyz_path;
+  argv[3] = NULL;
+
+  if (g_spawn_sync(NULL, argv, NULL, 0, NULL, NULL,
+                   &stdout_text, &stderr_text, &status, &error))
+    {
+    if (WIFEXITED(status) && WEXITSTATUS(status) == 0 && g_file_test(job->xyz_path, G_FILE_TEST_EXISTS))
+      {
+      note = g_strdup_printf("XYZ trajectory:\n%s\n", job->xyz_path);
+      if (converted_ok)
+        *converted_ok = TRUE;
+      }
+    else
+      {
+      if (stderr_text && strlen(stderr_text))
+        {
+        stderr_trim = g_strdup(stderr_text);
+        g_strstrip(stderr_trim);
+        }
+      note = g_strdup_printf("XYZ conversion failed for:\n%s\n%s%s%s",
+                             job->log_path,
+                             (stderr_trim && strlen(stderr_trim)) ? "Details:\n" : "",
+                             (stderr_trim && strlen(stderr_trim)) ? stderr_trim : "",
+                             (stderr_trim && strlen(stderr_trim)) ? "\n" : "");
+      }
+    }
+  else
+    {
+    note = g_strdup_printf("XYZ conversion failed: unable to run converter.\n%s\n",
+                           error ? error->message : "(unknown error)");
+    }
+
+  g_free(converter);
+  g_free(stdout_text);
+  g_free(stderr_text);
+  g_free(stderr_trim);
+  g_clear_error(&error);
+
+  return(note);
+}
+
+static struct model_pak *qbox_find_loaded_model_by_path(const gchar *path)
+{
+  GSList *item;
+  gchar *target;
+
+  if (!path || !strlen(path))
+    return(NULL);
+
+  target = g_canonicalize_filename(path, NULL);
+  if (!target)
+    return(NULL);
+
+  for (item=sysenv.mal ; item ; item=g_slist_next(item))
+    {
+    struct model_pak *model;
+    gchar *candidate;
+
+    model = item->data;
+    if (!model || !strlen(model->filename))
+      continue;
+
+    candidate = g_canonicalize_filename(model->filename, NULL);
+    if (candidate && g_strcmp0(candidate, target) == 0)
+      {
+      g_free(candidate);
+      g_free(target);
+      return(model);
+      }
+    g_free(candidate);
+    }
+
+  g_free(target);
+  return(NULL);
+}
+
+static void qbox_remove_loaded_models_by_path(const gchar *path)
+{
+  struct model_pak *loaded;
+
+  while ((loaded = qbox_find_loaded_model_by_path(path)))
+    {
+    tree_select_model(loaded);
+    tree_select_delete();
+    }
+}
+
+static struct model_pak *qbox_load_output_model(const gchar *path)
+{
+  struct model_pak *loaded;
+
+  if (!path || !strlen(path))
+    return(NULL);
+
+  qbox_remove_loaded_models_by_path(path);
+  file_load((gchar *) path, NULL);
+
+  loaded = sysenv.active_model;
+  if (loaded)
+    {
+    tree_select_model(loaded);
+    gui_model_select(loaded);
+    }
+
+  return(loaded);
+}
+
+static gboolean qbox_open_xyz_animation_idle(gpointer data)
+{
+  struct model_pak *xyz_model = data;
+
+  if (!xyz_model)
+    return(FALSE);
+  if (!g_slist_find(sysenv.mal, xyz_model))
+    return(FALSE);
+  if (!xyz_model->animation || xyz_model->num_frames < 2)
+    return(FALSE);
+
+  dialog_destroy_single(ANIM, xyz_model);
+  tree_select_model(xyz_model);
+  gui_model_select(xyz_model);
+  gui_animate_dialog();
+
+  return(FALSE);
+}
+
+static void qbox_maybe_open_xyz_animation(struct qbox_task_pak *job, struct model_pak *xyz_model)
+{
+  g_return_if_fail(job != NULL);
+
+  if (!job->open_animation_after_xyz)
+    return;
+  if (!xyz_model)
+    return;
+  if (!xyz_model->animation || xyz_model->num_frames < 2)
+    return;
+
+  g_idle_add(qbox_open_xyz_animation_idle, xyz_model);
 }
 
 static gint qbox_write_runtime_input(struct qbox_task_pak *job)
@@ -811,10 +1419,41 @@ static gint qbox_write_runtime_input(struct qbox_task_pak *job)
     {
     fprintf(dest, "set ecut %.1f\n", job->ecut);
     fprintf(dest, "set xc %s\n", job->xc && strlen(job->xc) ? job->xc : "PBE");
+    fprintf(dest, "set scf_tol %s\n",
+            job->scf_tol && strlen(job->scf_tol) ? job->scf_tol : "1e-3");
     if (job->randomize_wf)
       fprintf(dest, "randomize_wf\n");
     fprintf(dest, "set wf_dyn %s\n", job->wf_dyn && strlen(job->wf_dyn) ? job->wf_dyn : "PSDA");
+    if (job->use_nempty)
+      {
+      gint nempty_value = (gint) job->nempty;
+      if (nempty_value < 0)
+        nempty_value = 0;
+      fprintf(dest, "set nempty %d\n", nempty_value);
+      }
+    if (job->use_force_tol)
+      fprintf(dest, "set force_tol %.6g\n", job->force_tol);
+    if (job->use_cell_dyn && job->cell_dyn && strlen(job->cell_dyn))
+      fprintf(dest, "set cell_dyn %s\n", job->cell_dyn);
+    if (job->use_stress)
+      fprintf(dest, "set stress ON\n");
+    if (job->use_stress_tol)
+      fprintf(dest, "set stress_tol %.6g\n", job->stress_tol);
+    if (job->use_thermostat && job->thermostat && strlen(job->thermostat))
+      fprintf(dest, "set thermostat %s\n", job->thermostat);
+    if (job->use_th_temp)
+      fprintf(dest, "set th_temp %.6g\n", job->th_temp);
+    if (job->use_th_time)
+      fprintf(dest, "set th_time %.6g\n", job->th_time);
+    if (job->use_th_width)
+      fprintf(dest, "set th_width %.6g\n", job->th_width);
     fprintf(dest, "set ecutprec %.1f\n", job->ecutprec);
+    if (job->use_atoms_dyn && job->atoms_dyn && strlen(job->atoms_dyn))
+      fprintf(dest, "set atoms_dyn %s\n", job->atoms_dyn);
+    if (job->use_dt)
+      fprintf(dest, "set dt %.6g\n", job->dt);
+    if (job->use_randomize_v)
+      fprintf(dest, "randomize_v %.6g\n", job->randomize_v);
     qbox_write_line(dest, job->run_cmd);
     }
 
@@ -871,9 +1510,18 @@ static gint qbox_write_runtime_input(struct qbox_task_pak *job)
 static void exec_qbox_task(struct qbox_task_pak *job, struct task_pak *task)
 {
   gchar *cmd;
+  gchar *base_cmd;
   gchar *qbox_quoted;
+  gchar *mpirun_quoted = NULL;
   gchar *input_quoted;
   gchar *log_quoted;
+  gchar *timeout_quoted = NULL;
+  gchar *timeout_value;
+  gboolean use_timeout = FALSE;
+  gchar *timeout_path;
+  gchar *mpirun_path = NULL;
+  gint mpi_ranks;
+  gint omp_threads;
 
   g_return_if_fail(job != NULL);
   g_return_if_fail(task != NULL);
@@ -887,7 +1535,55 @@ static void exec_qbox_task(struct qbox_task_pak *job, struct task_pak *task)
   qbox_quoted = g_shell_quote(job->qbox_path);
   input_quoted = g_shell_quote(job->input_path);
   log_quoted = g_shell_quote(job->log_path);
-  cmd = g_strdup_printf("%s < %s > %s 2>&1", qbox_quoted, input_quoted, log_quoted);
+  mpi_ranks = qbox_resource_count(job->mpi_ranks);
+  omp_threads = qbox_resource_count(job->omp_threads);
+
+  if (job->use_mpi)
+    {
+    mpirun_path = qbox_resolve_executable(job->mpirun_path);
+    if (!mpirun_path)
+      {
+      job->error = g_strdup_printf("MPI launcher was requested, but mpirun was not found:\n%s\n"
+                                   "Set a valid mpirun path in View > Executable paths or in the Qbox dialog.\n",
+                                   job->mpirun_path ? job->mpirun_path : "(empty)");
+      g_free(qbox_quoted);
+      g_free(input_quoted);
+      g_free(log_quoted);
+      return;
+      }
+    mpirun_quoted = g_shell_quote(mpirun_path);
+    }
+
+  timeout_value = g_strdup(job->run_timeout ? job->run_timeout : "");
+  g_strstrip(timeout_value);
+  if (strlen(timeout_value) &&
+      g_ascii_strcasecmp(timeout_value, "0") != 0 &&
+      g_ascii_strcasecmp(timeout_value, "off") != 0 &&
+      g_ascii_strcasecmp(timeout_value, "none") != 0)
+    {
+    timeout_path = g_find_program_in_path("timeout");
+    if (timeout_path)
+      {
+      use_timeout = TRUE;
+      timeout_quoted = g_shell_quote(timeout_value);
+      g_free(timeout_path);
+      }
+    }
+
+  if (job->use_mpi)
+    base_cmd = g_strdup_printf("%s -np %d %s < %s > %s 2>&1",
+                               mpirun_quoted, mpi_ranks, qbox_quoted, input_quoted, log_quoted);
+  else
+    base_cmd = g_strdup_printf("%s < %s > %s 2>&1",
+                               qbox_quoted, input_quoted, log_quoted);
+
+  if (use_timeout)
+    cmd = g_strdup_printf("env OMP_NUM_THREADS=%d OPENBLAS_NUM_THREADS=%d MKL_NUM_THREADS=%d BLIS_NUM_THREADS=%d timeout %s %s",
+                          omp_threads, omp_threads, omp_threads, omp_threads,
+                          timeout_quoted, base_cmd);
+  else
+    cmd = g_strdup_printf("env OMP_NUM_THREADS=%d OPENBLAS_NUM_THREADS=%d MKL_NUM_THREADS=%d BLIS_NUM_THREADS=%d %s",
+                          omp_threads, omp_threads, omp_threads, omp_threads, base_cmd);
 
   task->status_file = g_strdup(job->log_path);
   task->is_async = TRUE;
@@ -899,6 +1595,11 @@ static void exec_qbox_task(struct qbox_task_pak *job, struct task_pak *task)
     }
 
   g_free(cmd);
+  g_free(base_cmd);
+  g_free(mpirun_path);
+  g_free(mpirun_quoted);
+  g_free(timeout_value);
+  g_free(timeout_quoted);
   g_free(qbox_quoted);
   g_free(input_quoted);
   g_free(log_quoted);
@@ -908,6 +1609,10 @@ static void cleanup_qbox_task(gpointer ptr)
 {
   struct qbox_task_pak *job = ptr;
   gchar *text;
+  gchar *xyz_note = NULL;
+  gboolean xyz_ready = FALSE;
+  gboolean load_xyz_now = FALSE;
+  struct model_pak *xyz_model = NULL;
 
   g_return_if_fail(job != NULL);
 
@@ -918,35 +1623,60 @@ static void cleanup_qbox_task(gpointer ptr)
     return;
     }
 
+  xyz_note = qbox_convert_log_to_xyz(job, &xyz_ready);
+  load_xyz_now = xyz_ready &&
+                 (job->load_xyz_after_convert || job->open_animation_after_xyz);
+
   if (!job->xml_path || !g_file_test(job->xml_path, G_FILE_TEST_EXISTS))
     {
     if (job->load_saved_xml)
       {
-      text = g_strdup_printf("Qbox finished, but no saved XML file was found:\n%s\n",
-                             job->xml_path ? job->xml_path : "(unknown)");
+      text = g_strdup_printf("Qbox finished, but no saved XML file was found:\n%s\n%s",
+                             job->xml_path ? job->xml_path : "(unknown)",
+                             xyz_note ? xyz_note : "");
       gui_text_show(ERROR, text);
       g_free(text);
+      if (load_xyz_now)
+        {
+        xyz_model = qbox_load_output_model(job->xyz_path);
+        }
+      qbox_maybe_open_xyz_animation(job, xyz_model);
+      g_free(xyz_note);
       qbox_task_free(job);
       return;
       }
 
-    text = g_strdup_printf("Qbox finished.\nLog:\n%s\n(no XML file detected)\n",
-                           job->log_path ? job->log_path : "(unknown)");
+    text = g_strdup_printf("Qbox finished.\nLog:\n%s\n(no XML file detected)\n%s",
+                           job->log_path ? job->log_path : "(unknown)",
+                           xyz_note ? xyz_note : "");
     gui_text_show(STANDARD, text);
     g_free(text);
+    if (load_xyz_now)
+      {
+      xyz_model = qbox_load_output_model(job->xyz_path);
+      }
+    qbox_maybe_open_xyz_animation(job, xyz_model);
+    g_free(xyz_note);
     qbox_task_free(job);
     return;
     }
 
-  text = g_strdup_printf("Qbox saved:\n%s\nLog:\n%s\n",
+  text = g_strdup_printf("Qbox saved:\n%s\nLog:\n%s\n%s",
                          job->xml_path,
-                         job->log_path ? job->log_path : "(unknown)");
+                         job->log_path ? job->log_path : "(unknown)",
+                         xyz_note ? xyz_note : "");
   gui_text_show(STANDARD, text);
   g_free(text);
 
   if (job->load_saved_xml)
-    file_load(job->xml_path, NULL);
+    qbox_load_output_model(job->xml_path);
+  if (load_xyz_now)
+    {
+    xyz_model = qbox_load_output_model(job->xyz_path);
+    }
+  qbox_maybe_open_xyz_animation(job, xyz_model);
 
+  g_free(xyz_note);
   qbox_task_free(job);
 }
 
@@ -970,11 +1700,44 @@ static struct qbox_task_pak *qbox_task_new_from_dialog(gpointer dialog)
   job->input_name = g_strdup(state->input_name);
   job->xml_name = g_strdup(state->xml_name);
   job->log_name = g_strdup(state->log_name);
+  job->xyz_name = g_strdup(state->xyz_name);
+  job->mpirun_path = g_strdup(state->mpirun_path);
   job->xc = g_strdup(state->xc);
+  job->scf_tol = g_strdup(state->scf_tol);
   job->wf_dyn = g_strdup(state->wf_dyn);
+  job->atoms_dyn = g_strdup(state->atoms_dyn);
+  job->cell_dyn = g_strdup(state->cell_dyn);
+  job->thermostat = g_strdup(state->thermostat);
+  job->run_timeout = g_strdup(state->run_timeout);
   job->ecut = state->ecut;
   job->ecutprec = state->ecutprec;
+  job->dt = state->dt;
+  job->randomize_v = state->randomize_v;
+  job->force_tol = state->force_tol;
+  job->stress_tol = state->stress_tol;
+  job->th_temp = state->th_temp;
+  job->th_time = state->th_time;
+  job->th_width = state->th_width;
+  job->mpi_ranks = state->mpi_ranks;
+  job->omp_threads = state->omp_threads;
   job->randomize_wf = state->randomize_wf;
+  job->nempty = state->nempty;
+  job->use_mpi = state->use_mpi;
+  job->use_atoms_dyn = state->use_atoms_dyn;
+  job->use_dt = state->use_dt;
+  job->use_randomize_v = state->use_randomize_v;
+  job->use_nempty = state->use_nempty;
+  job->use_force_tol = state->use_force_tol;
+  job->use_cell_dyn = state->use_cell_dyn;
+  job->use_stress = state->use_stress;
+  job->use_stress_tol = state->use_stress_tol;
+  job->use_thermostat = state->use_thermostat;
+  job->use_th_temp = state->use_th_temp;
+  job->use_th_time = state->use_th_time;
+  job->use_th_width = state->use_th_width;
+  job->auto_convert_xyz = state->auto_convert_xyz;
+  job->load_xyz_after_convert = state->load_xyz_after_convert;
+  job->open_animation_after_xyz = state->open_animation_after_xyz;
   job->load_saved_xml = state->load_saved_xml;
   job->write_model_block = state->write_model_block;
   job->write_default_block = state->write_default_block;
@@ -993,6 +1756,9 @@ static void qbox_apply_demo_potentials(GtkWidget *w, gpointer dialog)
 {
   struct qbox_gui_pak *state;
   GSList *item;
+  GSList *missing = NULL;
+  gint total = 0;
+  gint applied = 0;
 
   (void) w;
 
@@ -1007,10 +1773,50 @@ static void qbox_apply_demo_potentials(GtkWidget *w, gpointer dialog)
     struct qbox_species_pak *species = item->data;
     gchar *path;
 
+    total++;
     path = qbox_demo_potential_path(species->symbol);
     qbox_string_replace(&species->path, path);
+    if (g_getenv("GDIS_QBOX_DEBUG"))
+      {
+      fprintf(stderr, "[qbox-ui] autofill species=%s path=%s\n",
+              species->symbol, path ? path : "(none)");
+      fflush(stderr);
+      }
+    if (path && strlen(path))
+      applied++;
+    else
+      missing = qbox_symbol_list_add_unique(missing, species->symbol);
     g_free(path);
     }
+
+  if (total == 0)
+    {
+    gui_text_show(INFO, "No element species found in the active model for Qbox potentials.\n");
+    return;
+    }
+
+  if (applied == total)
+    {
+    gchar *msg;
+
+    msg = g_strdup_printf("Applied demo Qbox potentials for all %d element species.\n", total);
+    gui_text_show(INFO, msg);
+    g_free(msg);
+    }
+  else
+    {
+    gchar *symbols;
+    gchar *msg;
+
+    symbols = qbox_symbol_list_string(missing);
+    msg = g_strdup_printf("Applied demo Qbox potentials for %d/%d species. Missing bundled demo files for: %s\n",
+                          applied, total, symbols ? symbols : "unknown");
+    gui_text_show(INFO, msg);
+    g_free(symbols);
+    g_free(msg);
+    }
+
+  qbox_symbol_list_free(missing);
 }
 
 static void qbox_clear_potentials(GtkWidget *w, gpointer dialog)
@@ -1075,6 +1881,8 @@ static void qbox_run_cb(GtkWidget *w, gpointer dialog)
 {
   struct qbox_task_pak *job;
   gchar *text;
+  gint mpi_ranks;
+  gint omp_threads;
 
   (void) w;
 
@@ -1100,8 +1908,28 @@ static void qbox_run_cb(GtkWidget *w, gpointer dialog)
     return;
     }
 
+  mpi_ranks = qbox_resource_count(job->mpi_ranks);
+  omp_threads = qbox_resource_count(job->omp_threads);
   text = g_strdup_printf("Queued Qbox job for model: %s\n",
                          job->model->basename ? job->model->basename : "model");
+  if (job->use_mpi)
+    {
+    gchar *tmp;
+
+    tmp = g_strdup_printf("%sMPI ranks: %d\nOpenMP threads: %d\n",
+                          text, mpi_ranks, omp_threads);
+    g_free(text);
+    text = tmp;
+    }
+  else
+    {
+    gchar *tmp;
+
+    tmp = g_strdup_printf("%sMode: serial\nOpenMP threads: %d\n",
+                          text, omp_threads);
+    g_free(text);
+    text = tmp;
+    }
   gui_text_show(INFO, text);
   g_free(text);
 
@@ -1131,6 +1959,7 @@ void gui_qbox_dialog(void)
   GtkWidget *page;
   GtkWidget *frame;
   GtkWidget *vbox;
+  GtkWidget *setup_box;
   GtkWidget *hbox;
   GtkWidget *swin;
   GtkWidget *label;
@@ -1158,20 +1987,54 @@ void gui_qbox_dialog(void)
   state->model = model;
   state->workdir = qbox_default_workdir();
   stem = qbox_model_stem(model);
-  state->input_name = g_strdup_printf("%s.i", stem);
+  state->input_name = g_strdup_printf("%s.in", stem);
   state->xml_name = g_strdup_printf("%s.xml", stem);
-  state->log_name = g_strdup_printf("%s.log", stem);
+  state->log_name = g_strdup_printf("%s.out", stem);
+  state->xyz_name = g_strdup_printf("%s.xyz", stem);
+  state->mpirun_path = g_strdup(sysenv.mpirun_path ? sysenv.mpirun_path :
+                                (sysenv.mpirun_exe ? sysenv.mpirun_exe : "mpirun"));
   state->xc = g_strdup("PBE");
+  state->scf_tol = g_strdup("1e-3");
   state->wf_dyn = g_strdup("PSDA");
-  state->ecut = 35.0;
+  state->atoms_dyn = g_strdup("CG");
+  state->cell_dyn = g_strdup("SD");
+  state->thermostat = g_strdup("SCALING");
+  state->run_timeout = g_strdup("45s");
+  state->ecut = 15.0;
   state->ecutprec = 5.0;
+  state->dt = 10.0;
+  state->randomize_v = 400.0;
+  state->force_tol = 1.0e-4;
+  state->stress_tol = 1.0e-5;
+  state->th_temp = 300.0;
+  state->th_time = 100.0;
+  state->th_width = 10.0;
+  state->mpi_ranks = 1.0;
+  state->omp_threads = 1.0;
   state->randomize_wf = TRUE;
+  state->nempty = 1;
+  state->use_mpi = FALSE;
+  state->use_atoms_dyn = TRUE;
+  state->use_dt = FALSE;
+  state->use_randomize_v = FALSE;
+  state->use_nempty = FALSE;
+  state->use_force_tol = FALSE;
+  state->use_cell_dyn = FALSE;
+  state->use_stress = FALSE;
+  state->use_stress_tol = FALSE;
+  state->use_thermostat = FALSE;
+  state->use_th_temp = FALSE;
+  state->use_th_time = FALSE;
+  state->use_th_width = FALSE;
+  state->auto_convert_xyz = TRUE;
+  state->load_xyz_after_convert = TRUE;
+  state->open_animation_after_xyz = TRUE;
   state->load_saved_xml = TRUE;
   state->write_model_block = TRUE;
   state->write_default_block = TRUE;
   state->auto_save_xml_cmd = TRUE;
   state->auto_quit = TRUE;
-  state->run_cmd = g_strdup("run 0 40");
+  state->run_cmd = g_strdup("run 10 3");
   state->include_cmd_file = NULL;
   state->pre_commands = NULL;
   state->post_commands = NULL;
@@ -1186,10 +2049,17 @@ void gui_qbox_dialog(void)
   gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)), notebook, TRUE, TRUE, 0);
 
   page = gtk_vbox_new(FALSE, PANEL_SPACING);
-  gtk_container_set_border_width(GTK_CONTAINER(page), PANEL_SPACING);
+  swin = gtk_scrolled_window_new(NULL, NULL);
+  gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(swin),
+                                 GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+  gtk_box_pack_start(GTK_BOX(page), swin, TRUE, TRUE, 0);
+
+  setup_box = gtk_vbox_new(FALSE, PANEL_SPACING);
+  gtk_container_set_border_width(GTK_CONTAINER(setup_box), PANEL_SPACING);
+  gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(swin), setup_box);
 
   frame = gtk_frame_new("Model");
-  gtk_box_pack_start(GTK_BOX(page), frame, FALSE, FALSE, 0);
+  gtk_box_pack_start(GTK_BOX(setup_box), frame, FALSE, FALSE, 0);
   gtk_container_set_border_width(GTK_CONTAINER(frame), PANEL_SPACING);
   vbox = gtk_vbox_new(FALSE, PANEL_SPACING);
   gtk_container_add(GTK_CONTAINER(frame), vbox);
@@ -1208,7 +2078,7 @@ void gui_qbox_dialog(void)
   g_free(text);
 
   frame = gtk_frame_new("Files");
-  gtk_box_pack_start(GTK_BOX(page), frame, FALSE, FALSE, 0);
+  gtk_box_pack_start(GTK_BOX(setup_box), frame, FALSE, FALSE, 0);
   gtk_container_set_border_width(GTK_CONTAINER(frame), PANEL_SPACING);
   vbox = gtk_vbox_new(FALSE, PANEL_SPACING);
   gtk_container_add(GTK_CONTAINER(frame), vbox);
@@ -1217,9 +2087,10 @@ void gui_qbox_dialog(void)
   gui_text_entry("Input", &state->input_name, TRUE, TRUE, vbox);
   gui_text_entry("Saved XML", &state->xml_name, TRUE, TRUE, vbox);
   gui_text_entry("Log", &state->log_name, TRUE, TRUE, vbox);
+  gui_text_entry("Trajectory XYZ", &state->xyz_name, TRUE, TRUE, vbox);
 
   frame = gtk_frame_new("Run Settings");
-  gtk_box_pack_start(GTK_BOX(page), frame, FALSE, FALSE, 0);
+  gtk_box_pack_start(GTK_BOX(setup_box), frame, FALSE, FALSE, 0);
   gtk_container_set_border_width(GTK_CONTAINER(frame), PANEL_SPACING);
   vbox = gtk_vbox_new(FALSE, PANEL_SPACING);
   gtk_container_add(GTK_CONTAINER(frame), vbox);
@@ -1227,17 +2098,67 @@ void gui_qbox_dialog(void)
   gui_direct_spin("Ecut", &state->ecut, 5.0, 300.0, 5.0, NULL, NULL, vbox);
   gui_direct_spin("Ecut precision", &state->ecutprec, 1.0, 40.0, 1.0, NULL, NULL, vbox);
   state->entry_xc = gui_text_entry("XC", &state->xc, TRUE, TRUE, vbox);
+  state->entry_scf_tol = gui_text_entry("SCF tol", &state->scf_tol, TRUE, TRUE, vbox);
   state->entry_wf_dyn = gui_text_entry("WF dyn", &state->wf_dyn, TRUE, TRUE, vbox);
+  gui_direct_check("Use MPI launcher", &state->use_mpi, NULL, NULL, vbox);
+  gui_text_entry("MPI launcher", &state->mpirun_path, TRUE, TRUE, vbox);
+  gui_direct_spin("MPI ranks", &state->mpi_ranks, 1.0, 512.0, 1.0, NULL, NULL, vbox);
+  gui_direct_spin("OpenMP threads", &state->omp_threads, 1.0, 256.0, 1.0, NULL, NULL, vbox);
+  state->check_use_nempty = gui_direct_check("Add set nempty", &state->use_nempty,
+                                             NULL, NULL, vbox);
+  gui_direct_spin("nempty", &state->nempty, 0.0, 200.0, 1.0, NULL, NULL, vbox);
+  state->check_use_force_tol = gui_direct_check("Add set force_tol", &state->use_force_tol,
+                                                NULL, NULL, vbox);
+  gui_direct_spin("force_tol", &state->force_tol, 0.0, 1.0, 0.0001, NULL, NULL, vbox);
+  state->check_use_atoms_dyn = gui_direct_check("Add set atoms_dyn", &state->use_atoms_dyn,
+                                                NULL, NULL, vbox);
+  state->entry_atoms_dyn = gui_text_entry("atoms_dyn value", &state->atoms_dyn, TRUE, TRUE, vbox);
+  state->check_use_cell_dyn = gui_direct_check("Add set cell_dyn", &state->use_cell_dyn,
+                                               NULL, NULL, vbox);
+  state->entry_cell_dyn = gui_text_entry("cell_dyn value", &state->cell_dyn, TRUE, TRUE, vbox);
+  state->check_use_stress = gui_direct_check("Add set stress ON", &state->use_stress,
+                                             NULL, NULL, vbox);
+  state->check_use_stress_tol = gui_direct_check("Add set stress_tol", &state->use_stress_tol,
+                                                 NULL, NULL, vbox);
+  gui_direct_spin("stress_tol", &state->stress_tol, 0.0, 1.0, 0.00001, NULL, NULL, vbox);
+  state->check_use_thermostat = gui_direct_check("Add set thermostat", &state->use_thermostat,
+                                                 NULL, NULL, vbox);
+  state->entry_thermostat = gui_text_entry("thermostat value", &state->thermostat, TRUE, TRUE, vbox);
+  state->check_use_th_temp = gui_direct_check("Add set th_temp", &state->use_th_temp,
+                                              NULL, NULL, vbox);
+  gui_direct_spin("th_temp", &state->th_temp, 0.0, 5000.0, 10.0, NULL, NULL, vbox);
+  state->check_use_th_time = gui_direct_check("Add set th_time", &state->use_th_time,
+                                              NULL, NULL, vbox);
+  gui_direct_spin("th_time", &state->th_time, 0.0, 5000.0, 10.0, NULL, NULL, vbox);
+  state->check_use_th_width = gui_direct_check("Add set th_width", &state->use_th_width,
+                                               NULL, NULL, vbox);
+  gui_direct_spin("th_width", &state->th_width, 0.0, 1000.0, 1.0, NULL, NULL, vbox);
+  state->check_use_dt = gui_direct_check("Add set dt", &state->use_dt, NULL, NULL, vbox);
+  gui_direct_spin("dt", &state->dt, 0.0, 500.0, 1.0, NULL, NULL, vbox);
+  state->check_use_randomize_v = gui_direct_check("Add randomize_v", &state->use_randomize_v,
+                                                  NULL, NULL, vbox);
+  gui_direct_spin("randomize_v temperature", &state->randomize_v, 0.0, 5000.0, 25.0, NULL, NULL, vbox);
+  state->entry_run_timeout = gui_text_entry("Run timeout", &state->run_timeout, TRUE, TRUE, vbox);
   state->entry_run_cmd = gui_text_entry("Default run command", &state->run_cmd, TRUE, TRUE, vbox);
   state->check_randomize_wf = gui_direct_check("Randomize wavefunction", &state->randomize_wf,
                                                NULL, NULL, vbox);
+  state->check_auto_convert_xyz = gui_direct_check("Auto convert Log to XYZ after run", &state->auto_convert_xyz,
+                                                   NULL, NULL, vbox);
+  state->check_load_xyz_after_convert = gui_direct_check("Load XYZ after conversion", &state->load_xyz_after_convert,
+                                                         NULL, NULL, vbox);
+  state->check_open_animation_after_xyz = gui_direct_check("Open Animation dialog for loaded XYZ", &state->open_animation_after_xyz,
+                                                           NULL, NULL, vbox);
   state->check_load_saved_xml = gui_direct_check("Load saved XML after Qbox finishes", &state->load_saved_xml,
                                                  NULL, NULL, vbox);
 
   label = qbox_note_label_new("Write Input writes a runnable script with model export + defaults."
-                              " Use the Expert tab to add any official Qbox commands, include external command files,"
-                              " or disable auto-generated sections.");
-  gtk_box_pack_start(GTK_BOX(page), label, FALSE, FALSE, 0);
+                              " Setup includes quick toggles for nempty/force_tol/cell_dyn/stress/thermostat"
+                              " and atoms_dyn/dt/randomize_v."
+                              " Resource controls let you choose serial vs MPI plus OpenMP threads."
+                              " Qbox run keeps .out and can auto-convert to .xyz trajectory."
+                              " Optionally load the XYZ and open Animation automatically."
+                              " Advanced controls and free-form command blocks are below in this same Setup tab.");
+  gtk_box_pack_start(GTK_BOX(setup_box), label, FALSE, FALSE, 0);
 
   gtk_notebook_append_page(GTK_NOTEBOOK(notebook), page, gtk_label_new("Setup"));
 
@@ -1250,7 +2171,9 @@ void gui_qbox_dialog(void)
   gui_button("Clear Paths", qbox_clear_potentials, dialog, hbox, TT);
 
   label = qbox_note_label_new("Set one XML pseudopotential path per element in the active model."
-                              " The bundled demo files are available for C, H, O, and Si only.");
+                              " Auto-fill searches legacy demo files plus external/pseudos/qbox-xml-oncv-sr,"
+                              " then external/pseudos/qbox-xml-oncv."
+                              " You can override with GDIS_QBOX_POTENTIAL_DIR.");
   gtk_box_pack_start(GTK_BOX(page), label, FALSE, FALSE, 0);
 
   swin = gtk_scrolled_window_new(NULL, NULL);
@@ -1280,31 +2203,8 @@ void gui_qbox_dialog(void)
 
   gtk_notebook_append_page(GTK_NOTEBOOK(notebook), page, gtk_label_new("Potentials"));
 
-  page = gtk_vbox_new(FALSE, PANEL_SPACING);
-  gtk_container_set_border_width(GTK_CONTAINER(page), PANEL_SPACING);
-
-  frame = gtk_frame_new("Preset Profiles");
-  gtk_box_pack_start(GTK_BOX(page), frame, FALSE, FALSE, 0);
-  gtk_container_set_border_width(GTK_CONTAINER(frame), PANEL_SPACING);
-  vbox = gtk_vbox_new(FALSE, PANEL_SPACING);
-  gtk_container_add(GTK_CONTAINER(frame), vbox);
-
-  label = qbox_note_label_new("Profiles auto-fill command fields. Review/edit, then use Write Input or Execute.");
-  gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
-
-  hbox = gtk_hbox_new(FALSE, PANEL_SPACING);
-  gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 0);
-  gui_button("SCF", qbox_preset_scf_cb, dialog, hbox, TT);
-  gui_button("Band", qbox_preset_band_cb, dialog, hbox, TT);
-  gui_button("GeoOpt", qbox_preset_geoopt_cb, dialog, hbox, TT);
-
-  hbox = gtk_hbox_new(FALSE, PANEL_SPACING);
-  gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 0);
-  gui_button("FrozenPhonon", qbox_preset_frozen_phonon_cb, dialog, hbox, TT);
-  gui_button("HOMO-LUMO", qbox_preset_homo_lumo_cb, dialog, hbox, TT);
-
-  frame = gtk_frame_new("Input Composition");
-  gtk_box_pack_start(GTK_BOX(page), frame, FALSE, FALSE, 0);
+  frame = gtk_frame_new("Advanced: Input Composition");
+  gtk_box_pack_start(GTK_BOX(setup_box), frame, FALSE, FALSE, 0);
   gtk_container_set_border_width(GTK_CONTAINER(frame), PANEL_SPACING);
   vbox = gtk_vbox_new(FALSE, PANEL_SPACING);
   gtk_container_add(GTK_CONTAINER(frame), vbox);
@@ -1323,8 +2223,8 @@ void gui_qbox_dialog(void)
                               " Disable model/default blocks for full manual scripts.");
   gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
 
-  frame = gtk_frame_new("Pre-default Commands");
-  gtk_box_pack_start(GTK_BOX(page), frame, TRUE, TRUE, 0);
+  frame = gtk_frame_new("Advanced: Pre-default Commands");
+  gtk_box_pack_start(GTK_BOX(setup_box), frame, TRUE, TRUE, 0);
   gtk_container_set_border_width(GTK_CONTAINER(frame), PANEL_SPACING);
   vbox = gtk_vbox_new(FALSE, PANEL_SPACING);
   gtk_container_add(GTK_CONTAINER(frame), vbox);
@@ -1334,8 +2234,8 @@ void gui_qbox_dialog(void)
   gtk_widget_set_size_request(swin, -1, 110);
   gtk_box_pack_start(GTK_BOX(vbox), swin, TRUE, TRUE, 0);
 
-  frame = gtk_frame_new("Post/default-override Commands");
-  gtk_box_pack_start(GTK_BOX(page), frame, TRUE, TRUE, 0);
+  frame = gtk_frame_new("Advanced: Post/default-override Commands");
+  gtk_box_pack_start(GTK_BOX(setup_box), frame, TRUE, TRUE, 0);
   gtk_container_set_border_width(GTK_CONTAINER(frame), PANEL_SPACING);
   vbox = gtk_vbox_new(FALSE, PANEL_SPACING);
   gtk_container_add(GTK_CONTAINER(frame), vbox);
@@ -1347,13 +2247,19 @@ void gui_qbox_dialog(void)
 
   label = qbox_note_label_new("Examples: set scf_tol 1e-8, set nempty 8, kpoint add ... 0.0,"
                               " compute_mlwf, response, plot -wf, move atom1 by ..., run ...");
-  gtk_box_pack_start(GTK_BOX(page), label, FALSE, FALSE, 0);
-
-  gtk_notebook_append_page(GTK_NOTEBOOK(notebook), page, gtk_label_new("Expert"));
+  gtk_box_pack_start(GTK_BOX(setup_box), label, FALSE, FALSE, 0);
 
   gui_button("Write Input", qbox_write_input_cb, dialog, GDIS_DIALOG_ACTIONS(window), TT);
   gui_stock_button(GTK_STOCK_EXECUTE, qbox_run_cb, dialog, GDIS_DIALOG_ACTIONS(window));
   gui_stock_button(GTK_STOCK_CLOSE, dialog_destroy, dialog, GDIS_DIALOG_ACTIONS(window));
 
   gtk_widget_show_all(window);
+
+/* Debug automation hooks for GTK4 regression scripts. */
+  if (g_getenv("GDIS_DEBUG_QBOX_AUTO_FILL"))
+    qbox_apply_demo_potentials(NULL, dialog);
+  if (g_getenv("GDIS_DEBUG_QBOX_AUTO_WRITE"))
+    qbox_write_input_cb(NULL, dialog);
+  if (g_getenv("GDIS_DEBUG_QBOX_AUTO_EXECUTE"))
+    qbox_run_cb(NULL, dialog);
 }

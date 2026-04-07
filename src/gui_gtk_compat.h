@@ -326,25 +326,16 @@ gtk_widget_set_margin_start(child, padding);
 gtk_widget_set_margin_end(child, padding);
 }
 
-static inline void gdis_gtk_widget_destroy(GtkWidget *widget)
+static inline void gdis_gtk_widget_detach_from_parent(GtkWidget *widget)
 {
 GtkWidget *parent;
 
 if (!widget)
   return;
 
-if (GTK_IS_WINDOW(widget))
-  {
-  gtk_window_destroy(GTK_WINDOW(widget));
-  return;
-  }
-
 parent = gtk_widget_get_parent(widget);
 if (!parent)
-  {
-  g_object_unref(widget);
   return;
-  }
 
 if (GTK_IS_BOX(parent))
   {
@@ -361,26 +352,73 @@ if (GTK_IS_PANED(parent))
   }
 if (GTK_IS_SCROLLED_WINDOW(parent))
   {
-  gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(parent), NULL);
+  if (gtk_scrolled_window_get_child(GTK_SCROLLED_WINDOW(parent)) == widget)
+    gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(parent), NULL);
   return;
   }
 if (GTK_IS_FRAME(parent))
   {
-  gtk_frame_set_child(GTK_FRAME(parent), NULL);
+  if (gtk_frame_get_child(GTK_FRAME(parent)) == widget)
+    gtk_frame_set_child(GTK_FRAME(parent), NULL);
   return;
   }
 if (GTK_IS_BUTTON(parent))
   {
-  gtk_button_set_child(GTK_BUTTON(parent), NULL);
+  if (gtk_button_get_child(GTK_BUTTON(parent)) == widget)
+    gtk_button_set_child(GTK_BUTTON(parent), NULL);
   return;
   }
 if (GTK_IS_WINDOW(parent))
   {
-  gtk_window_set_child(GTK_WINDOW(parent), NULL);
+  if (gtk_window_get_child(GTK_WINDOW(parent)) == widget)
+    gtk_window_set_child(GTK_WINDOW(parent), NULL);
+  return;
+  }
+#if GTK_MAJOR_VERSION >= 4
+if (GTK_IS_POPOVER(parent))
+  {
+  if (gtk_popover_get_child(GTK_POPOVER(parent)) == widget)
+    gtk_popover_set_child(GTK_POPOVER(parent), NULL);
+  return;
+  }
+#endif
+
+gtk_widget_unparent(widget);
+}
+
+static inline void gdis_gtk_widget_prepare_for_parent(GtkWidget *widget,
+                                                      GtkWidget *parent)
+{
+GtkWidget *old_parent;
+
+if (!widget)
+  return;
+
+old_parent = gtk_widget_get_parent(widget);
+if (!old_parent || old_parent == parent)
+  return;
+
+gdis_gtk_widget_detach_from_parent(widget);
+}
+
+static inline void gdis_gtk_widget_destroy(GtkWidget *widget)
+{
+if (!widget)
+  return;
+
+if (GTK_IS_WINDOW(widget))
+  {
+  gtk_window_destroy(GTK_WINDOW(widget));
   return;
   }
 
-gtk_widget_unparent(widget);
+if (!gtk_widget_get_parent(widget))
+  {
+  g_object_unref(widget);
+  return;
+  }
+
+gdis_gtk_widget_detach_from_parent(widget);
 }
 
 static inline void gdis_gtk_range_set_update_policy(GtkRange *range,
@@ -745,6 +783,7 @@ static inline void gdis_gtk_box_pack_start(GtkBox *box,
 {
 (void) fill;
 
+gdis_gtk_widget_prepare_for_parent(child, GTK_WIDGET(box));
 gdis_gtk_widget_apply_box_layout(child, expand, padding);
 gtk_box_append(box, child);
 }
@@ -757,6 +796,7 @@ static inline void gdis_gtk_box_pack_end(GtkBox *box,
 {
 (void) fill;
 
+gdis_gtk_widget_prepare_for_parent(child, GTK_WIDGET(box));
 gdis_gtk_widget_apply_box_layout(child, expand, padding);
 gtk_box_append(box, child);
 }
@@ -766,26 +806,31 @@ static inline void gdis_gtk_container_add(GtkWidget *container,
 {
 if (GTK_IS_WINDOW(container))
   {
+  gdis_gtk_widget_prepare_for_parent(child, container);
   gtk_window_set_child(GTK_WINDOW(container), child);
   return;
   }
 if (GTK_IS_SCROLLED_WINDOW(container))
   {
+  gdis_gtk_widget_prepare_for_parent(child, container);
   gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(container), child);
   return;
   }
 if (GTK_IS_FRAME(container))
   {
+  gdis_gtk_widget_prepare_for_parent(child, container);
   gtk_frame_set_child(GTK_FRAME(container), child);
   return;
   }
 if (GTK_IS_BUTTON(container))
   {
+  gdis_gtk_widget_prepare_for_parent(child, container);
   gtk_button_set_child(GTK_BUTTON(container), child);
   return;
   }
 if (GTK_IS_BOX(container))
   {
+  gdis_gtk_widget_prepare_for_parent(child, container);
   gtk_box_append(GTK_BOX(container), child);
   return;
   }
@@ -991,6 +1036,7 @@ typedef GtkWidget GtkToolItem;
 static inline void gdis_gtk_scrolled_window_add_with_viewport(GtkScrolledWindow *swin,
                                                               GtkWidget *child)
 {
+gdis_gtk_widget_prepare_for_parent(child, GTK_WIDGET(swin));
 gtk_scrolled_window_set_child(swin, child);
 }
 

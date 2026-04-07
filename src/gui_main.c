@@ -110,6 +110,8 @@ if (!action || !sysenv.active_model)
 if (g_ascii_strcasecmp(action, "isosurface") == 0 ||
     g_ascii_strcasecmp(action, "iso-surface") == 0)
   gui_isosurf_dialog();
+else if (g_ascii_strcasecmp(action, "animation") == 0)
+  gui_animate_dialog();
 else if (g_ascii_strcasecmp(action, "diffraction") == 0)
   gui_diffract_dialog();
 else if (g_ascii_strcasecmp(action, "qbox") == 0)
@@ -128,6 +130,14 @@ if (gui_debug_startup_action_pending)
 
 gui_debug_startup_action_pending = TRUE;
 g_idle_add(gui_debug_run_startup_action, NULL);
+}
+
+static void gui_animate_dialog_cb(GtkWidget *w, gpointer data)
+{
+(void) w;
+(void) data;
+
+gui_animate_dialog();
 }
 
 static gboolean gui_event_get_local_position(GtkWidget *w,
@@ -1360,10 +1370,19 @@ void gui_text_show(gint type, gchar *message)
 static GtkWidget *view=NULL;
 static GtkTextBuffer *buffer=NULL;
 static GtkTextIter iter;
+const gchar *insert_text;
+gchar *valid_text = NULL;
 
 /* checks */
 if (!message)
   return;
+
+insert_text = message;
+if (!g_utf8_validate(message, -1, NULL))
+  {
+  valid_text = g_utf8_make_valid(message, -1);
+  insert_text = valid_text;
+  }
 
 /* try this for improved stability of tasks */
 /*
@@ -1396,26 +1415,26 @@ if (sysenv.canvas)
     {
     case ERROR:
       gtk_text_buffer_insert_with_tags_by_name
-        (buffer, &iter, message, -1, "fg_red", NULL); 
+        (buffer, &iter, insert_text, -1, "fg_red", NULL); 
       break;
 
     case INFO:
       gtk_text_buffer_insert_with_tags_by_name
-       (buffer, &iter, message, -1, "fg_blue", NULL); 
+       (buffer, &iter, insert_text, -1, "fg_blue", NULL); 
       break;
 
     case WARNING:
       gtk_text_buffer_insert_with_tags_by_name
-       (buffer, &iter, message, -1, "fg_orange", NULL); 
+       (buffer, &iter, insert_text, -1, "fg_orange", NULL); 
       break;
 
     case ITALIC:
       gtk_text_buffer_insert_with_tags_by_name
-        (buffer, &iter, message, -1, "italic", NULL); 
+        (buffer, &iter, insert_text, -1, "italic", NULL); 
       break;
 
     default:
-      gtk_text_buffer_insert(buffer, &iter, message, -1);
+      gtk_text_buffer_insert(buffer, &iter, insert_text, -1);
 
     }
 
@@ -1429,7 +1448,9 @@ gtk_text_view_scroll_to_iter(GTK_TEXT_VIEW(view), &iter, 0.0, FALSE, 0.0, 0.0);
 /* TODO - delete items from buffer when line gets too big */
   }
 else
-  printf("[%s]\n", message);
+  printf("[%s]\n", insert_text);
+
+g_free(valid_text);
 }
 
 /***********************************/
@@ -1650,7 +1671,7 @@ static GtkItemFactoryEntry menu_items[] =
 
   { "/_Tools",                                NULL, NULL, 0, "<Branch>" },
   { "/Tools/Visualization",                   NULL, NULL, 0, "<Branch>" },
-  { "/Tools/Visualization/Animation...",      NULL, gui_animate_dialog, 0, NULL },
+  { "/Tools/Visualization/Animation...",      NULL, gui_animate_dialog_cb, 0, NULL },
   { "/Tools/Visualization/Iso-surfaces...",   NULL, gui_isosurf_dialog, 0, NULL },
   { "/Tools/Visualization/Periodic table...", NULL, gui_gperiodic_dialog, 0, NULL },
 
@@ -2664,7 +2685,7 @@ gtk_toolbar_append_item(GTK_TOOLBAR (toolbar),
                         "Animation",
                         "Private",
                         gdis_wid,
-                        GTK_SIGNAL_FUNC(gui_animate_dialog),
+                        GTK_SIGNAL_FUNC(gui_animate_dialog_cb),
                         NULL);
 
 /* transformation record button */

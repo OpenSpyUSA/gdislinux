@@ -410,6 +410,8 @@ gboolean update_task_info(void)
 {
 gint i, type, update, row, num_rows=0;
 gchar *txt;
+gchar *valid_text;
+const gchar *insert_text;
 GSList *tlist=NULL;
 GtkTreeIter iter;
 GtkTreeModel *treemodel;
@@ -467,17 +469,30 @@ if (task)
     txt = (task->status_text)->str;
     if (task->status_index >= 0)
       {
+      gint raw_len;
+
       i = strlen(txt+task->status_index);
       if (i)
         {
+        raw_len = i;
+        insert_text = txt + task->status_index;
+        valid_text = NULL;
+        if (!g_utf8_validate(insert_text, raw_len, NULL))
+          {
+          valid_text = g_utf8_make_valid(insert_text, raw_len);
+          insert_text = valid_text;
+          i = strlen(insert_text);
+          }
+
 /* display only most recent lines */
 /*
-        gtk_text_buffer_set_text(buffer, txt+task->status_index, i);
+        gtk_text_buffer_set_text(buffer, insert_text, i);
 */
 
 /* append to the whole thing */
-        gtk_text_buffer_insert_at_cursor(buffer, txt+task->status_index, i);
-        task->status_index += i;
+        gtk_text_buffer_insert_at_cursor(buffer, insert_text, i);
+        task->status_index += raw_len;
+        g_free(valid_text);
 
 /* force scroll to end of buffer by default */
         mark = gtk_text_buffer_get_insert(buffer);

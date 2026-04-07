@@ -516,6 +516,8 @@ gchar *tmp, *title;
 gpointer dialog;
 GtkWidget *window, *frame, *vbox, *hbox, *hbox2, *anim_box;
 GtkWidget *notebook, *page, *button, *label, *entry, *scale;
+GtkWidget *rewind_button, *back_button, *play_button, *pause_button;
+GtkWidget *forward_button, *fastforward_button;
 GSList *group=NULL;
 struct model_pak *data;
 
@@ -524,7 +526,15 @@ data = sysenv.active_model;
 if (!data)
   return;
 if (!data->animation)
+  {
+  gchar *msg;
+
+  msg = g_strdup_printf("Animation unavailable for '%s': no multi-frame trajectory is active.\n",
+                        data->basename ? data->basename : "model");
+  gui_text_show(INFO, msg);
+  g_free(msg);
   return;
+  }
 
 /* CURRENT */
 /*
@@ -541,6 +551,7 @@ g_free(title);
 if (!dialog)
   return;
 window = dialog_window(dialog);
+gtk_window_set_default_size(GTK_WINDOW(window), 360, 520);
 
 /* notebook frame */
 frame = gtk_frame_new(NULL);
@@ -706,6 +717,10 @@ gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)), frame, FALSE, FALSE, 0
 vbox = gtk_vbox_new(FALSE, PANEL_SPACING);
 gtk_container_add(GTK_CONTAINER(frame), vbox);
 
+label = gtk_label_new("Use Play or Step Forward to animate the loaded trajectory.");
+gtk_misc_set_alignment(label, 0.0, 0.5);
+gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
+
 scale = gui_direct_hscale(0, data->num_frames-1, 1, &data->cur_frame, select_frame, data, vbox);
 gtk_range_set_update_policy(GTK_RANGE(scale), GTK_UPDATE_DISCONTINUOUS);
 
@@ -715,35 +730,42 @@ gtk_box_pack_start(GTK_BOX(vbox), hbox2, FALSE, FALSE, PANEL_SPACING);
 hbox = gtk_hbox_new(TRUE, PANEL_SPACING);
 gtk_box_pack_start(GTK_BOX(hbox2), hbox, TRUE, FALSE, 0);
 
-gui_icon_button("GDIS_REWIND", NULL,
-                  anim_rewind, dialog,
-                  hbox);
+rewind_button = gui_icon_button("GDIS_REWIND", NULL,
+                                anim_rewind, dialog,
+                                hbox);
+gtk_widget_set_tooltip_text(rewind_button, "Jump to the first frame");
 
-gui_icon_button("GDIS_STEP_BACKWARD", NULL,
-                  anim_step_backward, dialog,
-                  hbox);
+back_button = gui_icon_button("GDIS_STEP_BACKWARD", NULL,
+                              anim_step_backward, dialog,
+                              hbox);
+gtk_widget_set_tooltip_text(back_button, "Show the previous frame");
 
-gui_icon_button("GDIS_PLAY", NULL,
-                  anim_start, dialog,
-                  hbox);
+play_button = gui_icon_button("GDIS_PLAY", NULL,
+                              anim_start, dialog,
+                              hbox);
+gtk_widget_set_tooltip_text(play_button, "Play the trajectory");
 
-gui_icon_button("GDIS_PAUSE", NULL,
-                   anim_stop, dialog,
-                  hbox);
+pause_button = gui_icon_button("GDIS_PAUSE", NULL,
+                               anim_stop, dialog,
+                               hbox);
+gtk_widget_set_tooltip_text(pause_button, "Pause the trajectory");
 
-gui_icon_button("GDIS_STEP_FORWARD", NULL,
-                  anim_step_forward, dialog,
-                  hbox);
+forward_button = gui_icon_button("GDIS_STEP_FORWARD", NULL,
+                                 anim_step_forward, dialog,
+                                 hbox);
+gtk_widget_set_tooltip_text(forward_button, "Show the next frame");
 
-gui_icon_button("GDIS_FASTFORWARD", NULL,
-                  anim_fastforward, dialog,
-                  hbox);
+fastforward_button = gui_icon_button("GDIS_FASTFORWARD", NULL,
+                                     anim_fastforward, dialog,
+                                     hbox);
+gtk_widget_set_tooltip_text(fastforward_button, "Jump to the last frame");
 
 gui_stock_button(GTK_STOCK_CLOSE, dialog_destroy, dialog,
                    GDIS_DIALOG_ACTIONS(window));
 
 /* display the dialog */
 gtk_widget_show_all(window);
+gtk_window_present(GTK_WINDOW(window));
 
 gui_relation_update(data);
 }

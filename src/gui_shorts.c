@@ -243,8 +243,16 @@ printf("relation %p : type %d : updating widget\n", relation, relation->type);
     case AUTO_TEXT_ENTRY:
 /* CURRENT */
       text = *((gchar **) value);
-      if (text)
+      if (!text)
+        text = "";
+      if (g_strcmp0(gtk_entry_get_text(GTK_ENTRY(relation->widget)), text) != 0)
+        {
+        g_signal_handlers_block_by_func(G_OBJECT(relation->widget),
+                                        G_CALLBACK(gui_relation_set_value), NULL);
         gtk_entry_set_text(GTK_ENTRY(relation->widget), text);
+        g_signal_handlers_unblock_by_func(G_OBJECT(relation->widget),
+                                          G_CALLBACK(gui_relation_set_value), NULL);
+        }
       break;
 
     case AUTO_TEXT_LABEL:
@@ -327,8 +335,16 @@ printf("relation %p : type %d : model change\n", relation, relation->type);
     case AUTO_TEXT_ENTRY:
 /* CURRENT */
       text = *((gchar **) value);
-      if (text)
+      if (!text)
+        text = "";
+      if (g_strcmp0(gtk_entry_get_text(GTK_ENTRY(relation->widget)), text) != 0)
+        {
+        g_signal_handlers_block_by_func(G_OBJECT(relation->widget),
+                                        G_CALLBACK(gui_relation_set_value), NULL);
         gtk_entry_set_text(GTK_ENTRY(relation->widget), text);
+        g_signal_handlers_unblock_by_func(G_OBJECT(relation->widget),
+                                          G_CALLBACK(gui_relation_set_value), NULL);
+        }
       break;
 
     case AUTO_TEXT_LABEL:
@@ -654,8 +670,8 @@ button = gtk_radio_button_new_with_label(group, label);
 /* NB: it is vital that this is ALWAYS done */
 group = gtk_radio_button_group(GTK_RADIO_BUTTON(button));
 
-/* attach the callback */
-g_signal_connect_swapped(GTK_OBJECT(button), "pressed",
+/* "pressed" is not available for GtkToggleButton under GTK4 */
+g_signal_connect_swapped(GTK_OBJECT(button), "clicked",
                          GTK_SIGNAL_FUNC(call), (gpointer) arg);
 
 /* pack the button */
