@@ -55,7 +55,7 @@ sudo apt-get install -y \
   ripgrep
 
 GDIS_GTK_TARGET=gtk4 ./rebuild-ubuntu.sh
-./run-gdis.sh --gtk4 examples/methane.gin
+./run-gdis.sh ./models/*
 ```
 
 If you also want the local Qbox integration on Ubuntu 24.04:
@@ -86,7 +86,7 @@ For an existing clone that just needs the latest code:
 cd gdislinux
 git pull --ff-only
 GDIS_GTK_TARGET=gtk4 ./rebuild-ubuntu.sh
-./run-gdis.sh --gtk4 examples/methane.gin
+./run-gdis.sh ./models/*
 ```
 
 Ubuntu 22.04 can also work, but its GTK4 stack is older. Pull the latest
