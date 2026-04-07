@@ -23,6 +23,33 @@ src/gdis.xcodeproj/xcuserdata/
 .build/
 .localdeps/
 tmp/
+# Generated GDIS project work directories.
+project_*/
+
+# Debian packaging build output.
+debian/.debhelper/
+debian/debhelper-build-stamp
+debian/files
+debian/*.debhelper.log
+debian/*.substvars
+debian/gdis/
+debian/*.deb
+debian/*.build
+debian/*.buildinfo
+debian/*.changes
+
+# Local scratch inputs/outputs accidentally created at repo root.
+/INPUT.txt
+/INCAR
+/KPOINTS
+/POSCAR
+/POTCAR
+/vasp.log
+/baso4
+/calcite
+/model_114
+/model_114.gmf
+
 *.swp
 *.swo
 *~

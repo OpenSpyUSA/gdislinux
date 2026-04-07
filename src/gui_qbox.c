@@ -50,6 +50,7 @@ struct qbox_gui_pak
   gchar *xc;
   gchar *scf_tol;
   gchar *wf_dyn;
+  gchar *wf_diag;
   gchar *cell_lock;
   gchar *ext_stress;
   gchar *ref_cell;
@@ -93,6 +94,7 @@ struct qbox_gui_pak
   gint use_charge_mix_coeff;
   gint use_charge_mix_ndim;
   gint use_charge_mix_rcut;
+  gint use_wf_diag;
   gint use_randomize_v;
   gint use_nempty;
   gint use_force_tol;
@@ -127,13 +129,34 @@ struct qbox_gui_pak
   gchar *include_cmd_file;
   gchar *pre_commands;
   gchar *post_commands;
+  gchar *helper_plot_filename;
+  gchar *helper_response_vext;
+  gchar *helper_response_cube;
+  gchar *helper_partial_charge_atom;
   GtkTextBuffer *pre_buffer;
   GtkTextBuffer *post_buffer;
   gulong pre_buffer_handler;
   gulong post_buffer_handler;
+  gdouble helper_kpoint_x;
+  gdouble helper_kpoint_y;
+  gdouble helper_kpoint_z;
+  gdouble helper_kpoint_weight;
+  gdouble helper_kpoint_to_x;
+  gdouble helper_kpoint_to_y;
+  gdouble helper_kpoint_to_z;
+  gdouble helper_plot_orbital;
+  gdouble helper_plot_orbital_last;
+  gdouble helper_plot_spin;
+  gdouble helper_response_amplitude;
+  gdouble helper_response_nitscf;
+  gdouble helper_response_nite;
+  gdouble helper_partial_charge_radius;
+  gdouble helper_partial_charge_spin;
+  gint helper_plot_use_spin;
   GtkWidget *entry_xc;
   GtkWidget *entry_scf_tol;
   GtkWidget *entry_wf_dyn;
+  GtkWidget *entry_wf_diag;
   GtkWidget *entry_cell_lock;
   GtkWidget *entry_ext_stress;
   GtkWidget *entry_ref_cell;
@@ -147,6 +170,13 @@ struct qbox_gui_pak
   GtkWidget *entry_run_timeout;
   GtkWidget *entry_run_cmd;
   GtkWidget *entry_include_cmd_file;
+  GtkWidget *entry_helper_plot_filename;
+  GtkWidget *entry_helper_response_vext;
+  GtkWidget *entry_helper_response_cube;
+  GtkWidget *entry_helper_partial_charge_atom;
+  GtkWidget *pd_kpoint_action;
+  GtkWidget *pd_plot_mode;
+  GtkWidget *pd_response_mode;
   GtkWidget *check_randomize_wf;
   GtkWidget *check_use_nspin;
   GtkWidget *check_use_delta_spin;
@@ -157,6 +187,7 @@ struct qbox_gui_pak
   GtkWidget *check_use_charge_mix_coeff;
   GtkWidget *check_use_charge_mix_ndim;
   GtkWidget *check_use_charge_mix_rcut;
+  GtkWidget *check_use_wf_diag;
   GtkWidget *check_use_randomize_v;
   GtkWidget *check_use_nempty;
   GtkWidget *check_use_force_tol;
@@ -186,6 +217,8 @@ struct qbox_gui_pak
   GtkWidget *check_write_default_block;
   GtkWidget *check_auto_save_xml_cmd;
   GtkWidget *check_auto_quit;
+  GtkWidget *check_helper_plot_use_spin;
+  GtkWidget *check_helper_partial_charge_use_spin;
   GSList *species;
 };
 
@@ -202,6 +235,7 @@ struct qbox_task_pak
   gchar *xc;
   gchar *scf_tol;
   gchar *wf_dyn;
+  gchar *wf_diag;
   gchar *cell_lock;
   gchar *ext_stress;
   gchar *ref_cell;
@@ -249,6 +283,7 @@ struct qbox_task_pak
   gint use_charge_mix_coeff;
   gint use_charge_mix_ndim;
   gint use_charge_mix_rcut;
+  gint use_wf_diag;
   gint use_randomize_v;
   gint use_nempty;
   gint use_force_tol;
@@ -859,6 +894,7 @@ static void qbox_gui_state_free(struct qbox_gui_pak *state)
   g_free(state->xc);
   g_free(state->scf_tol);
   g_free(state->wf_dyn);
+  g_free(state->wf_diag);
   g_free(state->cell_lock);
   g_free(state->ext_stress);
   g_free(state->ref_cell);
@@ -874,6 +910,10 @@ static void qbox_gui_state_free(struct qbox_gui_pak *state)
   g_free(state->include_cmd_file);
   g_free(state->pre_commands);
   g_free(state->post_commands);
+  g_free(state->helper_plot_filename);
+  g_free(state->helper_response_vext);
+  g_free(state->helper_response_cube);
+  g_free(state->helper_partial_charge_atom);
   g_slist_free_full(state->species, qbox_species_free);
   g_free(state);
 }
@@ -900,6 +940,7 @@ static void qbox_task_free(struct qbox_task_pak *job)
   g_free(job->xc);
   g_free(job->scf_tol);
   g_free(job->wf_dyn);
+  g_free(job->wf_diag);
   g_free(job->cell_lock);
   g_free(job->ext_stress);
   g_free(job->ref_cell);
@@ -1169,6 +1210,309 @@ static void qbox_state_append_textblock(gchar **target, GtkTextBuffer *buffer,
 
   qbox_state_set_textblock(target, buffer, handler, text);
   g_free(text);
+}
+
+static struct qbox_gui_pak *qbox_dialog_state(gpointer dialog)
+{
+  g_return_val_if_fail(dialog != NULL, NULL);
+
+  return(dialog_child_get(dialog, "qbox_state"));
+}
+
+static gchar *qbox_trimmed_entry_text(GtkWidget *entry, const gchar *fallback)
+{
+  gchar *text;
+
+  if (!entry || !GTK_IS_ENTRY(entry))
+    return(fallback && strlen(fallback) ? g_strdup(fallback) : NULL);
+
+  text = g_strdup(gtk_entry_get_text(GTK_ENTRY(entry)));
+  g_strstrip(text);
+  if (!strlen(text))
+    {
+    g_free(text);
+    return(fallback && strlen(fallback) ? g_strdup(fallback) : NULL);
+    }
+
+  return(text);
+}
+
+static gchar *qbox_active_combo_text(GtkWidget *combo, const gchar *fallback)
+{
+  gchar *text;
+
+  text = combo ? gui_pd_text(combo) : NULL;
+  if (text && strlen(text))
+    return(text);
+
+  g_free(text);
+  return(fallback && strlen(fallback) ? g_strdup(fallback) : NULL);
+}
+
+static gboolean qbox_append_post_command_with_note(gpointer dialog,
+                                                   const gchar *label,
+                                                   const gchar *text,
+                                                   const gchar *note)
+{
+  struct qbox_gui_pak *state;
+  GString *message;
+
+  g_return_val_if_fail(dialog != NULL, FALSE);
+  g_return_val_if_fail(text != NULL, FALSE);
+
+  state = qbox_dialog_state(dialog);
+  if (!state || !strlen(text))
+    return(FALSE);
+
+  qbox_state_append_textblock(&state->post_commands, state->post_buffer,
+                              state->post_buffer_handler, text);
+
+  message = g_string_new(NULL);
+  g_string_append_printf(message, "Appended Qbox %s command.\n",
+                         (label && strlen(label)) ? label : "helper");
+  if (note && strlen(note))
+    g_string_append(message, note);
+  gui_text_show(INFO, message->str);
+  g_string_free(message, TRUE);
+
+  return(TRUE);
+}
+
+static void qbox_append_kpoint_cb(GtkWidget *w, gpointer dialog)
+{
+  struct qbox_gui_pak *state;
+  gchar *action;
+  gchar *command = NULL;
+  gdouble weight;
+
+  (void) w;
+
+  state = qbox_dialog_state(dialog);
+  if (!state)
+    return;
+
+  action = qbox_active_combo_text(state->pd_kpoint_action, "Add");
+  if (!action)
+    return;
+
+  if (g_ascii_strcasecmp(action, "List") == 0)
+    command = g_strdup("kpoint list");
+  else if (g_ascii_strcasecmp(action, "Delete") == 0)
+    command = g_strdup_printf("kpoint delete %.6g %.6g %.6g",
+                              state->helper_kpoint_x,
+                              state->helper_kpoint_y,
+                              state->helper_kpoint_z);
+  else if (g_ascii_strcasecmp(action, "Move") == 0)
+    command = g_strdup_printf("kpoint move %.6g %.6g %.6g %.6g %.6g %.6g",
+                              state->helper_kpoint_x,
+                              state->helper_kpoint_y,
+                              state->helper_kpoint_z,
+                              state->helper_kpoint_to_x,
+                              state->helper_kpoint_to_y,
+                              state->helper_kpoint_to_z);
+  else
+    {
+    weight = state->helper_kpoint_weight;
+    if (weight <= 0.0)
+      weight = 1.0;
+    command = g_strdup_printf("kpoint add %.6g %.6g %.6g %.6g",
+                              state->helper_kpoint_x,
+                              state->helper_kpoint_y,
+                              state->helper_kpoint_z,
+                              weight);
+    }
+
+  qbox_append_post_command_with_note(dialog, "kpoint", command, NULL);
+  g_free(command);
+  g_free(action);
+}
+
+static void qbox_append_plot_cb(GtkWidget *w, gpointer dialog)
+{
+  struct qbox_gui_pak *state;
+  gchar *mode;
+  gchar *filename;
+  gchar *command = NULL;
+  gint spin_value;
+  gint orbital;
+  gint orbital_last;
+
+  (void) w;
+
+  state = qbox_dialog_state(dialog);
+  if (!state)
+    return;
+
+  mode = qbox_active_combo_text(state->pd_plot_mode, "Density");
+  if (!mode)
+    return;
+
+  if (g_ascii_strcasecmp(mode, "XYZ") == 0)
+    filename = qbox_trimmed_entry_text(state->entry_helper_plot_filename, "qbox-frame.xyz");
+  else if (g_ascii_strcasecmp(mode, "WF") == 0)
+    filename = qbox_trimmed_entry_text(state->entry_helper_plot_filename, "orbital_1.cube");
+  else if (g_ascii_strcasecmp(mode, "WFS") == 0)
+    filename = qbox_trimmed_entry_text(state->entry_helper_plot_filename, "orbitals_1_4.cube");
+  else if (g_ascii_strcasecmp(mode, "Vlocal") == 0)
+    filename = qbox_trimmed_entry_text(state->entry_helper_plot_filename, "vlocal.cube");
+  else
+    filename = qbox_trimmed_entry_text(state->entry_helper_plot_filename, "density.cube");
+
+  spin_value = (gint) (state->helper_plot_spin + 0.5);
+  if (spin_value < 1)
+    spin_value = 1;
+  if (spin_value > 2)
+    spin_value = 2;
+
+  orbital = (gint) (state->helper_plot_orbital + 0.5);
+  if (orbital < 1)
+    orbital = 1;
+  orbital_last = (gint) (state->helper_plot_orbital_last + 0.5);
+  if (orbital_last < orbital)
+    orbital_last = orbital;
+
+  if (g_ascii_strcasecmp(mode, "XYZ") == 0)
+    command = g_strdup_printf("plot %s", filename);
+  else if (g_ascii_strcasecmp(mode, "WF") == 0)
+    {
+    if (state->helper_plot_use_spin)
+      command = g_strdup_printf("plot -wf %d -spin %d %s",
+                                orbital, spin_value, filename);
+    else
+      command = g_strdup_printf("plot -wf %d %s", orbital, filename);
+    }
+  else if (g_ascii_strcasecmp(mode, "WFS") == 0)
+    {
+    if (state->helper_plot_use_spin)
+      command = g_strdup_printf("plot -wfs %d %d -spin %d %s",
+                                orbital, orbital_last, spin_value, filename);
+    else
+      command = g_strdup_printf("plot -wfs %d %d %s",
+                                orbital, orbital_last, filename);
+    }
+  else if (g_ascii_strcasecmp(mode, "Vlocal") == 0)
+    command = g_strdup_printf("plot -vlocal %s", filename);
+  else
+    {
+    if (state->helper_plot_use_spin)
+      command = g_strdup_printf("plot -density -spin %d %s", spin_value, filename);
+    else
+      command = g_strdup_printf("plot -density %s", filename);
+    }
+
+  qbox_append_post_command_with_note(dialog, "plot", command, NULL);
+  g_free(command);
+  g_free(filename);
+  g_free(mode);
+}
+
+static void qbox_append_response_cb(GtkWidget *w, gpointer dialog)
+{
+  struct qbox_gui_pak *state;
+  gchar *mode;
+  gchar *vext;
+  gchar *cube;
+  GString *command;
+  GString *note;
+  gint nitscf;
+  gint nite;
+
+  (void) w;
+
+  state = qbox_dialog_state(dialog);
+  if (!state)
+    return;
+
+  mode = qbox_active_combo_text(state->pd_response_mode, "SCF");
+  if (!mode)
+    return;
+
+  vext = qbox_trimmed_entry_text(state->entry_helper_response_vext, NULL);
+  cube = qbox_trimmed_entry_text(state->entry_helper_response_cube, NULL);
+
+  nitscf = (gint) (state->helper_response_nitscf + 0.5);
+  if (nitscf < 1)
+    nitscf = 1;
+  nite = (gint) (state->helper_response_nite + 0.5);
+
+  command = g_string_new("response");
+  note = g_string_new(NULL);
+
+  if (vext && strlen(vext))
+    {
+    g_string_append_printf(command, " -vext %s", vext);
+    if (cube && strlen(cube))
+      g_string_append_printf(command, " -cube %s", cube);
+    }
+  else if (cube && strlen(cube))
+    {
+    g_string_append(note, "Response note: cube output needs an external potential file, so the cube filename was ignored.\n");
+    }
+
+  if (g_ascii_strcasecmp(mode, "RPA") == 0)
+    g_string_append(command, " -RPA");
+  if (g_ascii_strcasecmp(mode, "IPA") == 0)
+    g_string_append(command, " -IPA");
+
+  g_string_append_printf(command, " %.6g %d", state->helper_response_amplitude, nitscf);
+  if (nite > 0)
+    g_string_append_printf(command, " %d", nite);
+
+  if (!state->use_polarization &&
+      !qbox_text_has_command(state->pre_commands, "set polarization") &&
+      !qbox_text_has_command(state->post_commands, "set polarization"))
+    g_string_append(note, "Response reminder: set polarization x, y, or z before running response.\n");
+  if (state->use_nspin && state->nspin > 1.5)
+    g_string_append(note, "Response reminder: the official Qbox response implementation is for nspin=1 calculations.\n");
+
+  qbox_append_post_command_with_note(dialog, "response", command->str,
+                                     note->len ? note->str : NULL);
+
+  g_string_free(command, TRUE);
+  g_string_free(note, TRUE);
+  g_free(mode);
+  g_free(vext);
+  g_free(cube);
+}
+
+static void qbox_append_partial_charge_cb(GtkWidget *w, gpointer dialog)
+{
+  struct qbox_gui_pak *state;
+  gchar *atom;
+  gchar *command;
+  gint spin_value;
+  gdouble radius;
+
+  (void) w;
+
+  state = qbox_dialog_state(dialog);
+  if (!state)
+    return;
+
+  atom = qbox_trimmed_entry_text(state->entry_helper_partial_charge_atom, "atom1");
+  if (!atom)
+    return;
+
+  radius = state->helper_partial_charge_radius;
+  if (radius <= 0.0)
+    radius = 0.5;
+
+  if (state->helper_partial_charge_use_spin)
+    {
+    spin_value = (gint) (state->helper_partial_charge_spin + 0.5);
+    if (spin_value < 1)
+      spin_value = 1;
+    if (spin_value > 2)
+      spin_value = 2;
+    command = g_strdup_printf("partial_charge -spin %d %s %.6g",
+                              spin_value, atom, radius);
+    }
+  else
+    command = g_strdup_printf("partial_charge %s %.6g", atom, radius);
+
+  qbox_append_post_command_with_note(dialog, "partial_charge", command, NULL);
+  g_free(command);
+  g_free(atom);
 }
 
 #if GTK_MAJOR_VERSION >= 4
@@ -1784,9 +2128,11 @@ static gint qbox_write_runtime_input(struct qbox_task_pak *job)
     fprintf(dest, "set xc %s\n", job->xc && strlen(job->xc) ? job->xc : "PBE");
     fprintf(dest, "set scf_tol %s\n",
             job->scf_tol && strlen(job->scf_tol) ? job->scf_tol : "1e-3");
-    if (job->randomize_wf)
+  if (job->randomize_wf)
       fprintf(dest, "randomize_wf\n");
     fprintf(dest, "set wf_dyn %s\n", job->wf_dyn && strlen(job->wf_dyn) ? job->wf_dyn : "PSDA");
+    if (job->use_wf_diag && job->wf_diag && strlen(job->wf_diag))
+      fprintf(dest, "set wf_diag %s\n", job->wf_diag);
     if (job->use_nspin)
       {
       nspin_value = (gint) job->nspin;
@@ -2129,6 +2475,7 @@ static struct qbox_task_pak *qbox_task_new_from_dialog(gpointer dialog)
   job->xc = g_strdup(state->xc);
   job->scf_tol = g_strdup(state->scf_tol);
   job->wf_dyn = g_strdup(state->wf_dyn);
+  job->wf_diag = g_strdup(state->wf_diag);
   job->cell_lock = g_strdup(state->cell_lock);
   job->ext_stress = g_strdup(state->ext_stress);
   job->ref_cell = g_strdup(state->ref_cell);
@@ -2172,6 +2519,7 @@ static struct qbox_task_pak *qbox_task_new_from_dialog(gpointer dialog)
   job->use_charge_mix_coeff = state->use_charge_mix_coeff;
   job->use_charge_mix_ndim = state->use_charge_mix_ndim;
   job->use_charge_mix_rcut = state->use_charge_mix_rcut;
+  job->use_wf_diag = state->use_wf_diag;
   job->use_randomize_v = state->use_randomize_v;
   job->use_nempty = state->use_nempty;
   job->use_force_tol = state->use_force_tol;
@@ -2442,6 +2790,7 @@ void gui_qbox_dialog(void)
   GtkWidget *frame;
   GtkWidget *vbox;
   GtkWidget *run_box;
+  GtkWidget *assistant_box;
   GtkWidget *setup_box;
   GtkWidget *hbox;
   GtkWidget *swin;
@@ -2449,6 +2798,7 @@ void gui_qbox_dialog(void)
   struct model_pak *model;
   struct qbox_gui_pak *state;
   GSList *item;
+  GSList *choices;
   gchar *stem;
   gchar *text;
 
@@ -2486,6 +2836,7 @@ void gui_qbox_dialog(void)
   state->xc = g_strdup("PBE");
   state->scf_tol = g_strdup("1e-3");
   state->wf_dyn = g_strdup("PSDA");
+  state->wf_diag = g_strdup("F");
   state->cell_lock = g_strdup("OFF");
   state->ext_stress = g_strdup("0 0 0 0 0 0");
   state->ref_cell = g_strdup(NULL);
@@ -2529,6 +2880,7 @@ void gui_qbox_dialog(void)
   state->use_charge_mix_coeff = FALSE;
   state->use_charge_mix_ndim = FALSE;
   state->use_charge_mix_rcut = FALSE;
+  state->use_wf_diag = FALSE;
   state->use_randomize_v = FALSE;
   state->use_nempty = FALSE;
   state->use_force_tol = FALSE;
@@ -2563,6 +2915,27 @@ void gui_qbox_dialog(void)
   state->include_cmd_file = NULL;
   state->pre_commands = NULL;
   state->post_commands = NULL;
+  state->helper_plot_filename = g_strdup("density.cube");
+  state->helper_response_vext = NULL;
+  state->helper_response_cube = NULL;
+  state->helper_partial_charge_atom = g_strdup("atom1");
+  state->helper_kpoint_x = 0.0;
+  state->helper_kpoint_y = 0.0;
+  state->helper_kpoint_z = 0.0;
+  state->helper_kpoint_weight = 1.0;
+  state->helper_kpoint_to_x = 0.5;
+  state->helper_kpoint_to_y = 0.0;
+  state->helper_kpoint_to_z = 0.0;
+  state->helper_plot_orbital = 1.0;
+  state->helper_plot_orbital_last = 4.0;
+  state->helper_plot_spin = 1.0;
+  state->helper_response_amplitude = 0.001;
+  state->helper_response_nitscf = 20.0;
+  state->helper_response_nite = 4.0;
+  state->helper_partial_charge_radius = 0.5;
+  state->helper_partial_charge_spin = 1.0;
+  state->helper_plot_use_spin = FALSE;
+  state->helper_partial_charge_use_spin = FALSE;
   state->species = qbox_collect_species(model);
   g_free(stem);
 
@@ -2634,6 +3007,9 @@ void gui_qbox_dialog(void)
   state->entry_xc = gui_text_entry("XC", &state->xc, TRUE, TRUE, vbox);
   state->entry_scf_tol = gui_text_entry("SCF tol", &state->scf_tol, TRUE, TRUE, vbox);
   state->entry_wf_dyn = gui_text_entry("WF dyn", &state->wf_dyn, TRUE, TRUE, vbox);
+  state->check_use_wf_diag = gui_direct_check("Add set wf_diag", &state->use_wf_diag,
+                                              NULL, NULL, vbox);
+  state->entry_wf_diag = gui_text_entry("wf_diag value", &state->wf_diag, TRUE, TRUE, vbox);
   state->check_randomize_wf = gui_direct_check("Randomize wavefunction", &state->randomize_wf,
                                                NULL, NULL, vbox);
   state->check_use_nspin = gui_direct_check("Add set nspin", &state->use_nspin,
@@ -2741,12 +3117,12 @@ void gui_qbox_dialog(void)
   label = qbox_note_label_new("Write Input writes a runnable script with model export + defaults."
                               " Setup is grouped into resources, electronic controls, cell/stress,"
                               " and dynamics sections."
-                              " It now covers common spin/charge, SCF mixing, cell control,"
+                              " It now covers common spin/charge, SCF mixing, wf_diag, cell control,"
                               " iter_cmd hooks, thermostat, and dynamics variables."
                               " Resource controls let you choose serial vs MPI plus OpenMP threads."
                               " Qbox run keeps .out and can auto-convert to .xyz trajectory."
                               " Optionally load the XYZ and open Animation automatically."
-                              " Use the free-form command blocks below for less common Qbox commands.");
+                              " Use the command assistants and free-form blocks below for less common Qbox commands.");
   gtk_box_pack_start(GTK_BOX(setup_box), label, FALSE, FALSE, 0);
 
   gtk_notebook_append_page(GTK_NOTEBOOK(notebook), page, gtk_label_new("Setup"));
@@ -2791,6 +3167,88 @@ void gui_qbox_dialog(void)
     }
 
   gtk_notebook_append_page(GTK_NOTEBOOK(notebook), page, gtk_label_new("Potentials"));
+
+  frame = gtk_frame_new("Advanced: Command Assistants");
+  gtk_box_pack_start(GTK_BOX(setup_box), frame, FALSE, FALSE, 0);
+  gtk_container_set_border_width(GTK_CONTAINER(frame), PANEL_SPACING);
+  assistant_box = gtk_vbox_new(FALSE, PANEL_SPACING);
+  gtk_container_add(GTK_CONTAINER(frame), assistant_box);
+
+  label = qbox_note_label_new("These assistant forms append exact official Qbox commands to Post/default-override Commands.");
+  gtk_box_pack_start(GTK_BOX(assistant_box), label, FALSE, FALSE, 0);
+
+  vbox = qbox_setup_section_new(assistant_box, "kpoint");
+  choices = NULL;
+  choices = g_slist_append(choices, "Add");
+  choices = g_slist_append(choices, "Move");
+  choices = g_slist_append(choices, "Delete");
+  choices = g_slist_append(choices, "List");
+  state->pd_kpoint_action = gui_pd_new(choices, 0, NULL, NULL);
+  g_slist_free(choices);
+  gui_hbox_pack(vbox, "Action", state->pd_kpoint_action, 0);
+  gui_direct_spin("k x", &state->helper_kpoint_x, -1.0, 1.0, 0.05, NULL, NULL, vbox);
+  gui_direct_spin("k y", &state->helper_kpoint_y, -1.0, 1.0, 0.05, NULL, NULL, vbox);
+  gui_direct_spin("k z", &state->helper_kpoint_z, -1.0, 1.0, 0.05, NULL, NULL, vbox);
+  gui_direct_spin("weight", &state->helper_kpoint_weight, 0.0, 10.0, 0.1, NULL, NULL, vbox);
+  gui_direct_spin("move to x", &state->helper_kpoint_to_x, -1.0, 1.0, 0.05, NULL, NULL, vbox);
+  gui_direct_spin("move to y", &state->helper_kpoint_to_y, -1.0, 1.0, 0.05, NULL, NULL, vbox);
+  gui_direct_spin("move to z", &state->helper_kpoint_to_z, -1.0, 1.0, 0.05, NULL, NULL, vbox);
+  hbox = gtk_hbox_new(FALSE, PANEL_SPACING);
+  gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 0);
+  gui_button("Append kpoint", qbox_append_kpoint_cb, dialog, hbox, FF);
+  label = qbox_note_label_new("Use Add/Delete/Move/List. Weight is used only for Add.");
+  gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
+
+  vbox = qbox_setup_section_new(assistant_box, "plot");
+  choices = NULL;
+  choices = g_slist_append(choices, "Density");
+  choices = g_slist_append(choices, "WF");
+  choices = g_slist_append(choices, "WFS");
+  choices = g_slist_append(choices, "Vlocal");
+  choices = g_slist_append(choices, "XYZ");
+  state->pd_plot_mode = gui_pd_new(choices, 0, NULL, NULL);
+  g_slist_free(choices);
+  gui_hbox_pack(vbox, "Mode", state->pd_plot_mode, 0);
+  state->entry_helper_plot_filename = gui_text_entry("Filename", &state->helper_plot_filename, TRUE, TRUE, vbox);
+  state->check_helper_plot_use_spin = gui_direct_check("Add -spin", &state->helper_plot_use_spin,
+                                                       NULL, NULL, vbox);
+  gui_direct_spin("spin channel", &state->helper_plot_spin, 1.0, 2.0, 1.0, NULL, NULL, vbox);
+  gui_direct_spin("WF index", &state->helper_plot_orbital, 1.0, 999.0, 1.0, NULL, NULL, vbox);
+  gui_direct_spin("WFS last index", &state->helper_plot_orbital_last, 1.0, 999.0, 1.0, NULL, NULL, vbox);
+  hbox = gtk_hbox_new(FALSE, PANEL_SPACING);
+  gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 0);
+  gui_button("Append plot", qbox_append_plot_cb, dialog, hbox, FF);
+  label = qbox_note_label_new("Blank filenames fall back to sensible defaults such as density.cube or orbital_1.cube.");
+  gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
+
+  vbox = qbox_setup_section_new(assistant_box, "response");
+  choices = NULL;
+  choices = g_slist_append(choices, "SCF");
+  choices = g_slist_append(choices, "RPA");
+  choices = g_slist_append(choices, "IPA");
+  state->pd_response_mode = gui_pd_new(choices, 0, NULL, NULL);
+  g_slist_free(choices);
+  gui_hbox_pack(vbox, "Mode", state->pd_response_mode, 0);
+  state->entry_helper_response_vext = gui_text_entry("External potential (-vext)", &state->helper_response_vext, TRUE, TRUE, vbox);
+  state->entry_helper_response_cube = gui_text_entry("Cube output (-cube)", &state->helper_response_cube, TRUE, TRUE, vbox);
+  gui_direct_spin("amplitude", &state->helper_response_amplitude, 0.0, 1.0, 0.001, NULL, NULL, vbox);
+  gui_direct_spin("nitscf", &state->helper_response_nitscf, 1.0, 500.0, 1.0, NULL, NULL, vbox);
+  gui_direct_spin("nite (0 omits)", &state->helper_response_nite, 0.0, 500.0, 1.0, NULL, NULL, vbox);
+  hbox = gtk_hbox_new(FALSE, PANEL_SPACING);
+  gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 0);
+  gui_button("Append response", qbox_append_response_cb, dialog, hbox, FF);
+  label = qbox_note_label_new("The response assistant also reminds you about polarization and nspin requirements.");
+  gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
+
+  vbox = qbox_setup_section_new(assistant_box, "partial_charge");
+  state->entry_helper_partial_charge_atom = gui_text_entry("Atom name", &state->helper_partial_charge_atom, TRUE, TRUE, vbox);
+  gui_direct_spin("radius", &state->helper_partial_charge_radius, 0.0, 10.0, 0.05, NULL, NULL, vbox);
+  state->check_helper_partial_charge_use_spin = gui_direct_check("Add -spin", &state->helper_partial_charge_use_spin,
+                                                                 NULL, NULL, vbox);
+  gui_direct_spin("spin channel", &state->helper_partial_charge_spin, 1.0, 2.0, 1.0, NULL, NULL, vbox);
+  hbox = gtk_hbox_new(FALSE, PANEL_SPACING);
+  gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 0);
+  gui_button("Append partial_charge", qbox_append_partial_charge_cb, dialog, hbox, FF);
 
   frame = gtk_frame_new("Advanced: Input Composition");
   gtk_box_pack_start(GTK_BOX(setup_box), frame, FALSE, FALSE, 0);
