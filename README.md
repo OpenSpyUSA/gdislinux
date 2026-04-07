@@ -58,6 +58,28 @@ GDIS_GTK_TARGET=gtk4 ./rebuild-ubuntu.sh
 ./run-gdis.sh --gtk4 examples/methane.gin
 ```
 
+If you also want the local Qbox integration on Ubuntu 24.04:
+
+```bash
+cd gdislinux
+
+sudo apt-get install -y \
+  libxerces-c-dev \
+  libopenmpi-dev \
+  openmpi-bin \
+  libfftw3-dev \
+  libscalapack-openmpi-dev \
+  libblas-dev \
+  liblapack-dev \
+  uuid-dev \
+  g++ \
+  make \
+  git \
+  pkg-config
+
+./install-qbox-local.sh
+```
+
 For an existing clone that just needs the latest code:
 
 ```bash
@@ -302,23 +324,6 @@ Two smoke-test samples are included:
 - `models/qbox_methane.qbox`
 - `models/qbox_methane.xml`
 - `models/qbox_expert_demo.i` (advanced command include template)
-
-On Ubuntu 24.04, the practical install flow is:
-
-```bash
-sudo apt-get update
-sudo apt-get install -y libxerces-c-dev libopenmpi-dev openmpi-bin libfftw3-dev \
-  libscalapack-openmpi-dev libblas-dev liblapack-dev uuid-dev g++ make git
-./install-qbox-local.sh
-```
-
-`./install-qbox-local.sh` now auto-detects common MPI C++ wrapper names such as
-`mpicxx`, `mpic++`, and `mpiCC`. If your system uses a nonstandard wrapper, set
-it explicitly, for example:
-
-```bash
-QBOX_MPI_CXX=/path/to/mpi-cxx-wrapper ./install-qbox-local.sh
-```
 
 After that, a working local smoke round-trip is:
 
