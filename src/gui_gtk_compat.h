@@ -822,6 +822,12 @@ if (GTK_IS_FRAME(container))
   gtk_frame_set_child(GTK_FRAME(container), child);
   return;
   }
+if (GTK_IS_EXPANDER(container))
+  {
+  gdis_gtk_widget_prepare_for_parent(child, container);
+  gtk_expander_set_child(GTK_EXPANDER(container), child);
+  return;
+  }
 if (GTK_IS_BUTTON(container))
   {
   gdis_gtk_widget_prepare_for_parent(child, container);

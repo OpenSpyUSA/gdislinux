@@ -61,8 +61,10 @@ struct qbox_gui_pak
   gchar *atoms_dyn;
   gchar *cell_dyn;
   gchar *thermostat;
+  gchar *blhf;
   gchar *run_timeout;
   gdouble ecut;
+  gdouble ecuts;
   gdouble ecutprec;
   gdouble dt;
   gdouble fermi_temp;
@@ -74,6 +76,11 @@ struct qbox_gui_pak
   gdouble randomize_v;
   gdouble force_tol;
   gdouble stress_tol;
+  gdouble alpha_pbe0;
+  gdouble alpha_rsh;
+  gdouble beta_rsh;
+  gdouble mu_rsh;
+  gdouble bthf;
   gdouble th_temp;
   gdouble th_time;
   gdouble th_width;
@@ -98,6 +105,7 @@ struct qbox_gui_pak
   gint use_randomize_v;
   gint use_nempty;
   gint use_force_tol;
+  gint use_ecuts;
   gint use_ref_cell;
   gint use_vext;
   gint use_e_field;
@@ -112,6 +120,12 @@ struct qbox_gui_pak
   gint use_ext_stress;
   gint use_stress_tol;
   gint use_emass;
+  gint use_alpha_pbe0;
+  gint use_alpha_rsh;
+  gint use_beta_rsh;
+  gint use_mu_rsh;
+  gint use_bthf;
+  gint use_blhf;
   gint use_thermostat;
   gint use_th_temp;
   gint use_th_time;
@@ -150,9 +164,13 @@ struct qbox_gui_pak
   gdouble helper_response_amplitude;
   gdouble helper_response_nitscf;
   gdouble helper_response_nite;
+  gdouble helper_occ_state;
+  gdouble helper_occ_value;
+  gdouble helper_occ_spin;
   gdouble helper_partial_charge_radius;
   gdouble helper_partial_charge_spin;
   gint helper_plot_use_spin;
+  gint helper_occ_use_spin;
   gint helper_partial_charge_use_spin;
   GtkWidget *entry_xc;
   GtkWidget *entry_scf_tol;
@@ -168,6 +186,8 @@ struct qbox_gui_pak
   GtkWidget *entry_atoms_dyn;
   GtkWidget *entry_cell_dyn;
   GtkWidget *entry_thermostat;
+  GtkWidget *entry_blhf;
+  GtkWidget *entry_mpirun_path;
   GtkWidget *entry_run_timeout;
   GtkWidget *entry_run_cmd;
   GtkWidget *entry_include_cmd_file;
@@ -175,9 +195,50 @@ struct qbox_gui_pak
   GtkWidget *entry_helper_response_vext;
   GtkWidget *entry_helper_response_cube;
   GtkWidget *entry_helper_partial_charge_atom;
+  GtkWidget *spin_mpi_ranks;
+  GtkWidget *spin_nspin;
+  GtkWidget *spin_delta_spin;
+  GtkWidget *spin_net_charge;
+  GtkWidget *spin_nempty;
+  GtkWidget *spin_fermi_temp;
+  GtkWidget *spin_charge_mix_coeff;
+  GtkWidget *spin_charge_mix_ndim;
+  GtkWidget *spin_charge_mix_rcut;
+  GtkWidget *spin_alpha_pbe0;
+  GtkWidget *spin_alpha_rsh;
+  GtkWidget *spin_beta_rsh;
+  GtkWidget *spin_mu_rsh;
+  GtkWidget *spin_bthf;
+  GtkWidget *spin_emass;
+  GtkWidget *spin_ecuts;
+  GtkWidget *spin_cell_mass;
+  GtkWidget *spin_stress_tol;
+  GtkWidget *spin_force_tol;
+  GtkWidget *spin_dt;
+  GtkWidget *spin_randomize_v;
+  GtkWidget *spin_th_temp;
+  GtkWidget *spin_th_time;
+  GtkWidget *spin_th_width;
+  GtkWidget *spin_iter_cmd_period;
+  GtkWidget *spin_helper_kpoint_x;
+  GtkWidget *spin_helper_kpoint_y;
+  GtkWidget *spin_helper_kpoint_z;
+  GtkWidget *spin_helper_kpoint_weight;
+  GtkWidget *spin_helper_kpoint_to_x;
+  GtkWidget *spin_helper_kpoint_to_y;
+  GtkWidget *spin_helper_kpoint_to_z;
+  GtkWidget *spin_helper_plot_spin;
+  GtkWidget *spin_helper_plot_orbital;
+  GtkWidget *spin_helper_plot_orbital_last;
+  GtkWidget *spin_helper_occ_state;
+  GtkWidget *spin_helper_occ_value;
+  GtkWidget *spin_helper_occ_spin;
+  GtkWidget *spin_helper_partial_charge_radius;
+  GtkWidget *spin_helper_partial_charge_spin;
   GtkWidget *pd_kpoint_action;
   GtkWidget *pd_plot_mode;
   GtkWidget *pd_response_mode;
+  GtkWidget *pd_occ_action;
   GtkWidget *check_randomize_wf;
   GtkWidget *check_use_nspin;
   GtkWidget *check_use_delta_spin;
@@ -192,6 +253,7 @@ struct qbox_gui_pak
   GtkWidget *check_use_randomize_v;
   GtkWidget *check_use_nempty;
   GtkWidget *check_use_force_tol;
+  GtkWidget *check_use_ecuts;
   GtkWidget *check_use_ref_cell;
   GtkWidget *check_use_vext;
   GtkWidget *check_use_e_field;
@@ -206,6 +268,12 @@ struct qbox_gui_pak
   GtkWidget *check_use_ext_stress;
   GtkWidget *check_use_stress_tol;
   GtkWidget *check_use_emass;
+  GtkWidget *check_use_alpha_pbe0;
+  GtkWidget *check_use_alpha_rsh;
+  GtkWidget *check_use_beta_rsh;
+  GtkWidget *check_use_mu_rsh;
+  GtkWidget *check_use_bthf;
+  GtkWidget *check_use_blhf;
   GtkWidget *check_use_thermostat;
   GtkWidget *check_use_th_temp;
   GtkWidget *check_use_th_time;
@@ -219,6 +287,7 @@ struct qbox_gui_pak
   GtkWidget *check_auto_save_xml_cmd;
   GtkWidget *check_auto_quit;
   GtkWidget *check_helper_plot_use_spin;
+  GtkWidget *check_helper_occ_use_spin;
   GtkWidget *check_helper_partial_charge_use_spin;
   GSList *species;
 };
@@ -247,12 +316,14 @@ struct qbox_task_pak
   gchar *atoms_dyn;
   gchar *cell_dyn;
   gchar *thermostat;
+  gchar *blhf;
   gchar *run_timeout;
   gchar *input_path;
   gchar *xml_path;
   gchar *log_path;
   gchar *xyz_path;
   gdouble ecut;
+  gdouble ecuts;
   gdouble ecutprec;
   gdouble dt;
   gdouble fermi_temp;
@@ -264,6 +335,11 @@ struct qbox_task_pak
   gdouble randomize_v;
   gdouble force_tol;
   gdouble stress_tol;
+  gdouble alpha_pbe0;
+  gdouble alpha_rsh;
+  gdouble beta_rsh;
+  gdouble mu_rsh;
+  gdouble bthf;
   gdouble th_temp;
   gdouble th_time;
   gdouble th_width;
@@ -288,6 +364,7 @@ struct qbox_task_pak
   gint use_randomize_v;
   gint use_nempty;
   gint use_force_tol;
+  gint use_ecuts;
   gint use_ref_cell;
   gint use_vext;
   gint use_e_field;
@@ -302,6 +379,12 @@ struct qbox_task_pak
   gint use_ext_stress;
   gint use_stress_tol;
   gint use_emass;
+  gint use_alpha_pbe0;
+  gint use_alpha_rsh;
+  gint use_beta_rsh;
+  gint use_mu_rsh;
+  gint use_bthf;
+  gint use_blhf;
   gint use_thermostat;
   gint use_th_temp;
   gint use_th_time;
@@ -906,6 +989,7 @@ static void qbox_gui_state_free(struct qbox_gui_pak *state)
   g_free(state->atoms_dyn);
   g_free(state->cell_dyn);
   g_free(state->thermostat);
+  g_free(state->blhf);
   g_free(state->run_timeout);
   g_free(state->run_cmd);
   g_free(state->include_cmd_file);
@@ -952,6 +1036,7 @@ static void qbox_task_free(struct qbox_task_pak *job)
   g_free(job->atoms_dyn);
   g_free(job->cell_dyn);
   g_free(job->thermostat);
+  g_free(job->blhf);
   g_free(job->run_timeout);
   g_free(job->run_cmd);
   g_free(job->include_cmd_file);
@@ -1518,6 +1603,270 @@ static void qbox_append_partial_charge_cb(GtkWidget *w, gpointer dialog)
   qbox_append_post_command_with_note(dialog, "partial_charge", command, NULL);
   g_free(command);
   g_free(atom);
+}
+
+static void qbox_append_occ_cb(GtkWidget *w, gpointer dialog)
+{
+  struct qbox_gui_pak *state;
+  gchar *action;
+  gchar *command = NULL;
+  gchar *note = NULL;
+  gint occ_state;
+  gint spin_value;
+  gdouble occ_value;
+
+  (void) w;
+
+  state = qbox_dialog_state(dialog);
+  if (!state)
+    return;
+
+  action = qbox_active_combo_text(state->pd_occ_action, "Set");
+  if (!action)
+    return;
+
+  if (g_ascii_strcasecmp(action, "Print") == 0)
+    command = g_strdup("print occ");
+  else
+    {
+    occ_state = (gint) (state->helper_occ_state + 0.5);
+    if (occ_state < 1)
+      occ_state = 1;
+
+    occ_value = state->helper_occ_value;
+    if (occ_value < 0.0)
+      occ_value = 0.0;
+
+    if (state->helper_occ_use_spin)
+      {
+      spin_value = (gint) (state->helper_occ_spin + 0.5);
+      if (spin_value < 1)
+        spin_value = 1;
+      if (spin_value > 2)
+        spin_value = 2;
+      command = g_strdup_printf("set occ %d %d %.6g", spin_value, occ_state, occ_value);
+      if (!(state->use_nspin && state->nspin > 1.5))
+        note = g_strdup("Occupation note: spin-resolved set occ is usually meaningful for nspin=2 calculations.\n");
+      }
+    else
+      {
+      command = g_strdup_printf("set occ %d %.6g", occ_state, occ_value);
+      if (state->use_nspin && state->nspin > 1.5)
+        note = g_strdup("Occupation note: for spin-polarized runs you may want the ispin form: set occ ispin n f.\n");
+      }
+    }
+
+  qbox_append_post_command_with_note(dialog, "occupation", command, note);
+  g_free(note);
+  g_free(command);
+  g_free(action);
+}
+
+static void qbox_widget_set_visible(GtkWidget *widget, gboolean visible)
+{
+  if (!widget)
+    return;
+
+  if (visible)
+    gtk_widget_show(widget);
+  else
+    gtk_widget_hide(widget);
+}
+
+static void qbox_widget_row_set_visible(GtkWidget *widget, gboolean visible)
+{
+  GtkWidget *target;
+
+  if (!widget)
+    return;
+
+  target = gtk_widget_get_parent(widget);
+  if (!target)
+    target = widget;
+
+  qbox_widget_set_visible(target, visible);
+}
+
+static gboolean qbox_entry_has_text(GtkWidget *entry)
+{
+  const gchar *text;
+
+  if (!entry)
+    return(FALSE);
+
+  text = gtk_entry_get_text(GTK_ENTRY(entry));
+  while (text && g_ascii_isspace(*text))
+    text++;
+
+  return(text && *text);
+}
+
+static void qbox_get_xc_text_flags(const gchar *xc_text,
+                                   gboolean *xc_is_pbe0,
+                                   gboolean *xc_uses_rsh_params,
+                                   gboolean *xc_uses_hf_exchange)
+{
+  gchar *xc;
+  gboolean xc_is_pbe0_local;
+  gboolean xc_uses_rsh_local;
+
+  xc = g_strdup(xc_text ? xc_text : "");
+  g_strstrip(xc);
+
+  xc_is_pbe0_local = (g_ascii_strcasecmp(xc, "PBE0") == 0);
+  xc_uses_rsh_local = (g_ascii_strcasecmp(xc, "RSH") == 0
+                       || g_ascii_strcasecmp(xc, "HSE") == 0);
+
+  if (xc_is_pbe0)
+    *xc_is_pbe0 = xc_is_pbe0_local;
+  if (xc_uses_rsh_params)
+    *xc_uses_rsh_params = xc_uses_rsh_local;
+  if (xc_uses_hf_exchange)
+    *xc_uses_hf_exchange = xc_is_pbe0_local || xc_uses_rsh_local;
+
+  g_free(xc);
+}
+
+static void qbox_get_xc_mode_flags(struct qbox_gui_pak *state,
+                                   gboolean *xc_is_pbe0,
+                                   gboolean *xc_uses_rsh_params,
+                                   gboolean *xc_uses_hf_exchange)
+{
+  g_return_if_fail(state != NULL);
+
+  qbox_get_xc_text_flags(state->xc, xc_is_pbe0, xc_uses_rsh_params,
+                         xc_uses_hf_exchange);
+}
+
+static void qbox_refresh_dynamic_controls(struct qbox_gui_pak *state)
+{
+  gchar *action;
+  gchar *mode;
+  gboolean show_source_coords;
+  gboolean show_weight;
+  gboolean show_move_target;
+  gboolean plot_supports_spin;
+  gboolean plot_is_wf;
+  gboolean plot_is_wfs;
+  gboolean plot_is_density;
+  gboolean occ_is_set;
+  gboolean xc_is_pbe0;
+  gboolean xc_uses_rsh_params;
+  gboolean xc_uses_hf_exchange;
+
+  g_return_if_fail(state != NULL);
+
+  qbox_get_xc_mode_flags(state, &xc_is_pbe0, &xc_uses_rsh_params,
+                         &xc_uses_hf_exchange);
+
+  qbox_widget_row_set_visible(state->entry_mpirun_path, state->use_mpi);
+  qbox_widget_row_set_visible(state->spin_mpi_ranks, state->use_mpi);
+
+  qbox_widget_row_set_visible(state->entry_wf_diag, state->use_wf_diag);
+  qbox_widget_row_set_visible(state->spin_nspin, state->use_nspin);
+  qbox_widget_row_set_visible(state->spin_delta_spin, state->use_delta_spin);
+  qbox_widget_row_set_visible(state->spin_net_charge, state->use_net_charge);
+  qbox_widget_row_set_visible(state->spin_nempty, state->use_nempty);
+  qbox_widget_row_set_visible(state->spin_fermi_temp, state->use_fermi_temp);
+  qbox_widget_row_set_visible(state->entry_polarization, state->use_polarization);
+  qbox_widget_row_set_visible(state->entry_e_field, state->use_e_field);
+  qbox_widget_row_set_visible(state->spin_charge_mix_coeff, state->use_charge_mix_coeff);
+  qbox_widget_row_set_visible(state->spin_charge_mix_ndim, state->use_charge_mix_ndim);
+  qbox_widget_row_set_visible(state->spin_charge_mix_rcut, state->use_charge_mix_rcut);
+  qbox_widget_set_visible(state->check_use_alpha_pbe0, xc_is_pbe0);
+  qbox_widget_row_set_visible(state->spin_alpha_pbe0, xc_is_pbe0 && state->use_alpha_pbe0);
+  qbox_widget_set_visible(state->check_use_alpha_rsh, xc_uses_rsh_params);
+  qbox_widget_row_set_visible(state->spin_alpha_rsh, xc_uses_rsh_params && state->use_alpha_rsh);
+  qbox_widget_set_visible(state->check_use_beta_rsh, xc_uses_rsh_params);
+  qbox_widget_row_set_visible(state->spin_beta_rsh, xc_uses_rsh_params && state->use_beta_rsh);
+  qbox_widget_set_visible(state->check_use_mu_rsh, xc_uses_rsh_params);
+  qbox_widget_row_set_visible(state->spin_mu_rsh, xc_uses_rsh_params && state->use_mu_rsh);
+  qbox_widget_set_visible(state->check_use_bthf, xc_uses_hf_exchange);
+  qbox_widget_row_set_visible(state->spin_bthf, xc_uses_hf_exchange && state->use_bthf);
+  qbox_widget_set_visible(state->check_use_blhf, xc_uses_hf_exchange && state->use_bthf);
+  qbox_widget_row_set_visible(state->entry_blhf,
+                              xc_uses_hf_exchange && state->use_bthf && state->use_blhf);
+  qbox_widget_row_set_visible(state->spin_emass, state->use_emass);
+  qbox_widget_row_set_visible(state->spin_ecuts, state->use_ecuts);
+  qbox_widget_row_set_visible(state->entry_ref_cell, state->use_ref_cell);
+  qbox_widget_row_set_visible(state->entry_vext, state->use_vext);
+  qbox_widget_row_set_visible(state->entry_cell_lock, state->use_cell_lock);
+  qbox_widget_row_set_visible(state->spin_cell_mass, state->use_cell_mass);
+  qbox_widget_row_set_visible(state->entry_cell_dyn, state->use_cell_dyn);
+  qbox_widget_row_set_visible(state->entry_ext_stress, state->use_ext_stress);
+  qbox_widget_row_set_visible(state->spin_stress_tol, state->use_stress_tol);
+  qbox_widget_row_set_visible(state->spin_force_tol, state->use_force_tol);
+  qbox_widget_row_set_visible(state->entry_atoms_dyn, state->use_atoms_dyn);
+  qbox_widget_row_set_visible(state->spin_dt, state->use_dt);
+  qbox_widget_row_set_visible(state->spin_randomize_v, state->use_randomize_v);
+  qbox_widget_row_set_visible(state->entry_thermostat, state->use_thermostat);
+  qbox_widget_row_set_visible(state->spin_th_temp, state->use_th_temp);
+  qbox_widget_row_set_visible(state->spin_th_time, state->use_th_time);
+  qbox_widget_row_set_visible(state->spin_th_width, state->use_th_width);
+  qbox_widget_row_set_visible(state->entry_iter_cmd, state->use_iter_cmd);
+  qbox_widget_row_set_visible(state->spin_iter_cmd_period, state->use_iter_cmd_period);
+  qbox_widget_set_visible(state->check_load_xyz_after_convert, state->auto_convert_xyz);
+  qbox_widget_set_visible(state->check_open_animation_after_xyz,
+                          state->auto_convert_xyz && state->load_xyz_after_convert);
+
+  action = qbox_active_combo_text(state->pd_kpoint_action, "Add");
+  show_source_coords = TRUE;
+  show_weight = FALSE;
+  show_move_target = FALSE;
+  if (g_ascii_strcasecmp(action, "List") == 0)
+    show_source_coords = FALSE;
+  else if (g_ascii_strcasecmp(action, "Move") == 0)
+    show_move_target = TRUE;
+  else if (g_ascii_strcasecmp(action, "Add") == 0)
+    show_weight = TRUE;
+
+  qbox_widget_row_set_visible(state->spin_helper_kpoint_x, show_source_coords);
+  qbox_widget_row_set_visible(state->spin_helper_kpoint_y, show_source_coords);
+  qbox_widget_row_set_visible(state->spin_helper_kpoint_z, show_source_coords);
+  qbox_widget_row_set_visible(state->spin_helper_kpoint_weight, show_weight);
+  qbox_widget_row_set_visible(state->spin_helper_kpoint_to_x, show_move_target);
+  qbox_widget_row_set_visible(state->spin_helper_kpoint_to_y, show_move_target);
+  qbox_widget_row_set_visible(state->spin_helper_kpoint_to_z, show_move_target);
+  g_free(action);
+
+  mode = qbox_active_combo_text(state->pd_plot_mode, "Density");
+  plot_is_density = (g_ascii_strcasecmp(mode, "Density") == 0);
+  plot_is_wf = (g_ascii_strcasecmp(mode, "WF") == 0);
+  plot_is_wfs = (g_ascii_strcasecmp(mode, "WFS") == 0);
+  plot_supports_spin = plot_is_density || plot_is_wf || plot_is_wfs;
+
+  qbox_widget_set_visible(state->check_helper_plot_use_spin, plot_supports_spin);
+  qbox_widget_row_set_visible(state->spin_helper_plot_spin,
+                              plot_supports_spin && state->helper_plot_use_spin);
+  qbox_widget_row_set_visible(state->spin_helper_plot_orbital, plot_is_wf || plot_is_wfs);
+  qbox_widget_row_set_visible(state->spin_helper_plot_orbital_last, plot_is_wfs);
+  g_free(mode);
+
+  action = qbox_active_combo_text(state->pd_occ_action, "Set");
+  occ_is_set = !action || g_ascii_strcasecmp(action, "Set") == 0;
+  qbox_widget_set_visible(state->check_helper_occ_use_spin, occ_is_set);
+  qbox_widget_row_set_visible(state->spin_helper_occ_state, occ_is_set);
+  qbox_widget_row_set_visible(state->spin_helper_occ_value, occ_is_set);
+  qbox_widget_row_set_visible(state->spin_helper_occ_spin,
+                              occ_is_set && state->helper_occ_use_spin);
+  g_free(action);
+
+  qbox_widget_row_set_visible(state->entry_helper_response_cube,
+                              qbox_entry_has_text(state->entry_helper_response_vext));
+  qbox_widget_row_set_visible(state->spin_helper_partial_charge_spin,
+                              state->helper_partial_charge_use_spin);
+}
+
+static void qbox_dynamic_controls_changed(GtkWidget *w, gpointer data)
+{
+  struct qbox_gui_pak *state = data;
+
+  (void) w;
+
+  if (!state)
+    return;
+
+  qbox_refresh_dynamic_controls(state);
 }
 
 #if GTK_MAJOR_VERSION >= 4
@@ -2132,9 +2481,14 @@ static gint qbox_write_runtime_input(struct qbox_task_pak *job)
     gint net_charge_value;
     gint nempty_value;
     gint charge_mix_ndim_value;
+    gboolean xc_is_pbe0;
+    gboolean xc_uses_rsh_params;
+    gboolean xc_uses_hf_exchange;
 
     fprintf(dest, "set ecut %.1f\n", job->ecut);
     fprintf(dest, "set xc %s\n", job->xc && strlen(job->xc) ? job->xc : "PBE");
+    qbox_get_xc_text_flags(job->xc, &xc_is_pbe0, &xc_uses_rsh_params,
+                           &xc_uses_hf_exchange);
     fprintf(dest, "set scf_tol %s\n",
             job->scf_tol && strlen(job->scf_tol) ? job->scf_tol : "1e-3");
     if (job->randomize_wf)
@@ -2183,8 +2537,23 @@ static gint qbox_write_runtime_input(struct qbox_task_pak *job)
       }
     if (job->use_charge_mix_rcut)
       fprintf(dest, "set charge_mix_rcut %.6g\n", job->charge_mix_rcut);
+    if (job->use_alpha_pbe0 && xc_is_pbe0)
+      fprintf(dest, "set alpha_PBE0 %.6g\n", job->alpha_pbe0);
+    if (job->use_alpha_rsh && xc_uses_rsh_params)
+      fprintf(dest, "set alpha_RSH %.6g\n", job->alpha_rsh);
+    if (job->use_beta_rsh && xc_uses_rsh_params)
+      fprintf(dest, "set beta_RSH %.6g\n", job->beta_rsh);
+    if (job->use_mu_rsh && xc_uses_rsh_params)
+      fprintf(dest, "set mu_RSH %.6g\n", job->mu_rsh);
+    if (job->use_bthf && xc_uses_hf_exchange)
+      fprintf(dest, "set btHF %.6g\n", job->bthf);
+    if (job->use_blhf && job->use_bthf && xc_uses_hf_exchange
+        && job->blhf && strlen(job->blhf))
+      fprintf(dest, "set blHF %s\n", job->blhf);
     if (job->use_force_tol)
       fprintf(dest, "set force_tol %.6g\n", job->force_tol);
+    if (job->use_ecuts)
+      fprintf(dest, "set ecuts %.6g\n", job->ecuts);
     if (job->use_ref_cell && job->ref_cell && strlen(job->ref_cell))
       fprintf(dest, "set ref_cell %s\n", job->ref_cell);
     if (job->use_vext && job->vext && strlen(job->vext))
@@ -2495,8 +2864,10 @@ static struct qbox_task_pak *qbox_task_new_from_dialog(gpointer dialog)
   job->atoms_dyn = g_strdup(state->atoms_dyn);
   job->cell_dyn = g_strdup(state->cell_dyn);
   job->thermostat = g_strdup(state->thermostat);
+  job->blhf = g_strdup(state->blhf);
   job->run_timeout = g_strdup(state->run_timeout);
   job->ecut = state->ecut;
+  job->ecuts = state->ecuts;
   job->ecutprec = state->ecutprec;
   job->dt = state->dt;
   job->fermi_temp = state->fermi_temp;
@@ -2508,6 +2879,11 @@ static struct qbox_task_pak *qbox_task_new_from_dialog(gpointer dialog)
   job->randomize_v = state->randomize_v;
   job->force_tol = state->force_tol;
   job->stress_tol = state->stress_tol;
+  job->alpha_pbe0 = state->alpha_pbe0;
+  job->alpha_rsh = state->alpha_rsh;
+  job->beta_rsh = state->beta_rsh;
+  job->mu_rsh = state->mu_rsh;
+  job->bthf = state->bthf;
   job->th_temp = state->th_temp;
   job->th_time = state->th_time;
   job->th_width = state->th_width;
@@ -2532,6 +2908,7 @@ static struct qbox_task_pak *qbox_task_new_from_dialog(gpointer dialog)
   job->use_randomize_v = state->use_randomize_v;
   job->use_nempty = state->use_nempty;
   job->use_force_tol = state->use_force_tol;
+  job->use_ecuts = state->use_ecuts;
   job->use_ref_cell = state->use_ref_cell;
   job->use_vext = state->use_vext;
   job->use_e_field = state->use_e_field;
@@ -2546,6 +2923,12 @@ static struct qbox_task_pak *qbox_task_new_from_dialog(gpointer dialog)
   job->use_ext_stress = state->use_ext_stress;
   job->use_stress_tol = state->use_stress_tol;
   job->use_emass = state->use_emass;
+  job->use_alpha_pbe0 = state->use_alpha_pbe0;
+  job->use_alpha_rsh = state->use_alpha_rsh;
+  job->use_beta_rsh = state->use_beta_rsh;
+  job->use_mu_rsh = state->use_mu_rsh;
+  job->use_bthf = state->use_bthf;
+  job->use_blhf = state->use_blhf;
   job->use_thermostat = state->use_thermostat;
   job->use_th_temp = state->use_th_temp;
   job->use_th_time = state->use_th_time;
@@ -2773,6 +3156,49 @@ static GtkWidget *qbox_setup_section_new(GtkWidget *parent, const gchar *title)
   return(vbox);
 }
 
+static gboolean qbox_debug_expand_advanced(void)
+{
+  const gchar *value;
+
+  value = g_getenv("GDIS_DEBUG_QBOX_EXPAND_ADVANCED");
+  if (!value || !*value)
+    return(FALSE);
+
+  if (g_ascii_strcasecmp(value, "0") == 0
+      || g_ascii_strcasecmp(value, "false") == 0
+      || g_ascii_strcasecmp(value, "no") == 0)
+    return(FALSE);
+
+  return(TRUE);
+}
+
+static GtkWidget *qbox_advanced_expander_new(GtkWidget *parent, const gchar *title,
+                                             gboolean expanded)
+{
+  GtkWidget *expander;
+  GtkWidget *vbox;
+
+  g_return_val_if_fail(parent != NULL, NULL);
+  g_return_val_if_fail(title != NULL, NULL);
+
+  if (qbox_debug_expand_advanced())
+    expanded = TRUE;
+
+  expander = gtk_expander_new(title);
+  gtk_expander_set_expanded(GTK_EXPANDER(expander), expanded);
+  gtk_box_pack_start(GTK_BOX(parent), expander, FALSE, FALSE, 0);
+
+  vbox = gtk_vbox_new(FALSE, PANEL_SPACING);
+  gtk_container_set_border_width(GTK_CONTAINER(vbox), PANEL_SPACING);
+#if GTK_MAJOR_VERSION >= 4
+  gtk_expander_set_child(GTK_EXPANDER(expander), vbox);
+#else
+  gtk_container_add(GTK_CONTAINER(expander), vbox);
+#endif
+
+  return(vbox);
+}
+
 static GtkWidget *qbox_note_label_new(const gchar *text)
 {
   GtkWidget *label;
@@ -2856,8 +3282,10 @@ void gui_qbox_dialog(void)
   state->atoms_dyn = g_strdup("CG");
   state->cell_dyn = g_strdup("SD");
   state->thermostat = g_strdup("SCALING");
+  state->blhf = g_strdup("1 1 1");
   state->run_timeout = g_strdup("45s");
   state->ecut = 15.0;
+  state->ecuts = 15.0;
   state->ecutprec = 5.0;
   state->dt = 10.0;
   state->fermi_temp = 300.0;
@@ -2869,6 +3297,11 @@ void gui_qbox_dialog(void)
   state->randomize_v = 400.0;
   state->force_tol = 1.0e-4;
   state->stress_tol = 1.0e-5;
+  state->alpha_pbe0 = 0.25;
+  state->alpha_rsh = 0.0;
+  state->beta_rsh = 0.25;
+  state->mu_rsh = 0.11;
+  state->bthf = 0.5;
   state->th_temp = 300.0;
   state->th_time = 100.0;
   state->th_width = 10.0;
@@ -2893,6 +3326,7 @@ void gui_qbox_dialog(void)
   state->use_randomize_v = FALSE;
   state->use_nempty = FALSE;
   state->use_force_tol = FALSE;
+  state->use_ecuts = FALSE;
   state->use_ref_cell = FALSE;
   state->use_vext = FALSE;
   state->use_e_field = FALSE;
@@ -2907,6 +3341,12 @@ void gui_qbox_dialog(void)
   state->use_ext_stress = FALSE;
   state->use_stress_tol = FALSE;
   state->use_emass = FALSE;
+  state->use_alpha_pbe0 = FALSE;
+  state->use_alpha_rsh = FALSE;
+  state->use_beta_rsh = FALSE;
+  state->use_mu_rsh = FALSE;
+  state->use_bthf = FALSE;
+  state->use_blhf = FALSE;
   state->use_thermostat = FALSE;
   state->use_th_temp = FALSE;
   state->use_th_time = FALSE;
@@ -2941,9 +3381,13 @@ void gui_qbox_dialog(void)
   state->helper_response_amplitude = 0.001;
   state->helper_response_nitscf = 20.0;
   state->helper_response_nite = 4.0;
+  state->helper_occ_state = 1.0;
+  state->helper_occ_value = 2.0;
+  state->helper_occ_spin = 1.0;
   state->helper_partial_charge_radius = 0.5;
   state->helper_partial_charge_spin = 1.0;
   state->helper_plot_use_spin = FALSE;
+  state->helper_occ_use_spin = FALSE;
   state->helper_partial_charge_use_spin = FALSE;
   state->species = qbox_collect_species(model);
   g_free(stem);
@@ -3003,9 +3447,9 @@ void gui_qbox_dialog(void)
   gtk_container_add(GTK_CONTAINER(frame), run_box);
 
   vbox = qbox_setup_section_new(run_box, "Resources");
-  gui_direct_check("Use MPI launcher", &state->use_mpi, NULL, NULL, vbox);
-  gui_text_entry("MPI launcher", &state->mpirun_path, TRUE, TRUE, vbox);
-  gui_direct_spin("MPI ranks", &state->mpi_ranks, 1.0, 512.0, 1.0, NULL, NULL, vbox);
+  gui_direct_check("Use MPI launcher", &state->use_mpi, qbox_dynamic_controls_changed, state, vbox);
+  state->entry_mpirun_path = gui_text_entry("MPI launcher", &state->mpirun_path, TRUE, TRUE, vbox);
+  state->spin_mpi_ranks = gui_direct_spin("MPI ranks", &state->mpi_ranks, 1.0, 512.0, 1.0, NULL, NULL, vbox);
   gui_direct_spin("OpenMP threads", &state->omp_threads, 1.0, 256.0, 1.0, NULL, NULL, vbox);
   state->entry_run_timeout = gui_text_entry("Run timeout", &state->run_timeout, TRUE, TRUE, vbox);
   state->entry_run_cmd = gui_text_entry("Default run command", &state->run_cmd, TRUE, TRUE, vbox);
@@ -3017,121 +3461,137 @@ void gui_qbox_dialog(void)
   state->entry_scf_tol = gui_text_entry("SCF tol", &state->scf_tol, TRUE, TRUE, vbox);
   state->entry_wf_dyn = gui_text_entry("WF dyn", &state->wf_dyn, TRUE, TRUE, vbox);
   state->check_use_wf_diag = gui_direct_check("Add set wf_diag", &state->use_wf_diag,
-                                              NULL, NULL, vbox);
+                                              qbox_dynamic_controls_changed, state, vbox);
   state->entry_wf_diag = gui_text_entry("wf_diag value", &state->wf_diag, TRUE, TRUE, vbox);
   state->check_randomize_wf = gui_direct_check("Randomize wavefunction", &state->randomize_wf,
                                                NULL, NULL, vbox);
   state->check_use_nspin = gui_direct_check("Add set nspin", &state->use_nspin,
-                                            NULL, NULL, vbox);
-  gui_direct_spin("nspin", &state->nspin, 1.0, 2.0, 1.0, NULL, NULL, vbox);
+                                            qbox_dynamic_controls_changed, state, vbox);
+  state->spin_nspin = gui_direct_spin("nspin", &state->nspin, 1.0, 2.0, 1.0, NULL, NULL, vbox);
   state->check_use_delta_spin = gui_direct_check("Add set delta_spin", &state->use_delta_spin,
-                                                 NULL, NULL, vbox);
-  gui_direct_spin("delta_spin", &state->delta_spin, 0.0, 64.0, 1.0, NULL, NULL, vbox);
+                                                 qbox_dynamic_controls_changed, state, vbox);
+  state->spin_delta_spin = gui_direct_spin("delta_spin", &state->delta_spin, 0.0, 64.0, 1.0, NULL, NULL, vbox);
   state->check_use_net_charge = gui_direct_check("Add set net_charge", &state->use_net_charge,
-                                                 NULL, NULL, vbox);
-  gui_direct_spin("net_charge", &state->net_charge, -20.0, 20.0, 1.0, NULL, NULL, vbox);
+                                                 qbox_dynamic_controls_changed, state, vbox);
+  state->spin_net_charge = gui_direct_spin("net_charge", &state->net_charge, -20.0, 20.0, 1.0, NULL, NULL, vbox);
   state->check_use_nempty = gui_direct_check("Add set nempty", &state->use_nempty,
-                                             NULL, NULL, vbox);
-  gui_direct_spin("nempty", &state->nempty, 0.0, 200.0, 1.0, NULL, NULL, vbox);
+                                             qbox_dynamic_controls_changed, state, vbox);
+  state->spin_nempty = gui_direct_spin("nempty", &state->nempty, 0.0, 200.0, 1.0, NULL, NULL, vbox);
   state->check_use_fermi_temp = gui_direct_check("Add set fermi_temp", &state->use_fermi_temp,
-                                                 NULL, NULL, vbox);
-  gui_direct_spin("fermi_temp", &state->fermi_temp, 0.0, 5000.0, 10.0, NULL, NULL, vbox);
+                                                 qbox_dynamic_controls_changed, state, vbox);
+  state->spin_fermi_temp = gui_direct_spin("fermi_temp", &state->fermi_temp, 0.0, 5000.0, 10.0, NULL, NULL, vbox);
   state->check_use_polarization = gui_direct_check("Add set polarization", &state->use_polarization,
-                                                   NULL, NULL, vbox);
+                                                   qbox_dynamic_controls_changed, state, vbox);
   state->entry_polarization = gui_text_entry("polarization value", &state->polarization, TRUE, TRUE, vbox);
   state->check_use_e_field = gui_direct_check("Add set e_field", &state->use_e_field,
-                                              NULL, NULL, vbox);
+                                              qbox_dynamic_controls_changed, state, vbox);
   state->entry_e_field = gui_text_entry("e_field value", &state->e_field, TRUE, TRUE, vbox);
   state->check_use_charge_mix_coeff = gui_direct_check("Add set charge_mix_coeff", &state->use_charge_mix_coeff,
-                                                       NULL, NULL, vbox);
-  gui_direct_spin("charge_mix_coeff", &state->charge_mix_coeff, 0.0, 1.0, 0.05, NULL, NULL, vbox);
+                                                       qbox_dynamic_controls_changed, state, vbox);
+  state->spin_charge_mix_coeff = gui_direct_spin("charge_mix_coeff", &state->charge_mix_coeff, 0.0, 1.0, 0.05, NULL, NULL, vbox);
   state->check_use_charge_mix_ndim = gui_direct_check("Add set charge_mix_ndim", &state->use_charge_mix_ndim,
-                                                      NULL, NULL, vbox);
-  gui_direct_spin("charge_mix_ndim", &state->charge_mix_ndim, 0.0, 40.0, 1.0, NULL, NULL, vbox);
+                                                      qbox_dynamic_controls_changed, state, vbox);
+  state->spin_charge_mix_ndim = gui_direct_spin("charge_mix_ndim", &state->charge_mix_ndim, 0.0, 40.0, 1.0, NULL, NULL, vbox);
   state->check_use_charge_mix_rcut = gui_direct_check("Add set charge_mix_rcut", &state->use_charge_mix_rcut,
-                                                      NULL, NULL, vbox);
-  gui_direct_spin("charge_mix_rcut", &state->charge_mix_rcut, 0.0, 50.0, 0.25, NULL, NULL, vbox);
+                                                      qbox_dynamic_controls_changed, state, vbox);
+  state->spin_charge_mix_rcut = gui_direct_spin("charge_mix_rcut", &state->charge_mix_rcut, 0.0, 50.0, 0.25, NULL, NULL, vbox);
+  state->check_use_alpha_pbe0 = gui_direct_check("Add set alpha_PBE0", &state->use_alpha_pbe0,
+                                                 qbox_dynamic_controls_changed, state, vbox);
+  state->spin_alpha_pbe0 = gui_direct_spin("alpha_PBE0", &state->alpha_pbe0, 0.0, 1.0, 0.01, NULL, NULL, vbox);
+  state->check_use_alpha_rsh = gui_direct_check("Add set alpha_RSH", &state->use_alpha_rsh,
+                                                qbox_dynamic_controls_changed, state, vbox);
+  state->spin_alpha_rsh = gui_direct_spin("alpha_RSH", &state->alpha_rsh, 0.0, 1.0, 0.01, NULL, NULL, vbox);
+  state->check_use_beta_rsh = gui_direct_check("Add set beta_RSH", &state->use_beta_rsh,
+                                               qbox_dynamic_controls_changed, state, vbox);
+  state->spin_beta_rsh = gui_direct_spin("beta_RSH", &state->beta_rsh, 0.0, 1.0, 0.01, NULL, NULL, vbox);
+  state->check_use_mu_rsh = gui_direct_check("Add set mu_RSH", &state->use_mu_rsh,
+                                             qbox_dynamic_controls_changed, state, vbox);
+  state->spin_mu_rsh = gui_direct_spin("mu_RSH", &state->mu_rsh, 0.0, 2.0, 0.01, NULL, NULL, vbox);
+  state->check_use_bthf = gui_direct_check("Add set btHF", &state->use_bthf,
+                                           qbox_dynamic_controls_changed, state, vbox);
+  state->spin_bthf = gui_direct_spin("btHF", &state->bthf, 0.0, 1.0, 0.05, NULL, NULL, vbox);
+  state->check_use_blhf = gui_direct_check("Add set blHF", &state->use_blhf,
+                                           qbox_dynamic_controls_changed, state, vbox);
+  state->entry_blhf = gui_text_entry("blHF value", &state->blhf, TRUE, TRUE, vbox);
   state->check_use_emass = gui_direct_check("Add set emass", &state->use_emass,
-                                            NULL, NULL, vbox);
-  gui_direct_spin("emass", &state->emass, 0.0, 5000.0, 10.0, NULL, NULL, vbox);
+                                            qbox_dynamic_controls_changed, state, vbox);
+  state->spin_emass = gui_direct_spin("emass", &state->emass, 0.0, 5000.0, 10.0, NULL, NULL, vbox);
 
   vbox = qbox_setup_section_new(run_box, "Cell And Stress");
+  state->check_use_ecuts = gui_direct_check("Add set ecuts", &state->use_ecuts,
+                                            qbox_dynamic_controls_changed, state, vbox);
+  state->spin_ecuts = gui_direct_spin("ecuts", &state->ecuts, 0.0, 300.0, 5.0, NULL, NULL, vbox);
   state->check_use_ref_cell = gui_direct_check("Add set ref_cell", &state->use_ref_cell,
-                                               NULL, NULL, vbox);
+                                               qbox_dynamic_controls_changed, state, vbox);
   state->entry_ref_cell = gui_text_entry("ref_cell value", &state->ref_cell, TRUE, TRUE, vbox);
   state->check_use_vext = gui_direct_check("Add set vext", &state->use_vext,
-                                           NULL, NULL, vbox);
+                                           qbox_dynamic_controls_changed, state, vbox);
   state->entry_vext = gui_text_entry("vext value", &state->vext, TRUE, TRUE, vbox);
   state->check_use_lock_cm = gui_direct_check("Add set lock_cm ON", &state->use_lock_cm,
                                               NULL, NULL, vbox);
   state->check_use_cell_lock = gui_direct_check("Add set cell_lock", &state->use_cell_lock,
-                                                NULL, NULL, vbox);
+                                                qbox_dynamic_controls_changed, state, vbox);
   state->entry_cell_lock = gui_text_entry("cell_lock value", &state->cell_lock, TRUE, TRUE, vbox);
   state->check_use_cell_mass = gui_direct_check("Add set cell_mass", &state->use_cell_mass,
-                                                NULL, NULL, vbox);
-  gui_direct_spin("cell_mass", &state->cell_mass, 0.0, 100000.0, 10.0, NULL, NULL, vbox);
+                                                qbox_dynamic_controls_changed, state, vbox);
+  state->spin_cell_mass = gui_direct_spin("cell_mass", &state->cell_mass, 0.0, 100000.0, 10.0, NULL, NULL, vbox);
   state->check_use_cell_dyn = gui_direct_check("Add set cell_dyn", &state->use_cell_dyn,
-                                               NULL, NULL, vbox);
+                                               qbox_dynamic_controls_changed, state, vbox);
   state->entry_cell_dyn = gui_text_entry("cell_dyn value", &state->cell_dyn, TRUE, TRUE, vbox);
   state->check_use_stress = gui_direct_check("Add set stress ON", &state->use_stress,
                                              NULL, NULL, vbox);
   state->check_use_ext_stress = gui_direct_check("Add set ext_stress", &state->use_ext_stress,
-                                                 NULL, NULL, vbox);
+                                                 qbox_dynamic_controls_changed, state, vbox);
   state->entry_ext_stress = gui_text_entry("ext_stress value", &state->ext_stress, TRUE, TRUE, vbox);
   state->check_use_stress_tol = gui_direct_check("Add set stress_tol", &state->use_stress_tol,
-                                                 NULL, NULL, vbox);
-  gui_direct_spin("stress_tol", &state->stress_tol, 0.0, 1.0, 0.00001, NULL, NULL, vbox);
+                                                 qbox_dynamic_controls_changed, state, vbox);
+  state->spin_stress_tol = gui_direct_spin("stress_tol", &state->stress_tol, 0.0, 1.0, 0.00001, NULL, NULL, vbox);
 
   vbox = qbox_setup_section_new(run_box, "Dynamics And Thermostat");
   state->check_use_force_tol = gui_direct_check("Add set force_tol", &state->use_force_tol,
-                                                NULL, NULL, vbox);
-  gui_direct_spin("force_tol", &state->force_tol, 0.0, 1.0, 0.0001, NULL, NULL, vbox);
+                                                qbox_dynamic_controls_changed, state, vbox);
+  state->spin_force_tol = gui_direct_spin("force_tol", &state->force_tol, 0.0, 1.0, 0.0001, NULL, NULL, vbox);
   state->check_use_atoms_dyn = gui_direct_check("Add set atoms_dyn", &state->use_atoms_dyn,
-                                                NULL, NULL, vbox);
+                                                qbox_dynamic_controls_changed, state, vbox);
   state->entry_atoms_dyn = gui_text_entry("atoms_dyn value", &state->atoms_dyn, TRUE, TRUE, vbox);
-  state->check_use_dt = gui_direct_check("Add set dt", &state->use_dt, NULL, NULL, vbox);
-  gui_direct_spin("dt", &state->dt, 0.0, 500.0, 1.0, NULL, NULL, vbox);
+  state->check_use_dt = gui_direct_check("Add set dt", &state->use_dt, qbox_dynamic_controls_changed, state, vbox);
+  state->spin_dt = gui_direct_spin("dt", &state->dt, 0.0, 500.0, 1.0, NULL, NULL, vbox);
   state->check_use_randomize_v = gui_direct_check("Add randomize_v", &state->use_randomize_v,
-                                                  NULL, NULL, vbox);
-  gui_direct_spin("randomize_v temperature", &state->randomize_v, 0.0, 5000.0, 25.0, NULL, NULL, vbox);
+                                                  qbox_dynamic_controls_changed, state, vbox);
+  state->spin_randomize_v = gui_direct_spin("randomize_v temperature", &state->randomize_v, 0.0, 5000.0, 25.0, NULL, NULL, vbox);
   state->check_use_thermostat = gui_direct_check("Add set thermostat", &state->use_thermostat,
-                                                 NULL, NULL, vbox);
+                                                 qbox_dynamic_controls_changed, state, vbox);
   state->entry_thermostat = gui_text_entry("thermostat value", &state->thermostat, TRUE, TRUE, vbox);
   state->check_use_th_temp = gui_direct_check("Add set th_temp", &state->use_th_temp,
-                                              NULL, NULL, vbox);
-  gui_direct_spin("th_temp", &state->th_temp, 0.0, 5000.0, 10.0, NULL, NULL, vbox);
+                                              qbox_dynamic_controls_changed, state, vbox);
+  state->spin_th_temp = gui_direct_spin("th_temp", &state->th_temp, 0.0, 5000.0, 10.0, NULL, NULL, vbox);
   state->check_use_th_time = gui_direct_check("Add set th_time", &state->use_th_time,
-                                              NULL, NULL, vbox);
-  gui_direct_spin("th_time", &state->th_time, 0.0, 5000.0, 10.0, NULL, NULL, vbox);
+                                              qbox_dynamic_controls_changed, state, vbox);
+  state->spin_th_time = gui_direct_spin("th_time", &state->th_time, 0.0, 5000.0, 10.0, NULL, NULL, vbox);
   state->check_use_th_width = gui_direct_check("Add set th_width", &state->use_th_width,
-                                               NULL, NULL, vbox);
-  gui_direct_spin("th_width", &state->th_width, 0.0, 1000.0, 1.0, NULL, NULL, vbox);
+                                               qbox_dynamic_controls_changed, state, vbox);
+  state->spin_th_width = gui_direct_spin("th_width", &state->th_width, 0.0, 1000.0, 1.0, NULL, NULL, vbox);
   state->check_use_iter_cmd = gui_direct_check("Add set iter_cmd", &state->use_iter_cmd,
-                                               NULL, NULL, vbox);
+                                               qbox_dynamic_controls_changed, state, vbox);
   state->entry_iter_cmd = gui_text_entry("iter_cmd value", &state->iter_cmd, TRUE, TRUE, vbox);
   state->check_use_iter_cmd_period = gui_direct_check("Add set iter_cmd_period", &state->use_iter_cmd_period,
-                                                      NULL, NULL, vbox);
-  gui_direct_spin("iter_cmd_period", &state->iter_cmd_period, 1.0, 1000.0, 1.0, NULL, NULL, vbox);
+                                                      qbox_dynamic_controls_changed, state, vbox);
+  state->spin_iter_cmd_period = gui_direct_spin("iter_cmd_period", &state->iter_cmd_period, 1.0, 1000.0, 1.0, NULL, NULL, vbox);
 
   vbox = qbox_setup_section_new(run_box, "Output And Reload");
   state->check_auto_convert_xyz = gui_direct_check("Auto convert Log to XYZ after run", &state->auto_convert_xyz,
-                                                   NULL, NULL, vbox);
+                                                   qbox_dynamic_controls_changed, state, vbox);
   state->check_load_xyz_after_convert = gui_direct_check("Load XYZ after conversion", &state->load_xyz_after_convert,
-                                                         NULL, NULL, vbox);
+                                                         qbox_dynamic_controls_changed, state, vbox);
   state->check_open_animation_after_xyz = gui_direct_check("Open Animation dialog for loaded XYZ", &state->open_animation_after_xyz,
                                                            NULL, NULL, vbox);
   state->check_load_saved_xml = gui_direct_check("Load saved XML after Qbox finishes", &state->load_saved_xml,
                                                  NULL, NULL, vbox);
 
-  label = qbox_note_label_new("Write Input writes a runnable script with model export + defaults."
-                              " Setup is grouped into resources, electronic controls, cell/stress,"
-                              " and dynamics sections."
-                              " It now covers common spin/charge, SCF mixing, wf_diag, cell control,"
-                              " iter_cmd hooks, thermostat, and dynamics variables."
-                              " Resource controls let you choose serial vs MPI plus OpenMP threads."
-                              " Qbox run keeps .out and can auto-convert to .xyz trajectory."
-                              " Optionally load the XYZ and open Animation automatically."
-                              " Use the command assistants and free-form blocks below for less common Qbox commands.");
+  label = qbox_note_label_new("Setup covers the persistent run defaults for the generated Qbox input."
+                              " Write Input keeps the model block plus defaults, Qbox writes the .out log,"
+                              " and GDIS can auto-convert that log to .xyz and reopen the result."
+                              " Use Advanced for explicit commands, templates, and free-form overrides.");
   gtk_box_pack_start(GTK_BOX(setup_box), label, FALSE, FALSE, 0);
 
   gtk_notebook_append_page(GTK_NOTEBOOK(notebook), page, gtk_label_new("Setup"));
@@ -3177,13 +3637,9 @@ void gui_qbox_dialog(void)
 
   gtk_notebook_append_page(GTK_NOTEBOOK(notebook), page, gtk_label_new("Potentials"));
 
-  frame = gtk_frame_new("Advanced: Command Assistants");
-  gtk_box_pack_start(GTK_BOX(setup_box), frame, FALSE, FALSE, 0);
-  gtk_container_set_border_width(GTK_CONTAINER(frame), PANEL_SPACING);
-  assistant_box = gtk_vbox_new(FALSE, PANEL_SPACING);
-  gtk_container_add(GTK_CONTAINER(frame), assistant_box);
+  assistant_box = qbox_advanced_expander_new(setup_box, "Advanced: Command Assistants", FALSE);
 
-  label = qbox_note_label_new("These assistant forms append exact official Qbox commands to Post/default-override Commands.");
+  label = qbox_note_label_new("Use these forms to build exact Qbox commands and append them to Post/default-override Commands.");
   gtk_box_pack_start(GTK_BOX(assistant_box), label, FALSE, FALSE, 0);
 
   vbox = qbox_setup_section_new(assistant_box, "kpoint");
@@ -3195,13 +3651,13 @@ void gui_qbox_dialog(void)
   state->pd_kpoint_action = gui_pd_new(choices, 0, NULL, NULL);
   g_slist_free(choices);
   gui_hbox_pack(vbox, "Action", state->pd_kpoint_action, 0);
-  gui_direct_spin("k x", &state->helper_kpoint_x, -1.0, 1.0, 0.05, NULL, NULL, vbox);
-  gui_direct_spin("k y", &state->helper_kpoint_y, -1.0, 1.0, 0.05, NULL, NULL, vbox);
-  gui_direct_spin("k z", &state->helper_kpoint_z, -1.0, 1.0, 0.05, NULL, NULL, vbox);
-  gui_direct_spin("weight", &state->helper_kpoint_weight, 0.0, 10.0, 0.1, NULL, NULL, vbox);
-  gui_direct_spin("move to x", &state->helper_kpoint_to_x, -1.0, 1.0, 0.05, NULL, NULL, vbox);
-  gui_direct_spin("move to y", &state->helper_kpoint_to_y, -1.0, 1.0, 0.05, NULL, NULL, vbox);
-  gui_direct_spin("move to z", &state->helper_kpoint_to_z, -1.0, 1.0, 0.05, NULL, NULL, vbox);
+  state->spin_helper_kpoint_x = gui_direct_spin("k x", &state->helper_kpoint_x, -1.0, 1.0, 0.05, NULL, NULL, vbox);
+  state->spin_helper_kpoint_y = gui_direct_spin("k y", &state->helper_kpoint_y, -1.0, 1.0, 0.05, NULL, NULL, vbox);
+  state->spin_helper_kpoint_z = gui_direct_spin("k z", &state->helper_kpoint_z, -1.0, 1.0, 0.05, NULL, NULL, vbox);
+  state->spin_helper_kpoint_weight = gui_direct_spin("weight", &state->helper_kpoint_weight, 0.0, 10.0, 0.1, NULL, NULL, vbox);
+  state->spin_helper_kpoint_to_x = gui_direct_spin("move to x", &state->helper_kpoint_to_x, -1.0, 1.0, 0.05, NULL, NULL, vbox);
+  state->spin_helper_kpoint_to_y = gui_direct_spin("move to y", &state->helper_kpoint_to_y, -1.0, 1.0, 0.05, NULL, NULL, vbox);
+  state->spin_helper_kpoint_to_z = gui_direct_spin("move to z", &state->helper_kpoint_to_z, -1.0, 1.0, 0.05, NULL, NULL, vbox);
   hbox = gtk_hbox_new(FALSE, PANEL_SPACING);
   gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 0);
   gui_button("Append kpoint", qbox_append_kpoint_cb, dialog, hbox, FF);
@@ -3221,9 +3677,9 @@ void gui_qbox_dialog(void)
   state->entry_helper_plot_filename = gui_text_entry("Filename", &state->helper_plot_filename, TRUE, TRUE, vbox);
   state->check_helper_plot_use_spin = gui_direct_check("Add -spin", &state->helper_plot_use_spin,
                                                        NULL, NULL, vbox);
-  gui_direct_spin("spin channel", &state->helper_plot_spin, 1.0, 2.0, 1.0, NULL, NULL, vbox);
-  gui_direct_spin("WF index", &state->helper_plot_orbital, 1.0, 999.0, 1.0, NULL, NULL, vbox);
-  gui_direct_spin("WFS last index", &state->helper_plot_orbital_last, 1.0, 999.0, 1.0, NULL, NULL, vbox);
+  state->spin_helper_plot_spin = gui_direct_spin("spin channel", &state->helper_plot_spin, 1.0, 2.0, 1.0, NULL, NULL, vbox);
+  state->spin_helper_plot_orbital = gui_direct_spin("WF index", &state->helper_plot_orbital, 1.0, 999.0, 1.0, NULL, NULL, vbox);
+  state->spin_helper_plot_orbital_last = gui_direct_spin("WFS last index", &state->helper_plot_orbital_last, 1.0, 999.0, 1.0, NULL, NULL, vbox);
   hbox = gtk_hbox_new(FALSE, PANEL_SPACING);
   gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 0);
   gui_button("Append plot", qbox_append_plot_cb, dialog, hbox, FF);
@@ -3249,21 +3705,36 @@ void gui_qbox_dialog(void)
   label = qbox_note_label_new("The response assistant also reminds you about polarization and nspin requirements.");
   gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
 
+  vbox = qbox_setup_section_new(assistant_box, "occupation");
+  choices = NULL;
+  choices = g_slist_append(choices, "Set");
+  choices = g_slist_append(choices, "Print");
+  state->pd_occ_action = gui_pd_new(choices, 0, NULL, NULL);
+  g_slist_free(choices);
+  gui_hbox_pack(vbox, "Action", state->pd_occ_action, 0);
+  state->check_helper_occ_use_spin = gui_direct_check("Use ispin form", &state->helper_occ_use_spin,
+                                                      NULL, NULL, vbox);
+  state->spin_helper_occ_spin = gui_direct_spin("spin channel", &state->helper_occ_spin, 1.0, 2.0, 1.0, NULL, NULL, vbox);
+  state->spin_helper_occ_state = gui_direct_spin("state index", &state->helper_occ_state, 1.0, 999.0, 1.0, NULL, NULL, vbox);
+  state->spin_helper_occ_value = gui_direct_spin("occupation", &state->helper_occ_value, 0.0, 2.0, 0.05, NULL, NULL, vbox);
+  hbox = gtk_hbox_new(FALSE, PANEL_SPACING);
+  gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 0);
+  gui_button("Append occupation", qbox_append_occ_cb, dialog, hbox, FF);
+  label = qbox_note_label_new("Use Set to append set occ n f or set occ ispin n f."
+                              " Use Print to append print occ.");
+  gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
+
   vbox = qbox_setup_section_new(assistant_box, "partial_charge");
   state->entry_helper_partial_charge_atom = gui_text_entry("Atom name", &state->helper_partial_charge_atom, TRUE, TRUE, vbox);
-  gui_direct_spin("radius", &state->helper_partial_charge_radius, 0.0, 10.0, 0.05, NULL, NULL, vbox);
+  state->spin_helper_partial_charge_radius = gui_direct_spin("radius", &state->helper_partial_charge_radius, 0.0, 10.0, 0.05, NULL, NULL, vbox);
   state->check_helper_partial_charge_use_spin = gui_direct_check("Add -spin", &state->helper_partial_charge_use_spin,
                                                                  NULL, NULL, vbox);
-  gui_direct_spin("spin channel", &state->helper_partial_charge_spin, 1.0, 2.0, 1.0, NULL, NULL, vbox);
+  state->spin_helper_partial_charge_spin = gui_direct_spin("spin channel", &state->helper_partial_charge_spin, 1.0, 2.0, 1.0, NULL, NULL, vbox);
   hbox = gtk_hbox_new(FALSE, PANEL_SPACING);
   gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 0);
   gui_button("Append partial_charge", qbox_append_partial_charge_cb, dialog, hbox, FF);
 
-  frame = gtk_frame_new("Advanced: Input Composition");
-  gtk_box_pack_start(GTK_BOX(setup_box), frame, FALSE, FALSE, 0);
-  gtk_container_set_border_width(GTK_CONTAINER(frame), PANEL_SPACING);
-  vbox = gtk_vbox_new(FALSE, PANEL_SPACING);
-  gtk_container_add(GTK_CONTAINER(frame), vbox);
+  vbox = qbox_advanced_expander_new(setup_box, "Advanced: Input Composition", FALSE);
 
   state->check_write_model_block = gui_direct_check("Write model block (cell/species/atom)", &state->write_model_block,
                                                     NULL, NULL, vbox);
@@ -3279,13 +3750,9 @@ void gui_qbox_dialog(void)
                               " Disable model/default blocks for full manual scripts.");
   gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
 
-  frame = gtk_frame_new("Advanced: Command Templates");
-  gtk_box_pack_start(GTK_BOX(setup_box), frame, FALSE, FALSE, 0);
-  gtk_container_set_border_width(GTK_CONTAINER(frame), PANEL_SPACING);
-  vbox = gtk_vbox_new(FALSE, PANEL_SPACING);
-  gtk_container_add(GTK_CONTAINER(frame), vbox);
+  vbox = qbox_advanced_expander_new(setup_box, "Advanced: Command Templates", FALSE);
 
-  label = qbox_note_label_new("These buttons append official Qbox command snippets to Post/default-override Commands."
+  label = qbox_note_label_new("These buttons append ready-made Qbox command snippets."
                               " Use them as a starting point, then edit the atom names, file names, or parameters.");
   gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
 
@@ -3311,31 +3778,19 @@ void gui_qbox_dialog(void)
   qbox_template_button_new("Spectrum", "spectrum 0.05 spectrum.dat", QBOX_TEMPLATE_POST, dialog, hbox);
   qbox_template_button_new("Response", "# response usually needs polarization enabled\nresponse 0.001 20 4", QBOX_TEMPLATE_POST, dialog, hbox);
 
-  frame = gtk_frame_new("Advanced: Pre-default Commands");
-  gtk_box_pack_start(GTK_BOX(setup_box), frame, TRUE, TRUE, 0);
-  gtk_container_set_border_width(GTK_CONTAINER(frame), PANEL_SPACING);
-  vbox = gtk_vbox_new(FALSE, PANEL_SPACING);
-  gtk_container_add(GTK_CONTAINER(frame), vbox);
+  vbox = qbox_advanced_expander_new(setup_box, "Advanced: Pre-default Commands", FALSE);
   label = qbox_note_label_new("Commands inserted before default settings block.");
   gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
   swin = qbox_text_window_new(&state->pre_commands, &state->pre_buffer, &state->pre_buffer_handler);
   gtk_widget_set_size_request(swin, -1, 110);
   gtk_box_pack_start(GTK_BOX(vbox), swin, TRUE, TRUE, 0);
 
-  frame = gtk_frame_new("Advanced: Post/default-override Commands");
-  gtk_box_pack_start(GTK_BOX(setup_box), frame, TRUE, TRUE, 0);
-  gtk_container_set_border_width(GTK_CONTAINER(frame), PANEL_SPACING);
-  vbox = gtk_vbox_new(FALSE, PANEL_SPACING);
-  gtk_container_add(GTK_CONTAINER(frame), vbox);
+  vbox = qbox_advanced_expander_new(setup_box, "Advanced: Post/default-override Commands", FALSE);
   label = qbox_note_label_new("Commands inserted after defaults. Use for kpoint/additional run/plot/response/spectrum/constraints.");
   gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
   swin = qbox_text_window_new(&state->post_commands, &state->post_buffer, &state->post_buffer_handler);
   gtk_widget_set_size_request(swin, -1, 140);
   gtk_box_pack_start(GTK_BOX(vbox), swin, TRUE, TRUE, 0);
-
-  label = qbox_note_label_new("Examples: set scf_tol 1e-8, set nempty 8, kpoint add ... 0.0,"
-                              " compute_mlwf, response, plot -wf, move atom1 by ..., run ...");
-  gtk_box_pack_start(GTK_BOX(setup_box), label, FALSE, FALSE, 0);
 
   button = gui_button("Write Input", qbox_write_input_cb, dialog, actions, FF);
 #if GTK_MAJOR_VERSION >= 4
@@ -3350,7 +3805,25 @@ void gui_qbox_dialog(void)
   qbox_compact_action_button(button);
 #endif
 
+  g_signal_connect(G_OBJECT(state->pd_kpoint_action), "changed",
+                   G_CALLBACK(qbox_dynamic_controls_changed), state);
+  g_signal_connect(G_OBJECT(state->pd_plot_mode), "changed",
+                   G_CALLBACK(qbox_dynamic_controls_changed), state);
+  g_signal_connect(G_OBJECT(state->pd_occ_action), "changed",
+                   G_CALLBACK(qbox_dynamic_controls_changed), state);
+  g_signal_connect(G_OBJECT(state->entry_xc), "changed",
+                   G_CALLBACK(qbox_dynamic_controls_changed), state);
+  g_signal_connect(G_OBJECT(state->check_helper_plot_use_spin), "toggled",
+                   G_CALLBACK(qbox_dynamic_controls_changed), state);
+  g_signal_connect(G_OBJECT(state->check_helper_occ_use_spin), "toggled",
+                   G_CALLBACK(qbox_dynamic_controls_changed), state);
+  g_signal_connect(G_OBJECT(state->entry_helper_response_vext), "changed",
+                   G_CALLBACK(qbox_dynamic_controls_changed), state);
+  g_signal_connect(G_OBJECT(state->check_helper_partial_charge_use_spin), "toggled",
+                   G_CALLBACK(qbox_dynamic_controls_changed), state);
+
   gtk_widget_show_all(window);
+  qbox_refresh_dynamic_controls(state);
 
 /* Debug automation hooks for GTK4 regression scripts. */
   if (g_getenv("GDIS_DEBUG_QBOX_AUTO_FILL"))
