@@ -126,12 +126,13 @@ done
 
 (
   cd "$OUTPUT_DIR"
+  checksum_file="SHA256SUMS-${UBUNTU_SERIES}-${ARCH}"
   sha256sum \
     "${SOURCE_PACKAGE}_${TARGET_VERSION}_${ARCH}.deb" \
     "${SOURCE_PACKAGE}-dbgsym_${TARGET_VERSION}_${ARCH}.ddeb" \
     "${SOURCE_PACKAGE}_${TARGET_VERSION}_${ARCH}.buildinfo" \
     "${SOURCE_PACKAGE}_${TARGET_VERSION}_${ARCH}.changes" \
-    > SHA256SUMS
+    > "$checksum_file"
 )
 
 printf 'Built package artifacts in %s\n' "$OUTPUT_DIR"
