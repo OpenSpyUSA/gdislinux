@@ -1,0 +1,88 @@
+name: Ubuntu Deb Packages
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build ${{ matrix.ubuntu }} amd64 deb
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - ubuntu: '22.04'
+            runner: ubuntu-22.04
+            series: jammy
+            version_id: '22.04'
+            version_suffix: '~ubuntu22.04.1'
+            artifact_name: gdislinux-ubuntu-22.04-amd64
+          - ubuntu: '24.04'
+            runner: ubuntu-24.04
+            series: noble
+            version_id: '24.04'
+            version_suffix: '~ubuntu24.04.1'
+            artifact_name: gdislinux-ubuntu-24.04-amd64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install packaging dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            debhelper \
+            desktop-file-utils \
+            dpkg-dev \
+            fakeroot \
+            libepoxy-dev \
+            libgl-dev \
+            libglu1-mesa-dev \
+            libgtk-4-dev \
+            perl \
+            pkgconf
+
+      - name: Build deb package
+        run: |
+          chmod +x ./ci/build-deb-ubuntu.sh
+          ./ci/build-deb-ubuntu.sh \
+            --series "${{ matrix.series }}" \
+            --version-id "${{ matrix.version_id }}" \
+            --suffix "${{ matrix.version_suffix }}" \
+            --output-dir "$RUNNER_TEMP/deb-artifacts"
+
+      - name: Upload deb artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ runner.temp }}/deb-artifacts/*
+          if-no-files-found: error
+          retention-days: 30
+
+  release:
+    name: Attach release artifacts
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download packaged artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: gdislinux-ubuntu-*-amd64
+          path: release-artifacts
+          merge-multiple: true
+
+      - name: Publish GitHub release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-artifacts/*
