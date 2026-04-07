@@ -312,6 +312,14 @@ sudo apt-get install -y libxerces-c-dev libopenmpi-dev openmpi-bin libfftw3-dev 
 ./install-qbox-local.sh
 ```
 
+`./install-qbox-local.sh` now auto-detects common MPI C++ wrapper names such as
+`mpicxx`, `mpic++`, and `mpiCC`. If your system uses a nonstandard wrapper, set
+it explicitly, for example:
+
+```bash
+QBOX_MPI_CXX=/path/to/mpi-cxx-wrapper ./install-qbox-local.sh
+```
+
 After that, a working local smoke round-trip is:
 
 ```bash
