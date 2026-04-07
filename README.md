@@ -36,22 +36,44 @@ Original authorship remains credited to Sean Fleming and Andrew Rohl.
 
 ### Quick Start
 
-For a local build into `bin/gdis`:
+Preferred path: Ubuntu 24.04 with the GTK4 build target.
+
+```bash
+git clone https://github.com/OpenSpyUSA/gdislinux.git
+cd gdislinux
+
+sudo apt-get update
+sudo apt-get install -y \
+  build-essential \
+  perl \
+  pkg-config \
+  libgtk-4-dev \
+  libgl1-mesa-dev \
+  libglu1-mesa-dev \
+  libepoxy-dev \
+  xvfb \
+  ripgrep
+
+GDIS_GTK_TARGET=gtk4 ./rebuild-ubuntu.sh
+./run-gdis.sh --gtk4 examples/methane.gin
+```
+
+For an existing clone that just needs the latest code:
+
+```bash
+cd gdislinux
+git pull --ff-only
+GDIS_GTK_TARGET=gtk4 ./rebuild-ubuntu.sh
+./run-gdis.sh --gtk4 examples/methane.gin
+```
+
+Ubuntu 22.04 can also work, but its GTK4 stack is older. Pull the latest
+compatibility fixes before rebuilding.
+
+For a local rebuild into `bin/gdis`:
 
 ```bash
 ./rebuild-ubuntu.sh
-```
-
-For a Meson/Ninja build into `bin/gdis`:
-
-```bash
-./rebuild-meson.sh
-```
-
-For the experimental GTK4 renewal build:
-
-```bash
-GDIS_GTK_TARGET=gtk4 ./rebuild-ubuntu.sh
 ```
 
 Each rebuild also saves a target-specific executable such as `bin/gdis-gtk4`
@@ -103,15 +125,6 @@ To run the legacy GTK2 fallback explicitly:
 ./run-example.sh --gtk2 methane
 ```
 
-To exercise the modern renderer on GTK4:
-
-```bash
-sudo apt-get update
-sudo apt-get install -y libgtk-4-dev libgl1-mesa-dev libglu1-mesa-dev libepoxy-dev
-GDIS_GTK_TARGET=gtk4 ./rebuild-ubuntu.sh
-./run-example.sh --gtk4 methane
-```
-
 ### Build Requirements
 
 Today, the practical Linux build requirements for the default GTK4 path are:
@@ -128,12 +141,17 @@ On Ubuntu 24.04:
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y build-essential pkg-config libgtk-4-dev libgl1-mesa-dev libglu1-mesa-dev libepoxy-dev
-git clone https://github.com/OpenSpyUSA/gdislinux.git
-cd gdislinux
-./rebuild-ubuntu.sh
-./install-user-launcher.sh
-gdis ./models/*
+sudo apt-get install -y \
+  build-essential \
+  perl \
+  pkg-config \
+  libgtk-4-dev \
+  libgl1-mesa-dev \
+  libglu1-mesa-dev \
+  libepoxy-dev \
+  xvfb \
+  ripgrep
+GDIS_GTK_TARGET=gtk4 ./rebuild-ubuntu.sh
 ```
 
 For the optional GTK2 fallback path:
