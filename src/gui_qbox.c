@@ -1070,6 +1070,74 @@ static void qbox_state_append_textblock(gchar **target, GtkTextBuffer *buffer,
   g_free(text);
 }
 
+#if GTK_MAJOR_VERSION >= 4
+static void qbox_ensure_compact_action_css(GtkWidget *widget)
+{
+  static GtkCssProvider *provider = NULL;
+  GdkDisplay *display;
+  const gchar *css =
+    ".gdis-qbox-actions {"
+    "  margin-top: 0;"
+    "  margin-bottom: 0;"
+    "  padding-top: 0;"
+    "  padding-bottom: 0;"
+    "}"
+    ".gdis-qbox-actions button {"
+    "  min-height: 0;"
+    "  min-width: 0;"
+    "  padding-top: 1px;"
+    "  padding-bottom: 1px;"
+    "  padding-left: 10px;"
+    "  padding-right: 10px;"
+    "}";
+
+  g_return_if_fail(widget != NULL);
+
+  display = gtk_widget_get_display(widget);
+  if (!display)
+    return;
+
+  if (!provider)
+    {
+    provider = gtk_css_provider_new();
+    gtk_css_provider_load_from_data(provider, css, -1);
+    }
+
+  if (!g_object_get_data(G_OBJECT(display), "gdis-qbox-compact-actions"))
+    {
+    gtk_style_context_add_provider_for_display(display,
+                                               GTK_STYLE_PROVIDER(provider),
+                                               GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+    g_object_set_data(G_OBJECT(display), "gdis-qbox-compact-actions",
+                      GINT_TO_POINTER(TRUE));
+    }
+}
+
+static void qbox_compact_action_row(GtkWidget *actions)
+{
+  g_return_if_fail(actions != NULL);
+
+  qbox_ensure_compact_action_css(actions);
+  gtk_widget_add_css_class(actions, "gdis-qbox-actions");
+  gtk_box_set_spacing(GTK_BOX(actions), 3);
+  gtk_widget_set_margin_top(actions, 0);
+  gtk_widget_set_margin_bottom(actions, 0);
+  gtk_widget_set_margin_start(actions, 4);
+  gtk_widget_set_margin_end(actions, 4);
+  gtk_widget_set_valign(actions, GTK_ALIGN_END);
+  gtk_widget_set_vexpand(actions, FALSE);
+}
+
+static void qbox_compact_action_button(GtkWidget *button)
+{
+  g_return_if_fail(button != NULL);
+
+  qbox_ensure_compact_action_css(button);
+  gtk_widget_set_margin_top(button, 0);
+  gtk_widget_set_margin_bottom(button, 0);
+}
+#endif
+
 enum
 {
   QBOX_TEMPLATE_PRE = 0,
@@ -2262,6 +2330,8 @@ static GtkWidget *qbox_note_label_new(const gchar *text)
 void gui_qbox_dialog(void)
 {
   gpointer dialog;
+  GtkWidget *actions;
+  GtkWidget *button;
   GtkWidget *window;
   GtkWidget *notebook;
   GtkWidget *page;
@@ -2290,7 +2360,12 @@ void gui_qbox_dialog(void)
     return;
 
   window = dialog_window(dialog);
-  gtk_window_set_default_size(GTK_WINDOW(window), 720, 520);
+  gtk_window_set_default_size(GTK_WINDOW(window), 900, 720);
+  actions = GDIS_DIALOG_ACTIONS(window);
+  gtk_box_set_spacing(GTK_BOX(actions), 4);
+#if GTK_MAJOR_VERSION >= 4
+  qbox_compact_action_row(actions);
+#endif
 
   state = g_malloc0(sizeof(struct qbox_gui_pak));
   state->model = model;
@@ -2689,9 +2764,18 @@ void gui_qbox_dialog(void)
                               " compute_mlwf, response, plot -wf, move atom1 by ..., run ...");
   gtk_box_pack_start(GTK_BOX(setup_box), label, FALSE, FALSE, 0);
 
-  gui_button("Write Input", qbox_write_input_cb, dialog, GDIS_DIALOG_ACTIONS(window), TT);
-  gui_stock_button(GTK_STOCK_EXECUTE, qbox_run_cb, dialog, GDIS_DIALOG_ACTIONS(window));
-  gui_stock_button(GTK_STOCK_CLOSE, dialog_destroy, dialog, GDIS_DIALOG_ACTIONS(window));
+  button = gui_button("Write Input", qbox_write_input_cb, dialog, actions, FF);
+#if GTK_MAJOR_VERSION >= 4
+  qbox_compact_action_button(button);
+#endif
+  button = gui_stock_button(GTK_STOCK_EXECUTE, qbox_run_cb, dialog, actions);
+#if GTK_MAJOR_VERSION >= 4
+  qbox_compact_action_button(button);
+#endif
+  button = gui_stock_button(GTK_STOCK_CLOSE, dialog_destroy, dialog, actions);
+#if GTK_MAJOR_VERSION >= 4
+  qbox_compact_action_button(button);
+#endif
 
   gtk_widget_show_all(window);
 

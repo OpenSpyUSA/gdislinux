@@ -1161,6 +1161,88 @@ g_printerr("GDIS GTK4 menu debug: %s active=%d popover=%p\n",
            popover);
 }
 
+static inline void gdis_gtk_item_factory_section_geometry(const gchar *top_label,
+                                                          gint *min_width,
+                                                          gint *min_height,
+                                                          gint *max_width,
+                                                          gint *max_height)
+{
+if (min_width)
+  *min_width = 300;
+if (min_height)
+  *min_height = 220;
+if (max_width)
+  *max_width = 360;
+if (max_height)
+  *max_height = 760;
+
+if (!top_label)
+  return;
+
+if (g_ascii_strcasecmp(top_label, "Tools") == 0)
+  {
+  if (min_width)
+    *min_width = 320;
+  if (min_height)
+    *min_height = 420;
+  if (max_width)
+    *max_width = 360;
+  return;
+  }
+
+if (g_ascii_strcasecmp(top_label, "File") == 0)
+  {
+  if (min_width)
+    *min_width = 280;
+  if (min_height)
+    *min_height = 260;
+  if (max_width)
+    *max_width = 340;
+  if (max_height)
+    *max_height = 640;
+  return;
+  }
+
+if (g_ascii_strcasecmp(top_label, "Edit") == 0)
+  {
+  if (min_width)
+    *min_width = 280;
+  if (min_height)
+    *min_height = 280;
+  if (max_width)
+    *max_width = 340;
+  if (max_height)
+    *max_height = 640;
+  return;
+  }
+
+if (g_ascii_strcasecmp(top_label, "View") == 0)
+  {
+  if (min_width)
+    *min_width = 250;
+  if (min_height)
+    *min_height = 220;
+  if (max_width)
+    *max_width = 300;
+  if (max_height)
+    *max_height = 420;
+  return;
+  }
+
+if (g_ascii_strcasecmp(top_label, "Help") == 0)
+  {
+  if (min_width)
+    *min_width = 210;
+  if (min_height)
+    *min_height = 110;
+  if (max_width)
+    *max_width = 260;
+  if (max_height)
+    *max_height = 220;
+  return;
+  }
+}
+
 static inline GtkWidget *gdis_gtk_item_factory_section_box(GtkItemFactory *factory,
                                                            const gchar *path)
 {
@@ -1169,6 +1251,10 @@ GtkWidget *popover;
 GtkWidget *scroller;
 GtkWidget *box;
 gchar *top_label;
+gint min_width;
+gint min_height;
+gint max_width;
+gint max_height;
 
 g_return_val_if_fail(factory != NULL, NULL);
 
@@ -1186,14 +1272,17 @@ if (box)
   gtk_menu_button_set_direction(GTK_MENU_BUTTON(menu_button), GTK_ARROW_DOWN);
   popover = gtk_popover_new();
   scroller = gtk_scrolled_window_new();
+  gdis_gtk_item_factory_section_geometry(top_label,
+                                         &min_width, &min_height,
+                                         &max_width, &max_height);
   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroller),
                                  GTK_POLICY_NEVER,
                                  GTK_POLICY_AUTOMATIC);
   gtk_scrolled_window_set_has_frame(GTK_SCROLLED_WINDOW(scroller), FALSE);
-  gtk_scrolled_window_set_min_content_width(GTK_SCROLLED_WINDOW(scroller), 320);
-  gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(scroller), 420);
-  gtk_scrolled_window_set_max_content_width(GTK_SCROLLED_WINDOW(scroller), 360);
-  gtk_scrolled_window_set_max_content_height(GTK_SCROLLED_WINDOW(scroller), 760);
+  gtk_scrolled_window_set_min_content_width(GTK_SCROLLED_WINDOW(scroller), min_width);
+  gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(scroller), min_height);
+  gtk_scrolled_window_set_max_content_width(GTK_SCROLLED_WINDOW(scroller), max_width);
+  gtk_scrolled_window_set_max_content_height(GTK_SCROLLED_WINDOW(scroller), max_height);
   gtk_scrolled_window_set_propagate_natural_width(GTK_SCROLLED_WINDOW(scroller),
                                                   TRUE);
   gtk_scrolled_window_set_propagate_natural_height(GTK_SCROLLED_WINDOW(scroller),
