@@ -26,10 +26,10 @@ override_dh_auto_test:
 
 override_dh_install:
 	dh_install
-	install -D -m0755 debian/gdis-wrapper debian/gdis/usr/bin/gdis
-	install -D -m0644 debian/gdis.desktop debian/gdis/usr/share/applications/gdis.desktop
-	install -D -m0644 src/methane.xpm debian/gdis/usr/share/pixmaps/gdis.xpm
-	desktop-file-validate debian/gdis/usr/share/applications/gdis.desktop
+	install -D -m0755 debian/gdislinux-wrapper debian/gdislinux/usr/bin/gdislinux
+	install -D -m0644 debian/gdislinux.desktop debian/gdislinux/usr/share/applications/gdislinux.desktop
+	install -D -m0644 src/methane.xpm debian/gdislinux/usr/share/pixmaps/gdislinux.xpm
+	desktop-file-validate debian/gdislinux/usr/share/applications/gdislinux.desktop
 
 override_dh_auto_clean:
 	$(MAKE) -C src clean

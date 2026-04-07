@@ -1,4 +1,4 @@
-Source: gdis
+Source: gdislinux
 Section: science
 Priority: optional
 Maintainer: OpenSpyUSA <2243199932hym@gmail.com>
@@ -13,15 +13,23 @@ Build-Depends:
  pkgconf
 Standards-Version: 4.6.2
 Rules-Requires-Root: no
-Homepage: https://github.com/arohl/gdis
-Vcs-Browser: https://github.com/arohl/gdis
-Vcs-Git: https://github.com/arohl/gdis.git
+Homepage: https://github.com/OpenSpyUSA/gdislinux
+Vcs-Browser: https://github.com/OpenSpyUSA/gdislinux
+Vcs-Git: https://github.com/OpenSpyUSA/gdislinux.git
 
-Package: gdis
+Package: gdislinux
 Architecture: any
 Depends:
  ${misc:Depends},
  ${shlibs:Depends}
+Provides:
+ gdis
+Breaks:
+ gdis,
+ gdis-data
+Replaces:
+ gdis,
+ gdis-data
 Suggests:
  ffmpeg,
  grace,
@@ -29,11 +37,13 @@ Suggests:
  openbabel,
  povray
 Description: GTK/OpenGL editor and viewer for atomistic structures
- GDIS is a desktop application for building, visualizing, and analyzing
+ gdislinux is a desktop application for building, visualizing, and analyzing
  atomistic and crystallographic structures.
  .
- This packaging refresh targets the renewed GTK4 backend so the package no
- longer depends on the obsolete GTK2 and gtkglext stack that led to removal
- from Debian unstable. The GTK4 port is still a modernization branch, but it
- already restores practical molecule rendering, selection overlays,
- diffraction graphs, and iso-surface workflows.
+ This package is the Debian/Ubuntu continuation path for the former gdis
+ package, rebuilt around the renewed GTK4 backend instead of the obsolete GTK2
+ and gtkglext stack that led to removal from Debian unstable. The GTK4 port is
+ still a modernization branch, but it already restores practical molecule
+ rendering, selection overlays, diffraction graphs, and iso-surface workflows.
+ .
+ The packaged launcher is installed as /usr/bin/gdislinux.

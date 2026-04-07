@@ -33,6 +33,7 @@ debian/files
 debian/*.debhelper.log
 debian/*.substvars
 debian/gdis/
+debian/gdislinux/
 debian/*.deb
 debian/*.build
 debian/*.buildinfo

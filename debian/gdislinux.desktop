@@ -1,11 +1,11 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=GDIS
+Name=GDIS Linux
 GenericName=Atomistic Structure Editor
 Comment=Build, visualize, and analyze atomistic and crystallographic models
-Exec=gdis %F
-Icon=gdis
+Exec=gdislinux %F
+Icon=gdislinux
 Terminal=false
 Categories=Science;Chemistry;
 Keywords=chemistry;crystal;molecule;materials;visualization;

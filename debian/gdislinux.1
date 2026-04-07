@@ -1,34 +1,34 @@
-.TH GDIS 1 "April 2026" "gdis 1.00+git20260405" "User Commands"
+.TH GDISLINUX 1 "April 2026" "gdislinux 1.00+git20260407" "User Commands"
 .SH NAME
-gdis \- GTK/OpenGL viewer and editor for atomistic structures
+gdislinux \- GTK/OpenGL viewer and editor for atomistic structures
 .SH SYNOPSIS
-.B gdis
+.B gdislinux
 [\fIfile\fR ...]
 .SH DESCRIPTION
-.B gdis
+.B gdislinux
 is an interactive desktop application for building, viewing, and analyzing
 atomistic and crystallographic structures.
 .
-This Debian packaging refresh uses the GTK4 renewal build of GDIS and
+This Debian packaging refresh uses the GTK4 renewal build and
 installs the runtime payload under
-.I /usr/lib/gdis
+.I /usr/lib/gdislinux
 with a wrapper exposed as
-.IR /usr/bin/gdis .
+.IR /usr/bin/gdislinux .
 .SH FILES
 .TP
-.I /usr/bin/gdis
-Launcher wrapper for the packaged GDIS binary.
+.I /usr/bin/gdislinux
+Launcher wrapper for the packaged gdislinux binary.
 .TP
-.I /usr/lib/gdis/gdis
+.I /usr/lib/gdislinux/gdis
 Actual packaged executable.
 .TP
-.I /usr/lib/gdis/gdis.elements
+.I /usr/lib/gdislinux/gdis.elements
 Element database used by GDIS at runtime.
 .TP
-.I /usr/lib/gdis/gdis.library
+.I /usr/lib/gdislinux/gdis.library
 Bundled structure/library data.
 .TP
-.I /usr/lib/gdis/gdis.manual
+.I /usr/lib/gdislinux/gdis.manual
 Bundled help/manual data.
 .SH AUTHORS
 GDIS was originally written by Sean David Fleming with later work by Andrew

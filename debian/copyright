@@ -1,7 +1,7 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-Upstream-Name: gdis
+Upstream-Name: gdislinux
 Upstream-Contact: Sean David Fleming <sean@ivec.org>
-Source: https://github.com/arohl/gdis
+Source: https://github.com/OpenSpyUSA/gdislinux
 
 Files: *
 Copyright:
