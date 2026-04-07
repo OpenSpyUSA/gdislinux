@@ -54,6 +54,8 @@ struct qbox_gui_pak
   gchar *ext_stress;
   gchar *ref_cell;
   gchar *vext;
+  gchar *e_field;
+  gchar *polarization;
   gchar *iter_cmd;
   gchar *atoms_dyn;
   gchar *cell_dyn;
@@ -96,6 +98,8 @@ struct qbox_gui_pak
   gint use_force_tol;
   gint use_ref_cell;
   gint use_vext;
+  gint use_e_field;
+  gint use_polarization;
   gint use_iter_cmd;
   gint use_iter_cmd_period;
   gint use_lock_cm;
@@ -134,6 +138,8 @@ struct qbox_gui_pak
   GtkWidget *entry_ext_stress;
   GtkWidget *entry_ref_cell;
   GtkWidget *entry_vext;
+  GtkWidget *entry_e_field;
+  GtkWidget *entry_polarization;
   GtkWidget *entry_iter_cmd;
   GtkWidget *entry_atoms_dyn;
   GtkWidget *entry_cell_dyn;
@@ -156,6 +162,8 @@ struct qbox_gui_pak
   GtkWidget *check_use_force_tol;
   GtkWidget *check_use_ref_cell;
   GtkWidget *check_use_vext;
+  GtkWidget *check_use_e_field;
+  GtkWidget *check_use_polarization;
   GtkWidget *check_use_iter_cmd;
   GtkWidget *check_use_iter_cmd_period;
   GtkWidget *check_use_lock_cm;
@@ -198,6 +206,8 @@ struct qbox_task_pak
   gchar *ext_stress;
   gchar *ref_cell;
   gchar *vext;
+  gchar *e_field;
+  gchar *polarization;
   gchar *iter_cmd;
   gchar *atoms_dyn;
   gchar *cell_dyn;
@@ -244,6 +254,8 @@ struct qbox_task_pak
   gint use_force_tol;
   gint use_ref_cell;
   gint use_vext;
+  gint use_e_field;
+  gint use_polarization;
   gint use_iter_cmd;
   gint use_iter_cmd_period;
   gint use_lock_cm;
@@ -750,6 +762,8 @@ static void qbox_gui_state_free(struct qbox_gui_pak *state)
   g_free(state->ext_stress);
   g_free(state->ref_cell);
   g_free(state->vext);
+  g_free(state->e_field);
+  g_free(state->polarization);
   g_free(state->iter_cmd);
   g_free(state->atoms_dyn);
   g_free(state->cell_dyn);
@@ -789,6 +803,8 @@ static void qbox_task_free(struct qbox_task_pak *job)
   g_free(job->ext_stress);
   g_free(job->ref_cell);
   g_free(job->vext);
+  g_free(job->e_field);
+  g_free(job->polarization);
   g_free(job->iter_cmd);
   g_free(job->atoms_dyn);
   g_free(job->cell_dyn);
@@ -1026,6 +1042,85 @@ static void qbox_state_set_textblock(gchar **target, GtkTextBuffer *buffer,
 
   g_free(*target);
   *target = g_strdup(text);
+}
+
+static void qbox_state_append_textblock(gchar **target, GtkTextBuffer *buffer,
+                                        gulong handler, const gchar *value)
+{
+  gchar *text;
+  const gchar *current;
+
+  g_return_if_fail(target != NULL);
+
+  if (!value || !strlen(value))
+    return;
+
+  current = (*target && strlen(*target)) ? *target : NULL;
+  if (current)
+    {
+    if (current[strlen(current)-1] == '\n')
+      text = g_strconcat(current, value, NULL);
+    else
+      text = g_strconcat(current, "\n", value, NULL);
+    }
+  else
+    text = g_strdup(value);
+
+  qbox_state_set_textblock(target, buffer, handler, text);
+  g_free(text);
+}
+
+enum
+{
+  QBOX_TEMPLATE_PRE = 0,
+  QBOX_TEMPLATE_POST
+};
+
+static void qbox_template_append_cb(GtkWidget *w, gpointer dialog)
+{
+  struct qbox_gui_pak *state;
+  const gchar *text;
+  gint target;
+  gchar *msg;
+
+  g_return_if_fail(dialog != NULL);
+
+  state = dialog_child_get(dialog, "qbox_state");
+  if (!state)
+    return;
+
+  text = g_object_get_data(G_OBJECT(w), "qbox_template_text");
+  target = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(w), "qbox_template_target"));
+  if (!text || !strlen(text))
+    return;
+
+  if (target == QBOX_TEMPLATE_PRE)
+    qbox_state_append_textblock(&state->pre_commands, state->pre_buffer,
+                                state->pre_buffer_handler, text);
+  else
+    qbox_state_append_textblock(&state->post_commands, state->post_buffer,
+                                state->post_buffer_handler, text);
+
+  msg = g_strdup_printf("Appended Qbox template: %s\n",
+                        gtk_button_get_label(GTK_BUTTON(w)));
+  gui_text_show(INFO, msg);
+  g_free(msg);
+}
+
+static GtkWidget *qbox_template_button_new(const gchar *label, const gchar *text,
+                                           gint target, gpointer dialog, GtkWidget *box)
+{
+  GtkWidget *button;
+
+  g_return_val_if_fail(label != NULL, NULL);
+  g_return_val_if_fail(text != NULL, NULL);
+  g_return_val_if_fail(box != NULL, NULL);
+
+  button = gui_button((gchar *) label, qbox_template_append_cb, dialog, box, TT);
+  g_object_set_data(G_OBJECT(button), "qbox_template_text", (gpointer) text);
+  g_object_set_data(G_OBJECT(button), "qbox_template_target", GINT_TO_POINTER(target));
+
+  return(button);
 }
 
 static const gchar *qbox_preset_name(gint preset)
@@ -1570,6 +1665,10 @@ static gint qbox_write_runtime_input(struct qbox_task_pak *job)
       fprintf(dest, "set ref_cell %s\n", job->ref_cell);
     if (job->use_vext && job->vext && strlen(job->vext))
       fprintf(dest, "set vext %s\n", job->vext);
+    if (job->use_e_field && job->e_field && strlen(job->e_field))
+      fprintf(dest, "set e_field %s\n", job->e_field);
+    if (job->use_polarization && job->polarization && strlen(job->polarization))
+      fprintf(dest, "set polarization %s\n", job->polarization);
     if (job->use_lock_cm)
       fprintf(dest, "set lock_cm ON\n");
     if (job->use_cell_lock && job->cell_lock && strlen(job->cell_lock))
@@ -1865,6 +1964,8 @@ static struct qbox_task_pak *qbox_task_new_from_dialog(gpointer dialog)
   job->ext_stress = g_strdup(state->ext_stress);
   job->ref_cell = g_strdup(state->ref_cell);
   job->vext = g_strdup(state->vext);
+  job->e_field = g_strdup(state->e_field);
+  job->polarization = g_strdup(state->polarization);
   job->iter_cmd = g_strdup(state->iter_cmd);
   job->atoms_dyn = g_strdup(state->atoms_dyn);
   job->cell_dyn = g_strdup(state->cell_dyn);
@@ -1907,6 +2008,8 @@ static struct qbox_task_pak *qbox_task_new_from_dialog(gpointer dialog)
   job->use_force_tol = state->use_force_tol;
   job->use_ref_cell = state->use_ref_cell;
   job->use_vext = state->use_vext;
+  job->use_e_field = state->use_e_field;
+  job->use_polarization = state->use_polarization;
   job->use_iter_cmd = state->use_iter_cmd;
   job->use_iter_cmd_period = state->use_iter_cmd_period;
   job->use_lock_cm = state->use_lock_cm;
@@ -2206,6 +2309,8 @@ void gui_qbox_dialog(void)
   state->ext_stress = g_strdup("0 0 0 0 0 0");
   state->ref_cell = g_strdup(NULL);
   state->vext = g_strdup(NULL);
+  state->e_field = g_strdup("0 0 0");
+  state->polarization = g_strdup("OFF");
   state->iter_cmd = g_strdup(NULL);
   state->atoms_dyn = g_strdup("CG");
   state->cell_dyn = g_strdup("SD");
@@ -2248,6 +2353,8 @@ void gui_qbox_dialog(void)
   state->use_force_tol = FALSE;
   state->use_ref_cell = FALSE;
   state->use_vext = FALSE;
+  state->use_e_field = FALSE;
+  state->use_polarization = FALSE;
   state->use_iter_cmd = FALSE;
   state->use_iter_cmd_period = FALSE;
   state->use_lock_cm = FALSE;
@@ -2363,6 +2470,12 @@ void gui_qbox_dialog(void)
   state->check_use_fermi_temp = gui_direct_check("Add set fermi_temp", &state->use_fermi_temp,
                                                  NULL, NULL, vbox);
   gui_direct_spin("fermi_temp", &state->fermi_temp, 0.0, 5000.0, 10.0, NULL, NULL, vbox);
+  state->check_use_polarization = gui_direct_check("Add set polarization", &state->use_polarization,
+                                                   NULL, NULL, vbox);
+  state->entry_polarization = gui_text_entry("polarization value", &state->polarization, TRUE, TRUE, vbox);
+  state->check_use_e_field = gui_direct_check("Add set e_field", &state->use_e_field,
+                                              NULL, NULL, vbox);
+  state->entry_e_field = gui_text_entry("e_field value", &state->e_field, TRUE, TRUE, vbox);
   state->check_use_charge_mix_coeff = gui_direct_check("Add set charge_mix_coeff", &state->use_charge_mix_coeff,
                                                        NULL, NULL, vbox);
   gui_direct_spin("charge_mix_coeff", &state->charge_mix_coeff, 0.0, 1.0, 0.05, NULL, NULL, vbox);
@@ -2517,6 +2630,38 @@ void gui_qbox_dialog(void)
   label = qbox_note_label_new("Include command file can be a relative path such as moves.i."
                               " Disable model/default blocks for full manual scripts.");
   gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
+
+  frame = gtk_frame_new("Advanced: Command Templates");
+  gtk_box_pack_start(GTK_BOX(setup_box), frame, FALSE, FALSE, 0);
+  gtk_container_set_border_width(GTK_CONTAINER(frame), PANEL_SPACING);
+  vbox = gtk_vbox_new(FALSE, PANEL_SPACING);
+  gtk_container_add(GTK_CONTAINER(frame), vbox);
+
+  label = qbox_note_label_new("These buttons append official Qbox command snippets to Post/default-override Commands."
+                              " Use them as a starting point, then edit the atom names, file names, or parameters.");
+  gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
+
+  hbox = gtk_hbox_new(FALSE, PANEL_SPACING);
+  gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 0);
+  qbox_template_button_new("Status", "status", QBOX_TEMPLATE_POST, dialog, hbox);
+  qbox_template_button_new("List Atoms", "list_atoms", QBOX_TEMPLATE_POST, dialog, hbox);
+  qbox_template_button_new("Distance", "distance atom1 atom2", QBOX_TEMPLATE_POST, dialog, hbox);
+  qbox_template_button_new("Angle", "angle atom1 atom2 atom3", QBOX_TEMPLATE_POST, dialog, hbox);
+  qbox_template_button_new("Torsion", "torsion atom1 atom2 atom3 atom4", QBOX_TEMPLATE_POST, dialog, hbox);
+
+  hbox = gtk_hbox_new(FALSE, PANEL_SPACING);
+  gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 0);
+  qbox_template_button_new("Move", "move atom1 by 0.05 0 0\nrun 0 10", QBOX_TEMPLATE_POST, dialog, hbox);
+  qbox_template_button_new("Constraint", "constraint define distance c1 atom1 atom2 2.0\nconstraint list", QBOX_TEMPLATE_POST, dialog, hbox);
+  qbox_template_button_new("Plot XYZ", "plot qbox-frame.xyz", QBOX_TEMPLATE_POST, dialog, hbox);
+  qbox_template_button_new("Plot Density", "plot -density density.cube", QBOX_TEMPLATE_POST, dialog, hbox);
+
+  hbox = gtk_hbox_new(FALSE, PANEL_SPACING);
+  gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 0);
+  qbox_template_button_new("Plot WF", "plot -wf 1 orbital_1.cube", QBOX_TEMPLATE_POST, dialog, hbox);
+  qbox_template_button_new("MLWF", "compute_mlwf", QBOX_TEMPLATE_POST, dialog, hbox);
+  qbox_template_button_new("Spectrum", "spectrum 0.05 spectrum.dat", QBOX_TEMPLATE_POST, dialog, hbox);
+  qbox_template_button_new("Response", "# response usually needs polarization enabled\nresponse 0.001 20 4", QBOX_TEMPLATE_POST, dialog, hbox);
 
   frame = gtk_frame_new("Advanced: Pre-default Commands");
   gtk_box_pack_start(GTK_BOX(setup_box), frame, TRUE, TRUE, 0);
