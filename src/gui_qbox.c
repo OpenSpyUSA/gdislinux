@@ -384,6 +384,107 @@ static gchar *qbox_resolve_executable(const gchar *value)
   return(g_find_program_in_path(value));
 }
 
+static gchar *qbox_find_local_named_executable(const gchar *name)
+{
+  gchar *path;
+  gchar *project_root;
+
+  if (!name || !strlen(name))
+    return(NULL);
+
+  if (g_path_is_absolute(name) || strchr(name, G_DIR_SEPARATOR))
+    return(NULL);
+
+  if (sysenv.gdis_path && strlen(sysenv.gdis_path))
+    {
+    path = g_build_filename(sysenv.gdis_path, name, NULL);
+    if (g_file_test(path, G_FILE_TEST_IS_EXECUTABLE))
+      return(path);
+    g_free(path);
+
+    project_root = g_path_get_dirname(sysenv.gdis_path);
+    path = g_build_filename(project_root, "bin", name, NULL);
+    g_free(project_root);
+    if (g_file_test(path, G_FILE_TEST_IS_EXECUTABLE))
+      return(path);
+    g_free(path);
+    }
+
+  if (sysenv.cwd && strlen(sysenv.cwd))
+    {
+    path = g_build_filename(sysenv.cwd, "bin", name, NULL);
+    if (g_file_test(path, G_FILE_TEST_IS_EXECUTABLE))
+      return(path);
+    g_free(path);
+    }
+
+  return(NULL);
+}
+
+static gchar *qbox_detect_executable(void)
+{
+  gchar *path;
+
+  path = qbox_resolve_executable(sysenv.qbox_path);
+  if (path)
+    return(path);
+
+  if (sysenv.qbox_exe && strlen(sysenv.qbox_exe))
+    {
+    path = qbox_find_local_named_executable(sysenv.qbox_exe);
+    if (path)
+      return(path);
+
+    path = qbox_resolve_executable(sysenv.qbox_exe);
+    if (path)
+      return(path);
+    }
+
+  if (!sysenv.qbox_exe || g_ascii_strcasecmp(sysenv.qbox_exe, "qbox") != 0)
+    {
+    path = qbox_find_local_named_executable("qbox");
+    if (path)
+      return(path);
+
+    path = qbox_resolve_executable("qbox");
+    if (path)
+      return(path);
+    }
+
+  if (!sysenv.qbox_exe || g_ascii_strcasecmp(sysenv.qbox_exe, "qb") != 0)
+    {
+    path = qbox_find_local_named_executable("qb");
+    if (path)
+      return(path);
+
+    path = qbox_resolve_executable("qb");
+    if (path)
+      return(path);
+    }
+
+  return(NULL);
+}
+
+static gboolean qbox_refresh_executable_path(void)
+{
+  gchar *resolved;
+
+  resolved = qbox_detect_executable();
+  if (!resolved)
+    return(FALSE);
+
+  if (g_strcmp0(sysenv.qbox_path, resolved) != 0)
+    {
+    g_free(sysenv.qbox_path);
+    sysenv.qbox_path = resolved;
+    write_gdisrc();
+    }
+  else
+    g_free(resolved);
+
+  return(TRUE);
+}
+
 static gchar *qbox_model_stem(struct model_pak *model)
 {
   if (model && model->basename && strlen(model->basename))
@@ -2246,9 +2347,12 @@ static void qbox_run_cb(GtkWidget *w, gpointer dialog)
 
   g_return_if_fail(dialog != NULL);
 
-  if (!sysenv.qbox_path || !g_file_test(sysenv.qbox_path, G_FILE_TEST_IS_EXECUTABLE))
+  if (!qbox_refresh_executable_path())
     {
-    gui_text_show(ERROR, "Qbox executable was not found. Set it in View > Executable paths...\n");
+    gui_text_show(ERROR,
+                  "Qbox executable was not found.\n"
+                  "Checked configured path plus repo/system defaults: bin/qbox, bin/qb, qbox, qb.\n"
+                  "Run ./install-qbox-local.sh in this tree or set it in View > Executable paths...\n");
     return;
     }
 
@@ -2358,6 +2462,8 @@ void gui_qbox_dialog(void)
   dialog = dialog_request(QBOX, "Qbox", NULL, NULL, model);
   if (!dialog)
     return;
+
+  qbox_refresh_executable_path();
 
   window = dialog_window(dialog);
   gtk_window_set_default_size(GTK_WINDOW(window), 900, 720);

@@ -319,6 +319,18 @@ After that, a working local smoke round-trip is:
 ./run-qbox-roundtrip.sh --open --gtk4
 ```
 
+For a fresh clone, GDIS now auto-detects Qbox from the usual local and system
+locations in this order:
+
+- configured `qbox_path`
+- repo/local `bin/qbox`
+- repo/local `bin/qb`
+- system `qbox`
+- system `qb`
+
+That means a user who has already run `./install-qbox-local.sh` should not need
+to fill in `View > Executable paths > Qbox` manually.
+
 The Qbox writer emits `species` lines that point to per-element XML
 pseudopotentials. In the GUI, `Use Demo Potentials` now auto-resolves files
 from bundled legacy demos plus `external/pseudos/qbox-xml-oncv-sr` (when
