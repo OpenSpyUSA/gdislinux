@@ -153,6 +153,7 @@ struct qbox_gui_pak
   gdouble helper_partial_charge_radius;
   gdouble helper_partial_charge_spin;
   gint helper_plot_use_spin;
+  gint helper_partial_charge_use_spin;
   GtkWidget *entry_xc;
   GtkWidget *entry_scf_tol;
   GtkWidget *entry_wf_dyn;
@@ -1414,6 +1415,7 @@ static void qbox_append_response_cb(GtkWidget *w, gpointer dialog)
   gchar *cube;
   GString *command;
   GString *note;
+  gdouble amplitude;
   gint nitscf;
   gint nite;
 
@@ -1434,6 +1436,9 @@ static void qbox_append_response_cb(GtkWidget *w, gpointer dialog)
   if (nitscf < 1)
     nitscf = 1;
   nite = (gint) (state->helper_response_nite + 0.5);
+  amplitude = state->helper_response_amplitude;
+  if (amplitude <= 0.0)
+    amplitude = 0.001;
 
   command = g_string_new("response");
   note = g_string_new(NULL);
@@ -1454,7 +1459,7 @@ static void qbox_append_response_cb(GtkWidget *w, gpointer dialog)
   if (g_ascii_strcasecmp(mode, "IPA") == 0)
     g_string_append(command, " -IPA");
 
-  g_string_append_printf(command, " %.6g %d", state->helper_response_amplitude, nitscf);
+  g_string_append_printf(command, " %.6g %d", amplitude, nitscf);
   if (nite > 0)
     g_string_append_printf(command, " %d", nite);
 
@@ -1667,6 +1672,8 @@ static void qbox_apply_preset(struct qbox_gui_pak *state, gint preset)
   qbox_state_set_bool(&state->write_default_block, TRUE, state->check_write_default_block);
   qbox_state_set_bool(&state->auto_save_xml_cmd, TRUE, state->check_auto_save_xml_cmd);
   qbox_state_set_bool(&state->auto_quit, TRUE, state->check_auto_quit);
+  qbox_state_set_bool(&state->use_wf_diag, FALSE, state->check_use_wf_diag);
+  qbox_state_set_string(&state->wf_diag, "F", state->entry_wf_diag);
   qbox_state_set_string(&state->include_cmd_file, NULL, state->entry_include_cmd_file);
   qbox_state_set_textblock(&state->pre_commands, state->pre_buffer, state->pre_buffer_handler, NULL);
   qbox_state_set_textblock(&state->post_commands, state->post_buffer, state->post_buffer_handler, NULL);
@@ -1709,6 +1716,8 @@ static void qbox_apply_preset(struct qbox_gui_pak *state, gint preset)
       break;
 
     case QBOX_PRESET_HOMO_LUMO:
+      qbox_state_set_bool(&state->use_wf_diag, TRUE, state->check_use_wf_diag);
+      qbox_state_set_string(&state->wf_diag, "EIGVAL", state->entry_wf_diag);
       qbox_state_set_textblock(&state->pre_commands, state->pre_buffer, state->pre_buffer_handler,
                                "set scf_tol 1e-8\n"
                                "set nempty 1");
@@ -2128,7 +2137,7 @@ static gint qbox_write_runtime_input(struct qbox_task_pak *job)
     fprintf(dest, "set xc %s\n", job->xc && strlen(job->xc) ? job->xc : "PBE");
     fprintf(dest, "set scf_tol %s\n",
             job->scf_tol && strlen(job->scf_tol) ? job->scf_tol : "1e-3");
-  if (job->randomize_wf)
+    if (job->randomize_wf)
       fprintf(dest, "randomize_wf\n");
     fprintf(dest, "set wf_dyn %s\n", job->wf_dyn && strlen(job->wf_dyn) ? job->wf_dyn : "PSDA");
     if (job->use_wf_diag && job->wf_diag && strlen(job->wf_diag))
