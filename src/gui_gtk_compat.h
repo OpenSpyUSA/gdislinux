@@ -1142,6 +1142,7 @@ static inline void gdis_gtk_item_factory_debug_menu_state(GObject *object,
 {
 GtkMenuButton *menu_button;
 GtkPopover *popover;
+gboolean active;
 
 (void) pspec;
 
@@ -1150,10 +1151,13 @@ if (!g_getenv("GDIS_GTK4_MENU_DEBUG"))
 
 menu_button = GTK_MENU_BUTTON(object);
 popover = gtk_menu_button_get_popover(menu_button);
+active = FALSE;
+if (popover)
+  active = gtk_widget_get_visible(GTK_WIDGET(popover));
 
 g_printerr("GDIS GTK4 menu debug: %s active=%d popover=%p\n",
            (const gchar *) data,
-           gtk_menu_button_get_active(menu_button),
+           active,
            popover);
 }
 

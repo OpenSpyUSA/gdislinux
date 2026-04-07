@@ -50,6 +50,11 @@ struct qbox_gui_pak
   gchar *xc;
   gchar *scf_tol;
   gchar *wf_dyn;
+  gchar *cell_lock;
+  gchar *ext_stress;
+  gchar *ref_cell;
+  gchar *vext;
+  gchar *iter_cmd;
   gchar *atoms_dyn;
   gchar *cell_dyn;
   gchar *thermostat;
@@ -57,6 +62,12 @@ struct qbox_gui_pak
   gdouble ecut;
   gdouble ecutprec;
   gdouble dt;
+  gdouble fermi_temp;
+  gdouble charge_mix_coeff;
+  gdouble charge_mix_ndim;
+  gdouble charge_mix_rcut;
+  gdouble cell_mass;
+  gdouble emass;
   gdouble randomize_v;
   gdouble force_tol;
   gdouble stress_tol;
@@ -67,19 +78,39 @@ struct qbox_gui_pak
   gdouble omp_threads;
   gint randomize_wf;
   gdouble nempty;
+  gdouble nspin;
+  gdouble delta_spin;
+  gdouble net_charge;
   gint use_mpi;
+  gint use_nspin;
+  gint use_delta_spin;
+  gint use_net_charge;
   gint use_atoms_dyn;
   gint use_dt;
+  gint use_fermi_temp;
+  gint use_charge_mix_coeff;
+  gint use_charge_mix_ndim;
+  gint use_charge_mix_rcut;
   gint use_randomize_v;
   gint use_nempty;
   gint use_force_tol;
+  gint use_ref_cell;
+  gint use_vext;
+  gint use_iter_cmd;
+  gint use_iter_cmd_period;
+  gint use_lock_cm;
+  gint use_cell_lock;
+  gint use_cell_mass;
   gint use_cell_dyn;
   gint use_stress;
+  gint use_ext_stress;
   gint use_stress_tol;
+  gint use_emass;
   gint use_thermostat;
   gint use_th_temp;
   gint use_th_time;
   gint use_th_width;
+  gdouble iter_cmd_period;
   gint auto_convert_xyz;
   gint load_xyz_after_convert;
   gint open_animation_after_xyz;
@@ -99,6 +130,11 @@ struct qbox_gui_pak
   GtkWidget *entry_xc;
   GtkWidget *entry_scf_tol;
   GtkWidget *entry_wf_dyn;
+  GtkWidget *entry_cell_lock;
+  GtkWidget *entry_ext_stress;
+  GtkWidget *entry_ref_cell;
+  GtkWidget *entry_vext;
+  GtkWidget *entry_iter_cmd;
   GtkWidget *entry_atoms_dyn;
   GtkWidget *entry_cell_dyn;
   GtkWidget *entry_thermostat;
@@ -106,14 +142,30 @@ struct qbox_gui_pak
   GtkWidget *entry_run_cmd;
   GtkWidget *entry_include_cmd_file;
   GtkWidget *check_randomize_wf;
+  GtkWidget *check_use_nspin;
+  GtkWidget *check_use_delta_spin;
+  GtkWidget *check_use_net_charge;
   GtkWidget *check_use_atoms_dyn;
   GtkWidget *check_use_dt;
+  GtkWidget *check_use_fermi_temp;
+  GtkWidget *check_use_charge_mix_coeff;
+  GtkWidget *check_use_charge_mix_ndim;
+  GtkWidget *check_use_charge_mix_rcut;
   GtkWidget *check_use_randomize_v;
   GtkWidget *check_use_nempty;
   GtkWidget *check_use_force_tol;
+  GtkWidget *check_use_ref_cell;
+  GtkWidget *check_use_vext;
+  GtkWidget *check_use_iter_cmd;
+  GtkWidget *check_use_iter_cmd_period;
+  GtkWidget *check_use_lock_cm;
+  GtkWidget *check_use_cell_lock;
+  GtkWidget *check_use_cell_mass;
   GtkWidget *check_use_cell_dyn;
   GtkWidget *check_use_stress;
+  GtkWidget *check_use_ext_stress;
   GtkWidget *check_use_stress_tol;
+  GtkWidget *check_use_emass;
   GtkWidget *check_use_thermostat;
   GtkWidget *check_use_th_temp;
   GtkWidget *check_use_th_time;
@@ -142,6 +194,11 @@ struct qbox_task_pak
   gchar *xc;
   gchar *scf_tol;
   gchar *wf_dyn;
+  gchar *cell_lock;
+  gchar *ext_stress;
+  gchar *ref_cell;
+  gchar *vext;
+  gchar *iter_cmd;
   gchar *atoms_dyn;
   gchar *cell_dyn;
   gchar *thermostat;
@@ -153,6 +210,12 @@ struct qbox_task_pak
   gdouble ecut;
   gdouble ecutprec;
   gdouble dt;
+  gdouble fermi_temp;
+  gdouble charge_mix_coeff;
+  gdouble charge_mix_ndim;
+  gdouble charge_mix_rcut;
+  gdouble cell_mass;
+  gdouble emass;
   gdouble randomize_v;
   gdouble force_tol;
   gdouble stress_tol;
@@ -163,19 +226,39 @@ struct qbox_task_pak
   gdouble omp_threads;
   gint randomize_wf;
   gdouble nempty;
+  gdouble nspin;
+  gdouble delta_spin;
+  gdouble net_charge;
   gint use_mpi;
+  gint use_nspin;
+  gint use_delta_spin;
+  gint use_net_charge;
   gint use_atoms_dyn;
   gint use_dt;
+  gint use_fermi_temp;
+  gint use_charge_mix_coeff;
+  gint use_charge_mix_ndim;
+  gint use_charge_mix_rcut;
   gint use_randomize_v;
   gint use_nempty;
   gint use_force_tol;
+  gint use_ref_cell;
+  gint use_vext;
+  gint use_iter_cmd;
+  gint use_iter_cmd_period;
+  gint use_lock_cm;
+  gint use_cell_lock;
+  gint use_cell_mass;
   gint use_cell_dyn;
   gint use_stress;
+  gint use_ext_stress;
   gint use_stress_tol;
+  gint use_emass;
   gint use_thermostat;
   gint use_th_temp;
   gint use_th_time;
   gint use_th_width;
+  gdouble iter_cmd_period;
   gint auto_convert_xyz;
   gint load_xyz_after_convert;
   gint open_animation_after_xyz;
@@ -663,6 +746,11 @@ static void qbox_gui_state_free(struct qbox_gui_pak *state)
   g_free(state->xc);
   g_free(state->scf_tol);
   g_free(state->wf_dyn);
+  g_free(state->cell_lock);
+  g_free(state->ext_stress);
+  g_free(state->ref_cell);
+  g_free(state->vext);
+  g_free(state->iter_cmd);
   g_free(state->atoms_dyn);
   g_free(state->cell_dyn);
   g_free(state->thermostat);
@@ -697,6 +785,11 @@ static void qbox_task_free(struct qbox_task_pak *job)
   g_free(job->xc);
   g_free(job->scf_tol);
   g_free(job->wf_dyn);
+  g_free(job->cell_lock);
+  g_free(job->ext_stress);
+  g_free(job->ref_cell);
+  g_free(job->vext);
+  g_free(job->iter_cmd);
   g_free(job->atoms_dyn);
   g_free(job->cell_dyn);
   g_free(job->thermostat);
@@ -1417,6 +1510,12 @@ static gint qbox_write_runtime_input(struct qbox_task_pak *job)
 
   if (job->write_default_block)
     {
+    gint nspin_value;
+    gint delta_spin_value;
+    gint net_charge_value;
+    gint nempty_value;
+    gint charge_mix_ndim_value;
+
     fprintf(dest, "set ecut %.1f\n", job->ecut);
     fprintf(dest, "set xc %s\n", job->xc && strlen(job->xc) ? job->xc : "PBE");
     fprintf(dest, "set scf_tol %s\n",
@@ -1424,19 +1523,65 @@ static gint qbox_write_runtime_input(struct qbox_task_pak *job)
     if (job->randomize_wf)
       fprintf(dest, "randomize_wf\n");
     fprintf(dest, "set wf_dyn %s\n", job->wf_dyn && strlen(job->wf_dyn) ? job->wf_dyn : "PSDA");
+    if (job->use_nspin)
+      {
+      nspin_value = (gint) job->nspin;
+      if (nspin_value < 1)
+        nspin_value = 1;
+      if (nspin_value > 2)
+        nspin_value = 2;
+      fprintf(dest, "set nspin %d\n", nspin_value);
+      }
+    if (job->use_delta_spin)
+      {
+      delta_spin_value = (gint) job->delta_spin;
+      if (delta_spin_value < 0)
+        delta_spin_value = 0;
+      fprintf(dest, "set delta_spin %d\n", delta_spin_value);
+      }
+    if (job->use_net_charge)
+      {
+      net_charge_value = (gint) job->net_charge;
+      fprintf(dest, "set net_charge %d\n", net_charge_value);
+      }
     if (job->use_nempty)
       {
-      gint nempty_value = (gint) job->nempty;
+      nempty_value = (gint) job->nempty;
       if (nempty_value < 0)
         nempty_value = 0;
       fprintf(dest, "set nempty %d\n", nempty_value);
       }
+    if (job->use_fermi_temp)
+      fprintf(dest, "set fermi_temp %.6g\n", job->fermi_temp);
+    if (job->use_charge_mix_coeff)
+      fprintf(dest, "set charge_mix_coeff %.6g\n", job->charge_mix_coeff);
+    if (job->use_charge_mix_ndim)
+      {
+      charge_mix_ndim_value = (gint) job->charge_mix_ndim;
+      if (charge_mix_ndim_value < 0)
+        charge_mix_ndim_value = 0;
+      fprintf(dest, "set charge_mix_ndim %d\n", charge_mix_ndim_value);
+      }
+    if (job->use_charge_mix_rcut)
+      fprintf(dest, "set charge_mix_rcut %.6g\n", job->charge_mix_rcut);
     if (job->use_force_tol)
       fprintf(dest, "set force_tol %.6g\n", job->force_tol);
+    if (job->use_ref_cell && job->ref_cell && strlen(job->ref_cell))
+      fprintf(dest, "set ref_cell %s\n", job->ref_cell);
+    if (job->use_vext && job->vext && strlen(job->vext))
+      fprintf(dest, "set vext %s\n", job->vext);
+    if (job->use_lock_cm)
+      fprintf(dest, "set lock_cm ON\n");
+    if (job->use_cell_lock && job->cell_lock && strlen(job->cell_lock))
+      fprintf(dest, "set cell_lock %s\n", job->cell_lock);
+    if (job->use_cell_mass)
+      fprintf(dest, "set cell_mass %.6g\n", job->cell_mass);
     if (job->use_cell_dyn && job->cell_dyn && strlen(job->cell_dyn))
       fprintf(dest, "set cell_dyn %s\n", job->cell_dyn);
     if (job->use_stress)
       fprintf(dest, "set stress ON\n");
+    if (job->use_ext_stress && job->ext_stress && strlen(job->ext_stress))
+      fprintf(dest, "set ext_stress %s\n", job->ext_stress);
     if (job->use_stress_tol)
       fprintf(dest, "set stress_tol %.6g\n", job->stress_tol);
     if (job->use_thermostat && job->thermostat && strlen(job->thermostat))
@@ -1450,10 +1595,21 @@ static gint qbox_write_runtime_input(struct qbox_task_pak *job)
     fprintf(dest, "set ecutprec %.1f\n", job->ecutprec);
     if (job->use_atoms_dyn && job->atoms_dyn && strlen(job->atoms_dyn))
       fprintf(dest, "set atoms_dyn %s\n", job->atoms_dyn);
+    if (job->use_emass)
+      fprintf(dest, "set emass %.6g\n", job->emass);
     if (job->use_dt)
       fprintf(dest, "set dt %.6g\n", job->dt);
     if (job->use_randomize_v)
       fprintf(dest, "randomize_v %.6g\n", job->randomize_v);
+    if (job->use_iter_cmd && job->iter_cmd && strlen(job->iter_cmd))
+      fprintf(dest, "set iter_cmd %s\n", job->iter_cmd);
+    if (job->use_iter_cmd_period)
+      {
+      gint iter_cmd_period_value = (gint) job->iter_cmd_period;
+      if (iter_cmd_period_value < 1)
+        iter_cmd_period_value = 1;
+      fprintf(dest, "set iter_cmd_period %d\n", iter_cmd_period_value);
+      }
     qbox_write_line(dest, job->run_cmd);
     }
 
@@ -1705,6 +1861,11 @@ static struct qbox_task_pak *qbox_task_new_from_dialog(gpointer dialog)
   job->xc = g_strdup(state->xc);
   job->scf_tol = g_strdup(state->scf_tol);
   job->wf_dyn = g_strdup(state->wf_dyn);
+  job->cell_lock = g_strdup(state->cell_lock);
+  job->ext_stress = g_strdup(state->ext_stress);
+  job->ref_cell = g_strdup(state->ref_cell);
+  job->vext = g_strdup(state->vext);
+  job->iter_cmd = g_strdup(state->iter_cmd);
   job->atoms_dyn = g_strdup(state->atoms_dyn);
   job->cell_dyn = g_strdup(state->cell_dyn);
   job->thermostat = g_strdup(state->thermostat);
@@ -1712,6 +1873,12 @@ static struct qbox_task_pak *qbox_task_new_from_dialog(gpointer dialog)
   job->ecut = state->ecut;
   job->ecutprec = state->ecutprec;
   job->dt = state->dt;
+  job->fermi_temp = state->fermi_temp;
+  job->charge_mix_coeff = state->charge_mix_coeff;
+  job->charge_mix_ndim = state->charge_mix_ndim;
+  job->charge_mix_rcut = state->charge_mix_rcut;
+  job->cell_mass = state->cell_mass;
+  job->emass = state->emass;
   job->randomize_v = state->randomize_v;
   job->force_tol = state->force_tol;
   job->stress_tol = state->stress_tol;
@@ -1722,19 +1889,39 @@ static struct qbox_task_pak *qbox_task_new_from_dialog(gpointer dialog)
   job->omp_threads = state->omp_threads;
   job->randomize_wf = state->randomize_wf;
   job->nempty = state->nempty;
+  job->nspin = state->nspin;
+  job->delta_spin = state->delta_spin;
+  job->net_charge = state->net_charge;
   job->use_mpi = state->use_mpi;
+  job->use_nspin = state->use_nspin;
+  job->use_delta_spin = state->use_delta_spin;
+  job->use_net_charge = state->use_net_charge;
   job->use_atoms_dyn = state->use_atoms_dyn;
   job->use_dt = state->use_dt;
+  job->use_fermi_temp = state->use_fermi_temp;
+  job->use_charge_mix_coeff = state->use_charge_mix_coeff;
+  job->use_charge_mix_ndim = state->use_charge_mix_ndim;
+  job->use_charge_mix_rcut = state->use_charge_mix_rcut;
   job->use_randomize_v = state->use_randomize_v;
   job->use_nempty = state->use_nempty;
   job->use_force_tol = state->use_force_tol;
+  job->use_ref_cell = state->use_ref_cell;
+  job->use_vext = state->use_vext;
+  job->use_iter_cmd = state->use_iter_cmd;
+  job->use_iter_cmd_period = state->use_iter_cmd_period;
+  job->use_lock_cm = state->use_lock_cm;
+  job->use_cell_lock = state->use_cell_lock;
+  job->use_cell_mass = state->use_cell_mass;
   job->use_cell_dyn = state->use_cell_dyn;
   job->use_stress = state->use_stress;
+  job->use_ext_stress = state->use_ext_stress;
   job->use_stress_tol = state->use_stress_tol;
+  job->use_emass = state->use_emass;
   job->use_thermostat = state->use_thermostat;
   job->use_th_temp = state->use_th_temp;
   job->use_th_time = state->use_th_time;
   job->use_th_width = state->use_th_width;
+  job->iter_cmd_period = state->iter_cmd_period;
   job->auto_convert_xyz = state->auto_convert_xyz;
   job->load_xyz_after_convert = state->load_xyz_after_convert;
   job->open_animation_after_xyz = state->open_animation_after_xyz;
@@ -1936,6 +2123,24 @@ static void qbox_run_cb(GtkWidget *w, gpointer dialog)
   task_new("Qbox", &exec_qbox_task, job, &cleanup_qbox_task, job, job->model);
 }
 
+static GtkWidget *qbox_setup_section_new(GtkWidget *parent, const gchar *title)
+{
+  GtkWidget *frame;
+  GtkWidget *vbox;
+
+  g_return_val_if_fail(parent != NULL, NULL);
+  g_return_val_if_fail(title != NULL, NULL);
+
+  frame = gtk_frame_new(title);
+  gtk_box_pack_start(GTK_BOX(parent), frame, FALSE, FALSE, 0);
+  gtk_container_set_border_width(GTK_CONTAINER(frame), PANEL_SPACING);
+
+  vbox = gtk_vbox_new(FALSE, PANEL_SPACING);
+  gtk_container_add(GTK_CONTAINER(frame), vbox);
+
+  return(vbox);
+}
+
 static GtkWidget *qbox_note_label_new(const gchar *text)
 {
   GtkWidget *label;
@@ -1959,6 +2164,7 @@ void gui_qbox_dialog(void)
   GtkWidget *page;
   GtkWidget *frame;
   GtkWidget *vbox;
+  GtkWidget *run_box;
   GtkWidget *setup_box;
   GtkWidget *hbox;
   GtkWidget *swin;
@@ -1996,6 +2202,11 @@ void gui_qbox_dialog(void)
   state->xc = g_strdup("PBE");
   state->scf_tol = g_strdup("1e-3");
   state->wf_dyn = g_strdup("PSDA");
+  state->cell_lock = g_strdup("OFF");
+  state->ext_stress = g_strdup("0 0 0 0 0 0");
+  state->ref_cell = g_strdup(NULL);
+  state->vext = g_strdup(NULL);
+  state->iter_cmd = g_strdup(NULL);
   state->atoms_dyn = g_strdup("CG");
   state->cell_dyn = g_strdup("SD");
   state->thermostat = g_strdup("SCALING");
@@ -2003,6 +2214,12 @@ void gui_qbox_dialog(void)
   state->ecut = 15.0;
   state->ecutprec = 5.0;
   state->dt = 10.0;
+  state->fermi_temp = 300.0;
+  state->charge_mix_coeff = 0.5;
+  state->charge_mix_ndim = 8.0;
+  state->charge_mix_rcut = 0.0;
+  state->cell_mass = 500.0;
+  state->emass = 400.0;
   state->randomize_v = 400.0;
   state->force_tol = 1.0e-4;
   state->stress_tol = 1.0e-5;
@@ -2013,19 +2230,39 @@ void gui_qbox_dialog(void)
   state->omp_threads = 1.0;
   state->randomize_wf = TRUE;
   state->nempty = 1;
+  state->nspin = 1.0;
+  state->delta_spin = 0.0;
+  state->net_charge = 0.0;
   state->use_mpi = FALSE;
+  state->use_nspin = FALSE;
+  state->use_delta_spin = FALSE;
+  state->use_net_charge = FALSE;
   state->use_atoms_dyn = TRUE;
   state->use_dt = FALSE;
+  state->use_fermi_temp = FALSE;
+  state->use_charge_mix_coeff = FALSE;
+  state->use_charge_mix_ndim = FALSE;
+  state->use_charge_mix_rcut = FALSE;
   state->use_randomize_v = FALSE;
   state->use_nempty = FALSE;
   state->use_force_tol = FALSE;
+  state->use_ref_cell = FALSE;
+  state->use_vext = FALSE;
+  state->use_iter_cmd = FALSE;
+  state->use_iter_cmd_period = FALSE;
+  state->use_lock_cm = FALSE;
+  state->use_cell_lock = FALSE;
+  state->use_cell_mass = FALSE;
   state->use_cell_dyn = FALSE;
   state->use_stress = FALSE;
+  state->use_ext_stress = FALSE;
   state->use_stress_tol = FALSE;
+  state->use_emass = FALSE;
   state->use_thermostat = FALSE;
   state->use_th_temp = FALSE;
   state->use_th_time = FALSE;
   state->use_th_width = FALSE;
+  state->iter_cmd_period = 1.0;
   state->auto_convert_xyz = TRUE;
   state->load_xyz_after_convert = TRUE;
   state->open_animation_after_xyz = TRUE;
@@ -2092,35 +2329,92 @@ void gui_qbox_dialog(void)
   frame = gtk_frame_new("Run Settings");
   gtk_box_pack_start(GTK_BOX(setup_box), frame, FALSE, FALSE, 0);
   gtk_container_set_border_width(GTK_CONTAINER(frame), PANEL_SPACING);
-  vbox = gtk_vbox_new(FALSE, PANEL_SPACING);
-  gtk_container_add(GTK_CONTAINER(frame), vbox);
+  run_box = gtk_vbox_new(FALSE, PANEL_SPACING);
+  gtk_container_add(GTK_CONTAINER(frame), run_box);
 
+  vbox = qbox_setup_section_new(run_box, "Resources");
+  gui_direct_check("Use MPI launcher", &state->use_mpi, NULL, NULL, vbox);
+  gui_text_entry("MPI launcher", &state->mpirun_path, TRUE, TRUE, vbox);
+  gui_direct_spin("MPI ranks", &state->mpi_ranks, 1.0, 512.0, 1.0, NULL, NULL, vbox);
+  gui_direct_spin("OpenMP threads", &state->omp_threads, 1.0, 256.0, 1.0, NULL, NULL, vbox);
+  state->entry_run_timeout = gui_text_entry("Run timeout", &state->run_timeout, TRUE, TRUE, vbox);
+  state->entry_run_cmd = gui_text_entry("Default run command", &state->run_cmd, TRUE, TRUE, vbox);
+
+  vbox = qbox_setup_section_new(run_box, "Electronic");
   gui_direct_spin("Ecut", &state->ecut, 5.0, 300.0, 5.0, NULL, NULL, vbox);
   gui_direct_spin("Ecut precision", &state->ecutprec, 1.0, 40.0, 1.0, NULL, NULL, vbox);
   state->entry_xc = gui_text_entry("XC", &state->xc, TRUE, TRUE, vbox);
   state->entry_scf_tol = gui_text_entry("SCF tol", &state->scf_tol, TRUE, TRUE, vbox);
   state->entry_wf_dyn = gui_text_entry("WF dyn", &state->wf_dyn, TRUE, TRUE, vbox);
-  gui_direct_check("Use MPI launcher", &state->use_mpi, NULL, NULL, vbox);
-  gui_text_entry("MPI launcher", &state->mpirun_path, TRUE, TRUE, vbox);
-  gui_direct_spin("MPI ranks", &state->mpi_ranks, 1.0, 512.0, 1.0, NULL, NULL, vbox);
-  gui_direct_spin("OpenMP threads", &state->omp_threads, 1.0, 256.0, 1.0, NULL, NULL, vbox);
+  state->check_randomize_wf = gui_direct_check("Randomize wavefunction", &state->randomize_wf,
+                                               NULL, NULL, vbox);
+  state->check_use_nspin = gui_direct_check("Add set nspin", &state->use_nspin,
+                                            NULL, NULL, vbox);
+  gui_direct_spin("nspin", &state->nspin, 1.0, 2.0, 1.0, NULL, NULL, vbox);
+  state->check_use_delta_spin = gui_direct_check("Add set delta_spin", &state->use_delta_spin,
+                                                 NULL, NULL, vbox);
+  gui_direct_spin("delta_spin", &state->delta_spin, 0.0, 64.0, 1.0, NULL, NULL, vbox);
+  state->check_use_net_charge = gui_direct_check("Add set net_charge", &state->use_net_charge,
+                                                 NULL, NULL, vbox);
+  gui_direct_spin("net_charge", &state->net_charge, -20.0, 20.0, 1.0, NULL, NULL, vbox);
   state->check_use_nempty = gui_direct_check("Add set nempty", &state->use_nempty,
                                              NULL, NULL, vbox);
   gui_direct_spin("nempty", &state->nempty, 0.0, 200.0, 1.0, NULL, NULL, vbox);
+  state->check_use_fermi_temp = gui_direct_check("Add set fermi_temp", &state->use_fermi_temp,
+                                                 NULL, NULL, vbox);
+  gui_direct_spin("fermi_temp", &state->fermi_temp, 0.0, 5000.0, 10.0, NULL, NULL, vbox);
+  state->check_use_charge_mix_coeff = gui_direct_check("Add set charge_mix_coeff", &state->use_charge_mix_coeff,
+                                                       NULL, NULL, vbox);
+  gui_direct_spin("charge_mix_coeff", &state->charge_mix_coeff, 0.0, 1.0, 0.05, NULL, NULL, vbox);
+  state->check_use_charge_mix_ndim = gui_direct_check("Add set charge_mix_ndim", &state->use_charge_mix_ndim,
+                                                      NULL, NULL, vbox);
+  gui_direct_spin("charge_mix_ndim", &state->charge_mix_ndim, 0.0, 40.0, 1.0, NULL, NULL, vbox);
+  state->check_use_charge_mix_rcut = gui_direct_check("Add set charge_mix_rcut", &state->use_charge_mix_rcut,
+                                                      NULL, NULL, vbox);
+  gui_direct_spin("charge_mix_rcut", &state->charge_mix_rcut, 0.0, 50.0, 0.25, NULL, NULL, vbox);
+  state->check_use_emass = gui_direct_check("Add set emass", &state->use_emass,
+                                            NULL, NULL, vbox);
+  gui_direct_spin("emass", &state->emass, 0.0, 5000.0, 10.0, NULL, NULL, vbox);
+
+  vbox = qbox_setup_section_new(run_box, "Cell And Stress");
+  state->check_use_ref_cell = gui_direct_check("Add set ref_cell", &state->use_ref_cell,
+                                               NULL, NULL, vbox);
+  state->entry_ref_cell = gui_text_entry("ref_cell value", &state->ref_cell, TRUE, TRUE, vbox);
+  state->check_use_vext = gui_direct_check("Add set vext", &state->use_vext,
+                                           NULL, NULL, vbox);
+  state->entry_vext = gui_text_entry("vext value", &state->vext, TRUE, TRUE, vbox);
+  state->check_use_lock_cm = gui_direct_check("Add set lock_cm ON", &state->use_lock_cm,
+                                              NULL, NULL, vbox);
+  state->check_use_cell_lock = gui_direct_check("Add set cell_lock", &state->use_cell_lock,
+                                                NULL, NULL, vbox);
+  state->entry_cell_lock = gui_text_entry("cell_lock value", &state->cell_lock, TRUE, TRUE, vbox);
+  state->check_use_cell_mass = gui_direct_check("Add set cell_mass", &state->use_cell_mass,
+                                                NULL, NULL, vbox);
+  gui_direct_spin("cell_mass", &state->cell_mass, 0.0, 100000.0, 10.0, NULL, NULL, vbox);
+  state->check_use_cell_dyn = gui_direct_check("Add set cell_dyn", &state->use_cell_dyn,
+                                               NULL, NULL, vbox);
+  state->entry_cell_dyn = gui_text_entry("cell_dyn value", &state->cell_dyn, TRUE, TRUE, vbox);
+  state->check_use_stress = gui_direct_check("Add set stress ON", &state->use_stress,
+                                             NULL, NULL, vbox);
+  state->check_use_ext_stress = gui_direct_check("Add set ext_stress", &state->use_ext_stress,
+                                                 NULL, NULL, vbox);
+  state->entry_ext_stress = gui_text_entry("ext_stress value", &state->ext_stress, TRUE, TRUE, vbox);
+  state->check_use_stress_tol = gui_direct_check("Add set stress_tol", &state->use_stress_tol,
+                                                 NULL, NULL, vbox);
+  gui_direct_spin("stress_tol", &state->stress_tol, 0.0, 1.0, 0.00001, NULL, NULL, vbox);
+
+  vbox = qbox_setup_section_new(run_box, "Dynamics And Thermostat");
   state->check_use_force_tol = gui_direct_check("Add set force_tol", &state->use_force_tol,
                                                 NULL, NULL, vbox);
   gui_direct_spin("force_tol", &state->force_tol, 0.0, 1.0, 0.0001, NULL, NULL, vbox);
   state->check_use_atoms_dyn = gui_direct_check("Add set atoms_dyn", &state->use_atoms_dyn,
                                                 NULL, NULL, vbox);
   state->entry_atoms_dyn = gui_text_entry("atoms_dyn value", &state->atoms_dyn, TRUE, TRUE, vbox);
-  state->check_use_cell_dyn = gui_direct_check("Add set cell_dyn", &state->use_cell_dyn,
-                                               NULL, NULL, vbox);
-  state->entry_cell_dyn = gui_text_entry("cell_dyn value", &state->cell_dyn, TRUE, TRUE, vbox);
-  state->check_use_stress = gui_direct_check("Add set stress ON", &state->use_stress,
-                                             NULL, NULL, vbox);
-  state->check_use_stress_tol = gui_direct_check("Add set stress_tol", &state->use_stress_tol,
-                                                 NULL, NULL, vbox);
-  gui_direct_spin("stress_tol", &state->stress_tol, 0.0, 1.0, 0.00001, NULL, NULL, vbox);
+  state->check_use_dt = gui_direct_check("Add set dt", &state->use_dt, NULL, NULL, vbox);
+  gui_direct_spin("dt", &state->dt, 0.0, 500.0, 1.0, NULL, NULL, vbox);
+  state->check_use_randomize_v = gui_direct_check("Add randomize_v", &state->use_randomize_v,
+                                                  NULL, NULL, vbox);
+  gui_direct_spin("randomize_v temperature", &state->randomize_v, 0.0, 5000.0, 25.0, NULL, NULL, vbox);
   state->check_use_thermostat = gui_direct_check("Add set thermostat", &state->use_thermostat,
                                                  NULL, NULL, vbox);
   state->entry_thermostat = gui_text_entry("thermostat value", &state->thermostat, TRUE, TRUE, vbox);
@@ -2133,15 +2427,14 @@ void gui_qbox_dialog(void)
   state->check_use_th_width = gui_direct_check("Add set th_width", &state->use_th_width,
                                                NULL, NULL, vbox);
   gui_direct_spin("th_width", &state->th_width, 0.0, 1000.0, 1.0, NULL, NULL, vbox);
-  state->check_use_dt = gui_direct_check("Add set dt", &state->use_dt, NULL, NULL, vbox);
-  gui_direct_spin("dt", &state->dt, 0.0, 500.0, 1.0, NULL, NULL, vbox);
-  state->check_use_randomize_v = gui_direct_check("Add randomize_v", &state->use_randomize_v,
-                                                  NULL, NULL, vbox);
-  gui_direct_spin("randomize_v temperature", &state->randomize_v, 0.0, 5000.0, 25.0, NULL, NULL, vbox);
-  state->entry_run_timeout = gui_text_entry("Run timeout", &state->run_timeout, TRUE, TRUE, vbox);
-  state->entry_run_cmd = gui_text_entry("Default run command", &state->run_cmd, TRUE, TRUE, vbox);
-  state->check_randomize_wf = gui_direct_check("Randomize wavefunction", &state->randomize_wf,
+  state->check_use_iter_cmd = gui_direct_check("Add set iter_cmd", &state->use_iter_cmd,
                                                NULL, NULL, vbox);
+  state->entry_iter_cmd = gui_text_entry("iter_cmd value", &state->iter_cmd, TRUE, TRUE, vbox);
+  state->check_use_iter_cmd_period = gui_direct_check("Add set iter_cmd_period", &state->use_iter_cmd_period,
+                                                      NULL, NULL, vbox);
+  gui_direct_spin("iter_cmd_period", &state->iter_cmd_period, 1.0, 1000.0, 1.0, NULL, NULL, vbox);
+
+  vbox = qbox_setup_section_new(run_box, "Output And Reload");
   state->check_auto_convert_xyz = gui_direct_check("Auto convert Log to XYZ after run", &state->auto_convert_xyz,
                                                    NULL, NULL, vbox);
   state->check_load_xyz_after_convert = gui_direct_check("Load XYZ after conversion", &state->load_xyz_after_convert,
@@ -2152,12 +2445,14 @@ void gui_qbox_dialog(void)
                                                  NULL, NULL, vbox);
 
   label = qbox_note_label_new("Write Input writes a runnable script with model export + defaults."
-                              " Setup includes quick toggles for nempty/force_tol/cell_dyn/stress/thermostat"
-                              " and atoms_dyn/dt/randomize_v."
+                              " Setup is grouped into resources, electronic controls, cell/stress,"
+                              " and dynamics sections."
+                              " It now covers common spin/charge, SCF mixing, cell control,"
+                              " iter_cmd hooks, thermostat, and dynamics variables."
                               " Resource controls let you choose serial vs MPI plus OpenMP threads."
                               " Qbox run keeps .out and can auto-convert to .xyz trajectory."
                               " Optionally load the XYZ and open Animation automatically."
-                              " Advanced controls and free-form command blocks are below in this same Setup tab.");
+                              " Use the free-form command blocks below for less common Qbox commands.");
   gtk_box_pack_start(GTK_BOX(setup_box), label, FALSE, FALSE, 0);
 
   gtk_notebook_append_page(GTK_NOTEBOOK(notebook), page, gtk_label_new("Setup"));

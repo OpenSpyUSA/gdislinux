@@ -128,7 +128,9 @@ GtkWidget *widget;
 
 widget = gtk_gl_area_new();
 #if GTK_MAJOR_VERSION >= 4
+#if GTK_CHECK_VERSION(4, 14, 0)
 gtk_gl_area_set_allowed_apis(GTK_GL_AREA(widget), GDK_GL_API_GL);
+#endif
 #else
 g_signal_connect(widget, "create-context",
                  G_CALLBACK(gdis_glarea_create_context), NULL);
