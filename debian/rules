@@ -13,12 +13,7 @@ export GDIS_GUI_PKG_CONFIG_PACKAGES = $(GDIS_BASE_PKG_CONFIG_PACKAGES) gl glu ep
 override_dh_auto_configure:
 
 override_dh_auto_build:
-	$(MAKE) -C src \
-		PKG_CONFIG="$(PKG_CONFIG)" \
-		GDIS_GTK_TARGET="$(GDIS_GTK_TARGET)" \
-		GDIS_BASE_PKG_CONFIG_PACKAGES="$(GDIS_BASE_PKG_CONFIG_PACKAGES)" \
-		GDIS_GUI_PKG_CONFIG_PACKAGES="$(GDIS_GUI_PKG_CONFIG_PACKAGES)" \
-		gdis
+	perl ./install default
 
 override_dh_auto_install:
 
@@ -32,5 +27,7 @@ override_dh_install:
 	desktop-file-validate debian/gdislinux/usr/share/applications/gdislinux.desktop
 
 override_dh_auto_clean:
-	$(MAKE) -C src clean
+	if [ -f src/makefile ]; then $(MAKE) -C src -f makefile clean; fi
+	rm -f src/makefile install.log
+	rm -f bin/gdis bin/gdis-gtk2 bin/gdis-gtk3 bin/gdis-gtk4
 	rm -f src/modules/*.o src/modules/*.d
