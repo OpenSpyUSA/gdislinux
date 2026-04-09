@@ -58,12 +58,26 @@ jobs:
             desktop-file-utils \
             dpkg-dev \
             fakeroot \
+            git \
+            libblas-dev \
             libepoxy-dev \
+            libfftw3-dev \
             libgl-dev \
             libglu1-mesa-dev \
             libgtk-4-dev \
+            liblapack-dev \
+            libopenmpi-dev \
+            libscalapack-openmpi-dev \
+            libxerces-c-dev \
+            openmpi-bin \
             perl \
-            pkgconf
+            pkgconf \
+            uuid-dev
+
+      - name: Build bundled Qbox payload
+        run: |
+          chmod +x ./install-qbox-local.sh
+          ./install-qbox-local.sh
 
       - name: Build deb package
         run: |

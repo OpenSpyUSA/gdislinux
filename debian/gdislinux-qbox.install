@@ -1,0 +1,7 @@
+debian/stage-qbox/qbox usr/lib/gdislinux/
+debian/stage-qbox/qb usr/lib/gdislinux/
+qbox-out-to-xyz.sh usr/bin/
+.localdeps/qbox-public/util/qbox_xyz.py usr/lib/gdislinux/qbox-util/
+.localdeps/qbox-public/util/qso.py usr/lib/gdislinux/qbox-util/
+.localdeps/qbox-public/README usr/share/doc/gdislinux-qbox/
+.localdeps/qbox-public/COPYING usr/share/doc/gdislinux-qbox/

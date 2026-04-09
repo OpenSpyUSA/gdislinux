@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 QBOX_REPO_URL="${QBOX_REPO_URL:-https://github.com/qboxcode/qbox-public.git}"
+QBOX_GIT_REF="${QBOX_GIT_REF:-rel1_78_4}"
 QBOX_SRC_DIR="${QBOX_SRC_DIR:-$ROOT_DIR/.localdeps/qbox-public}"
 QBOX_BUILD_DIR="$QBOX_SRC_DIR/src"
 QBOX_BINARY="$QBOX_BUILD_DIR/qb"
@@ -120,6 +121,7 @@ detect_scalapack_flag() {
 }
 
 echo "Preparing local Qbox build in: $QBOX_SRC_DIR"
+echo "Requested Qbox upstream ref: $QBOX_GIT_REF"
 
 need_tool git
 need_tool make
@@ -159,12 +161,14 @@ fi
 mkdir -p "$(dirname "$QBOX_SRC_DIR")"
 if [ -d "$QBOX_SRC_DIR/.git" ]; then
   echo "Updating existing Qbox checkout"
-  git -C "$QBOX_SRC_DIR" fetch --depth 1 origin master
-  git -C "$QBOX_SRC_DIR" reset --hard origin/master
 else
   echo "Cloning Qbox upstream"
-  git clone --depth 1 "$QBOX_REPO_URL" "$QBOX_SRC_DIR"
+  git clone --no-checkout "$QBOX_REPO_URL" "$QBOX_SRC_DIR"
 fi
+
+git -C "$QBOX_SRC_DIR" fetch --depth 1 origin "$QBOX_GIT_REF"
+git -C "$QBOX_SRC_DIR" checkout --detach FETCH_HEAD
+git -C "$QBOX_SRC_DIR" clean -fdx
 
 cat >"$QBOX_TARGET_FILE" <<EOF
 # Auto-generated local target for Ubuntu Linux + MPI.

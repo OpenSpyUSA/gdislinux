@@ -1,0 +1,3 @@
+external/pseudos/qbox-xml-oncv-sr/*.xml usr/share/gdislinux/qbox/potentials/
+models/qbox_* usr/share/gdislinux/qbox/examples/
+docs/qbox-potentials.md usr/share/doc/gdislinux-qbox-data/

@@ -38,9 +38,10 @@ Notes:
 `Use Demo Potentials` searches in this order:
 
 1. Legacy bundled test potentials (`.localdeps/qbox-public/test/potentials`) for C/H/O/Si.
-2. `external/pseudos/qbox-xml-oncv-sr`
-3. `external/pseudos/qbox-xml-oncv`
-4. Custom directory from environment variable `GDIS_QBOX_POTENTIAL_DIR`
+2. Custom directory from environment variable `GDIS_QBOX_POTENTIAL_DIR`
+3. Packaged demo directory `/usr/share/gdislinux/qbox/potentials`
+4. `external/pseudos/qbox-xml-oncv-sr`
+5. `external/pseudos/qbox-xml-oncv`
 
 If your XML files live elsewhere, set:
 

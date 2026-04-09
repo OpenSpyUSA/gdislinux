@@ -6,6 +6,9 @@ export PKG_CONFIG = pkg-config
 export GDIS_GTK_TARGET = gtk4
 export GDIS_BASE_PKG_CONFIG_PACKAGES = gtk4 gthread-2.0 gmodule-2.0
 export GDIS_GUI_PKG_CONFIG_PACKAGES = $(GDIS_BASE_PKG_CONFIG_PACKAGES) gl glu epoxy
+export QBOX_BINARY = .localdeps/qbox-public/src/qb
+export QBOX_UTIL_DIR = .localdeps/qbox-public/util
+export QBOX_STAGE_DIR = debian/stage-qbox
 
 %:
 	dh $@
@@ -14,14 +17,29 @@ override_dh_auto_configure:
 
 override_dh_auto_build:
 	perl ./install default
+	if [ ! -x "$(QBOX_BINARY)" ]; then \
+		echo "Missing Qbox binary: $(QBOX_BINARY)" >&2; \
+		echo "Run ./install-qbox-local.sh before building Debian packages." >&2; \
+		exit 1; \
+	fi
+	if [ ! -f "$(QBOX_UTIL_DIR)/qbox_xyz.py" ] || [ ! -f "$(QBOX_UTIL_DIR)/qso.py" ]; then \
+		echo "Missing Qbox utility helpers under $(QBOX_UTIL_DIR)." >&2; \
+		echo "Run ./install-qbox-local.sh before building Debian packages." >&2; \
+		exit 1; \
+	fi
 
 override_dh_auto_install:
 
 override_dh_auto_test:
 
 override_dh_install:
+	rm -rf "$(QBOX_STAGE_DIR)"
+	install -d "$(QBOX_STAGE_DIR)"
+	install -m0755 "$(QBOX_BINARY)" "$(QBOX_STAGE_DIR)/qbox"
+	ln -sfn qbox "$(QBOX_STAGE_DIR)/qb"
 	dh_install
 	install -D -m0755 debian/gdislinux-wrapper debian/gdislinux/usr/bin/gdislinux
+	install -D -m0755 debian/gdislinux-qbox-wrapper debian/gdislinux-qbox/usr/bin/gdislinux-qbox
 	install -D -m0644 debian/gdislinux.desktop debian/gdislinux/usr/share/applications/gdislinux.desktop
 	install -D -m0644 src/methane.xpm debian/gdislinux/usr/share/pixmaps/gdislinux.xpm
 	desktop-file-validate debian/gdislinux/usr/share/applications/gdislinux.desktop
@@ -31,3 +49,4 @@ override_dh_auto_clean:
 	rm -f src/makefile install.log
 	rm -f bin/gdis bin/gdis-gtk2 bin/gdis-gtk3 bin/gdis-gtk4
 	rm -f src/modules/*.o src/modules/*.d
+	rm -rf "$(QBOX_STAGE_DIR)"

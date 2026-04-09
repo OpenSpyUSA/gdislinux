@@ -109,12 +109,18 @@ dpkg-buildpackage -us -uc -b
 ARCH="$(dpkg --print-architecture)"
 mkdir -p "$OUTPUT_DIR"
 
+shopt -s nullglob
 artifacts=(
-  "../${SOURCE_PACKAGE}_${TARGET_VERSION}_${ARCH}.deb"
-  "../${SOURCE_PACKAGE}-dbgsym_${TARGET_VERSION}_${ARCH}.ddeb"
-  "../${SOURCE_PACKAGE}_${TARGET_VERSION}_${ARCH}.buildinfo"
-  "../${SOURCE_PACKAGE}_${TARGET_VERSION}_${ARCH}.changes"
+  ../*_"${TARGET_VERSION}"_*.deb
+  ../*_"${TARGET_VERSION}"_*.ddeb
+  ../*_"${TARGET_VERSION}"_*.buildinfo
+  ../*_"${TARGET_VERSION}"_*.changes
 )
+
+if [ "${#artifacts[@]}" -eq 0 ]; then
+  echo "No build artifacts were produced for version: $TARGET_VERSION" >&2
+  exit 1
+fi
 
 for artifact in "${artifacts[@]}"; do
   if [ ! -f "$artifact" ]; then
@@ -126,13 +132,13 @@ done
 
 (
   cd "$OUTPUT_DIR"
+  package_files=( *.deb *.ddeb *.buildinfo *.changes )
+  if [ "${#package_files[@]}" -eq 0 ]; then
+    echo "No copied package files found in $OUTPUT_DIR" >&2
+    exit 1
+  fi
   checksum_file="SHA256SUMS-${UBUNTU_SERIES}-${ARCH}"
-  sha256sum \
-    "${SOURCE_PACKAGE}_${TARGET_VERSION}_${ARCH}.deb" \
-    "${SOURCE_PACKAGE}-dbgsym_${TARGET_VERSION}_${ARCH}.ddeb" \
-    "${SOURCE_PACKAGE}_${TARGET_VERSION}_${ARCH}.buildinfo" \
-    "${SOURCE_PACKAGE}_${TARGET_VERSION}_${ARCH}.changes" \
-    > "$checksum_file"
+  sha256sum "${package_files[@]}" > "$checksum_file"
 )
 
 printf 'Built package artifacts in %s\n' "$OUTPUT_DIR"

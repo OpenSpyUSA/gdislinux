@@ -714,7 +714,7 @@ static gchar *qbox_demo_potential_path(const gchar *symbol)
   gchar *symbol_canon = NULL;
   gchar *project_root = NULL;
   const gchar *env_dir;
-  const gchar *search_dirs[3];
+  const gchar *search_dirs[4];
   gint i;
 
   static const gchar *legacy_demo_dir[] =
@@ -744,9 +744,10 @@ static gchar *qbox_demo_potential_path(const gchar *symbol)
     }
 
   env_dir = g_getenv("GDIS_QBOX_POTENTIAL_DIR");
-  search_dirs[0] = "external/pseudos/qbox-xml-oncv-sr";
-  search_dirs[1] = "external/pseudos/qbox-xml-oncv";
-  search_dirs[2] = NULL;
+  search_dirs[0] = "/usr/share/gdislinux/qbox/potentials";
+  search_dirs[1] = "external/pseudos/qbox-xml-oncv-sr";
+  search_dirs[2] = "external/pseudos/qbox-xml-oncv";
+  search_dirs[3] = NULL;
   if (sysenv.gdis_path && strlen(sysenv.gdis_path))
     project_root = g_path_get_dirname(sysenv.gdis_path);
   if (g_getenv("GDIS_QBOX_DEBUG"))
@@ -3091,8 +3092,8 @@ static void qbox_run_cb(GtkWidget *w, gpointer dialog)
     {
     gui_text_show(ERROR,
                   "Qbox executable was not found.\n"
-                  "Checked configured path plus repo/system defaults: bin/qbox, bin/qb, qbox, qb.\n"
-                  "Run ./install-qbox-local.sh in this tree or set it in View > Executable paths...\n");
+                  "Checked configured path plus packaged/repo/system defaults: /usr/lib/gdislinux/qbox, bin/qbox, bin/qb, qbox, qb.\n"
+                  "Install gdislinux-qbox, run ./install-qbox-local.sh in this tree, or set it in View > Executable paths...\n");
     return;
     }
 
@@ -3605,8 +3606,8 @@ void gui_qbox_dialog(void)
   gui_button("Clear Paths", qbox_clear_potentials, dialog, hbox, TT);
 
   label = qbox_note_label_new("Set one XML pseudopotential path per element in the active model."
-                              " Auto-fill searches legacy demo files plus external/pseudos/qbox-xml-oncv-sr,"
-                              " then external/pseudos/qbox-xml-oncv."
+                              " Auto-fill searches packaged demo XMLs, legacy local demo files,"
+                              " external/pseudos/qbox-xml-oncv-sr, then external/pseudos/qbox-xml-oncv."
                               " You can override with GDIS_QBOX_POTENTIAL_DIR.");
   gtk_box_pack_start(GTK_BOX(page), label, FALSE, FALSE, 0);
 

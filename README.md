@@ -38,6 +38,23 @@ Original authorship remains credited to Sean Fleming and Andrew Rohl.
 
 Preferred path: Ubuntu 24.04 with the GTK4 build target.
 
+If you want the packaged route, download the matching `gdislinux`,
+`gdislinux-qbox`, and `gdislinux-qbox-data` `.deb` files from GitHub Releases
+for your architecture (`amd64` or `arm64`), then install them together:
+
+```bash
+ARCH="$(dpkg --print-architecture)"
+
+sudo apt install \
+  ./gdislinux_*_"$ARCH".deb \
+  ./gdislinux-qbox_*_"$ARCH".deb \
+  ./gdislinux-qbox-data_*_all.deb
+
+gdislinux /usr/share/gdislinux/qbox/examples/qbox_methane.qbox
+```
+
+If you want the source build route instead:
+
 ```bash
 git clone https://github.com/OpenSpyUSA/gdislinux.git
 cd gdislinux
@@ -336,18 +353,21 @@ For a fresh clone, GDIS now auto-detects Qbox from the usual local and system
 locations in this order:
 
 - configured `qbox_path`
+- packaged `/usr/lib/gdislinux/qbox`
 - repo/local `bin/qbox`
 - repo/local `bin/qb`
 - system `qbox`
 - system `qb`
 
-That means a user who has already run `./install-qbox-local.sh` should not need
-to fill in `View > Executable paths > Qbox` manually.
+That means a user who installs `gdislinux-qbox` or has already run
+`./install-qbox-local.sh` should not need to fill in
+`View > Executable paths > Qbox` manually.
 
 The Qbox writer emits `species` lines that point to per-element XML
 pseudopotentials. In the GUI, `Use Demo Potentials` now auto-resolves files
-from bundled legacy demos plus `external/pseudos/qbox-xml-oncv-sr` (when
-present). For generation and lookup details, see `docs/qbox-potentials.md`.
+from the packaged demo directory `/usr/share/gdislinux/qbox/potentials`,
+bundled legacy demos, and `external/pseudos/qbox-xml-oncv-sr` (when present).
+For generation and lookup details, see `docs/qbox-potentials.md`.
 
 ### USPEX Notes
 

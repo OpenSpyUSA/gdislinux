@@ -5,12 +5,21 @@ Maintainer: OpenSpyUSA <2243199932hym@gmail.com>
 Build-Depends:
  debhelper-compat (= 13),
  desktop-file-utils,
+ git,
+ libblas-dev,
  libepoxy-dev,
+ libfftw3-dev,
  libgl-dev,
  libglu1-mesa-dev,
  libgtk-4-dev,
+ liblapack-dev,
+ libopenmpi-dev,
+ libscalapack-openmpi-dev,
+ libxerces-c-dev,
+ openmpi-bin,
  perl,
- pkgconf
+ pkgconf,
+ uuid-dev
 Standards-Version: 4.6.2
 Rules-Requires-Root: no
 Homepage: https://github.com/OpenSpyUSA/gdislinux
@@ -30,6 +39,9 @@ Breaks:
 Replaces:
  gdis,
  gdis-data
+Recommends:
+ gdislinux-qbox,
+ gdislinux-qbox-data
 Suggests:
  ffmpeg,
  grace,
@@ -47,3 +59,36 @@ Description: GTK/OpenGL editor and viewer for atomistic structures
  rendering, selection overlays, diffraction graphs, and iso-surface workflows.
  .
  The packaged launcher is installed as /usr/bin/gdislinux.
+
+Package: gdislinux-qbox
+Architecture: any
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+ python3,
+ python3-numpy
+Recommends:
+ gdislinux-qbox-data,
+ openmpi-bin
+Description: Qbox engine bundle for gdislinux
+ gdislinux-qbox installs the Qbox executable and helper scripts used by the
+ gdislinux GTK4 continuation package.
+ .
+ The package places the Qbox engine at /usr/lib/gdislinux/qbox so gdislinux
+ can auto-detect it without manual setup. It also installs the
+ gdislinux-qbox wrapper command and the qbox-out-to-xyz.sh conversion helper.
+
+Package: gdislinux-qbox-data
+Architecture: all
+Depends:
+ ${misc:Depends}
+Enhances:
+ gdislinux,
+ gdislinux-qbox
+Description: Qbox demo data bundle for gdislinux
+ gdislinux-qbox-data ships packaged XML pseudopotentials plus curated Qbox
+ sample files for the gdislinux Qbox dialog.
+ .
+ The demo XML files are installed under /usr/share/gdislinux/qbox/potentials
+ and the included example files are installed under
+ /usr/share/gdislinux/qbox/examples.

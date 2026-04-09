@@ -2,10 +2,23 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-QBOX_XYZ_PY="${QBOX_XYZ_PY:-$ROOT_DIR/.localdeps/qbox-public/util/qbox_xyz.py}"
+PACKAGED_QBOX_UTIL_DIR="${PACKAGED_QBOX_UTIL_DIR:-/usr/lib/gdislinux/qbox-util}"
+QBOX_XYZ_PY="${QBOX_XYZ_PY:-}"
 OPEN_RESULT=0
 USE_PBC=0
 GTK_TARGET="--gtk4"
+
+if [ -z "$QBOX_XYZ_PY" ]; then
+  for candidate in \
+    "$ROOT_DIR/.localdeps/qbox-public/util/qbox_xyz.py" \
+    "$PACKAGED_QBOX_UTIL_DIR/qbox_xyz.py"
+  do
+    if [ -f "$candidate" ]; then
+      QBOX_XYZ_PY="$candidate"
+      break
+    fi
+  done
+fi
 
 usage() {
   cat <<'EOF'
@@ -70,7 +83,7 @@ fi
 
 if [ ! -f "$QBOX_XYZ_PY" ]; then
   echo "Missing qbox_xyz.py: $QBOX_XYZ_PY" >&2
-  echo "Build/install local Qbox first with ./install-qbox-local.sh" >&2
+  echo "Install gdislinux-qbox or build/install local Qbox first with ./install-qbox-local.sh" >&2
   exit 1
 fi
 
