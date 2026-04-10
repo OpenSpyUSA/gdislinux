@@ -2,3 +2,4 @@ bin/gdis usr/lib/gdislinux/
 bin/gdis.elements usr/lib/gdislinux/
 bin/gdis.library usr/lib/gdislinux/
 bin/gdis.manual usr/lib/gdislinux/
+models/* usr/share/gdislinux/examples/

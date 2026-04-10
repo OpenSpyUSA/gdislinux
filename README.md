@@ -44,14 +44,21 @@ for your architecture (`amd64` or `arm64`), then install them together:
 
 ```bash
 ARCH="$(dpkg --print-architecture)"
+UBUNTU_TAG="ubuntu24.04.1"
 
 sudo apt install \
-  ./gdislinux_*_"$ARCH".deb \
-  ./gdislinux-qbox_*_"$ARCH".deb \
-  ./gdislinux-qbox-data_*_all.deb
+  ./gdislinux_*"$UBUNTU_TAG"_"$ARCH".deb \
+  ./gdislinux-qbox_*"$UBUNTU_TAG"_"$ARCH".deb \
+  ./gdislinux-qbox-data_*"$UBUNTU_TAG"_all.deb
 
+gdislinux /usr/share/gdislinux/examples/methane.gin
 gdislinux /usr/share/gdislinux/qbox/examples/qbox_methane.qbox
 ```
+
+Use the Ubuntu tag that matches your system, for example `ubuntu22.04.1` or
+`ubuntu24.04.1`. Do not mix both release targets in one `apt install` command.
+The main package now ships the full repository `models/` library under
+`/usr/share/gdislinux/examples`.
 
 If you want the source build route instead:
 

@@ -34,6 +34,9 @@ debian/*.debhelper.log
 debian/*.substvars
 debian/gdis/
 debian/gdislinux/
+debian/gdislinux-qbox/
+debian/gdislinux-qbox-data/
+debian/stage-qbox/
 debian/*.deb
 debian/*.build
 debian/*.buildinfo
