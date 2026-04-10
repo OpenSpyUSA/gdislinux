@@ -9,6 +9,7 @@ export GDIS_GUI_PKG_CONFIG_PACKAGES = $(GDIS_BASE_PKG_CONFIG_PACKAGES) gl glu ep
 export QBOX_BINARY = .localdeps/qbox-public/src/qb
 export QBOX_UTIL_DIR = .localdeps/qbox-public/util
 export QBOX_STAGE_DIR = debian/stage-qbox
+export QBOX_DATA_STAGE_DIR = debian/stage-qbox-data
 
 %:
 	dh $@
@@ -34,9 +35,16 @@ override_dh_auto_test:
 
 override_dh_install:
 	rm -rf "$(QBOX_STAGE_DIR)"
+	rm -rf "$(QBOX_DATA_STAGE_DIR)"
 	install -d "$(QBOX_STAGE_DIR)"
+	install -d "$(QBOX_DATA_STAGE_DIR)/examples"
 	install -m0755 "$(QBOX_BINARY)" "$(QBOX_STAGE_DIR)/qbox"
 	ln -sfn qbox "$(QBOX_STAGE_DIR)/qb"
+	cp models/qbox_* "$(QBOX_DATA_STAGE_DIR)/examples/"
+	sed \
+		-e 's|^species C .*|species C /usr/share/gdislinux/qbox/potentials/C_ONCV_PBE_sr.xml|' \
+		-e 's|^species H .*|species H /usr/share/gdislinux/qbox/potentials/H_ONCV_PBE_sr.xml|' \
+		-i "$(QBOX_DATA_STAGE_DIR)/examples/qbox_methane.qbox"
 	dh_install
 	install -D -m0755 debian/gdislinux-wrapper debian/gdislinux/usr/bin/gdislinux
 	install -D -m0755 debian/gdislinux-qbox-wrapper debian/gdislinux-qbox/usr/bin/gdislinux-qbox
@@ -50,3 +58,4 @@ override_dh_auto_clean:
 	rm -f bin/gdis bin/gdis-gtk2 bin/gdis-gtk3 bin/gdis-gtk4
 	rm -f src/modules/*.o src/modules/*.d
 	rm -rf "$(QBOX_STAGE_DIR)"
+	rm -rf "$(QBOX_DATA_STAGE_DIR)"

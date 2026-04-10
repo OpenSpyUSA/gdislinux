@@ -59,6 +59,9 @@ Use the Ubuntu tag that matches your system, for example `ubuntu22.04.1` or
 `ubuntu24.04.1`. Do not mix both release targets in one `apt install` command.
 The main package now ships the full repository `models/` library under
 `/usr/share/gdislinux/examples`.
+The packaged `qbox_methane.qbox` example is rewritten to use the packaged XML
+potentials under `/usr/share/gdislinux/qbox/potentials`, so it is intended to
+work directly after installing `gdislinux-qbox-data`.
 
 If you want the source build route instead:
 
@@ -348,6 +351,12 @@ Two smoke-test samples are included:
 - `models/qbox_methane.qbox`
 - `models/qbox_methane.xml`
 - `models/qbox_expert_demo.i` (advanced command include template)
+
+For source-tree use, `models/qbox_methane.qbox` stays generic on purpose and
+may need either `Tools > Computation > Qbox > Use Demo Potentials` or manual
+species XML filename updates for your local Qbox pseudopotential set. The
+packaged `/usr/share/gdislinux/qbox/examples/qbox_methane.qbox` copy is
+rewritten during Debian packaging to point at the packaged XML demo files.
 
 After that, a working local smoke round-trip is:
 
