@@ -2537,7 +2537,7 @@ gint i, j, surface_entries;
 gchar *title;
 gpointer dialog, entry;
 GList *list;
-GtkWidget *window, *scr_win, *frame, *menu_bar;
+GtkWidget *window, *scr_win, *frame, *menu_bar, *left_scroll, *left_contents;
 GtkWidget *hbox1, *hbox, *vbox1, *vbox2, *vbox3, *vbox;
 GtkWidget *label, *button, *spin;
 GtkCellRenderer *renderer;
@@ -2594,7 +2594,7 @@ else
   coords_init(CENT_COORDS, data);
   }
 
-gtk_window_set_default_size(GTK_WINDOW(window), 800, 600);
+gtk_window_set_default_size(GTK_WINDOW(window), 980, 700);
 gtk_window_set_title(GTK_WINDOW(window), title);
 g_free(title);
 
@@ -2611,15 +2611,26 @@ menu_bar = gtk_item_factory_get_widget(item, "<surface>");
 gtk_box_pack_start(GTK_BOX(vbox), menu_bar, FALSE, FALSE, 0);
 
 
-/* hbox for split pane */
-hbox1 = gtk_hbox_new(FALSE,0);
+/* split pane */
+hbox1 = gtk_hpaned_new();
 gtk_box_pack_start(GTK_BOX(vbox), hbox1, TRUE, TRUE, 10);
+
+left_scroll = gtk_scrolled_window_new(NULL, NULL);
+gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(left_scroll),
+                               GTK_POLICY_AUTOMATIC,
+                               GTK_POLICY_AUTOMATIC);
+gtk_widget_set_size_request(left_scroll, 360, -1);
+left_contents = gtk_vbox_new(FALSE, PANEL_SPACING);
+gtk_container_set_border_width(GTK_CONTAINER(left_contents), PANEL_SPACING);
+gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(left_scroll), left_contents);
+gtk_paned_pack1(GTK_PANED(hbox1), left_scroll, FALSE, TRUE);
+gtk_paned_set_position(GTK_PANED(hbox1), 360);
 
 if (data->id == MORPH)
   {
 /* left vbox */
   vbox1 = gtk_vbox_new(FALSE, PANEL_SPACING);
-  gtk_box_pack_start(GTK_BOX(hbox1), vbox1, FALSE, FALSE, PANEL_SPACING);
+  gtk_box_pack_start(GTK_BOX(left_contents), vbox1, FALSE, FALSE, 0);
 
   frame = gtk_frame_new("Morphology type");
   gtk_box_pack_start(GTK_BOX(vbox1),frame,FALSE,FALSE,0);
@@ -2692,7 +2703,7 @@ else
   {
 /* left vbox */
 vbox = gtk_vbox_new(FALSE,0);
-gtk_box_pack_start(GTK_BOX(hbox1), vbox, FALSE, FALSE, 10);
+gtk_box_pack_start(GTK_BOX(left_contents), vbox, FALSE, FALSE, 0);
 
 frame = gtk_frame_new(NULL);
 gtk_box_pack_start(GTK_BOX(vbox),frame,FALSE,FALSE,0);
@@ -2867,7 +2878,7 @@ g_signal_connect(GTK_OBJECT(entry), "changed", GTK_SIGNAL_FUNC(surf_morph_type),
 
 /* right vbox */
 vbox1 = gtk_vbox_new(FALSE, 0);
-gtk_box_pack_start(GTK_BOX(hbox1), vbox1, TRUE, TRUE, 0);
+gtk_paned_pack2(GTK_PANED(hbox1), vbox1, TRUE, TRUE);
 
 /* valid cut listing */
 frame = gtk_frame_new(NULL);

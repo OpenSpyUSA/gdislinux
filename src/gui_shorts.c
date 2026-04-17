@@ -574,19 +574,29 @@ GtkWidget *gui_button_x(gchar *text,
                           GtkWidget *box)
 {
 GtkWidget *hbox, *button, *label, *image;
-GdkPixbuf *pixbuf;
 
 /* create button */
 button = gtk_button_new();
 hbox = gtk_hbox_new(FALSE, 0);
 gtk_container_add(GTK_CONTAINER(button), hbox);
 
-/* create image without requiring an already-realized GdkWindow */
-pixbuf = gdk_pixbuf_new_from_xpm_data((const char **) go_xpm);
-image = gtk_image_new_from_pixbuf(pixbuf);
-g_object_unref(pixbuf);
+/* GTK4 themes render the legacy XPM action icon poorly, so use a
+ * symbolic arrow there while preserving the older icon path elsewhere. */
+#if GTK_MAJOR_VERSION >= 4
+image = gtk_image_new_from_icon_name("go-next-symbolic");
+#else
+  {
+  GdkPixbuf *pixbuf;
+
+  pixbuf = gdk_pixbuf_new_from_xpm_data((const char **) go_xpm);
+  image = gtk_image_new_from_pixbuf(pixbuf);
+  g_object_unref(pixbuf);
+  }
+#endif
 
 gtk_box_pack_start(GTK_BOX(hbox), image, FALSE, FALSE, 0);
+if (text)
+  gtk_widget_set_tooltip_text(button, text);
 
 /* create label */
 if (box)

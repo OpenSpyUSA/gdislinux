@@ -61,9 +61,15 @@ struct model_pak *model;
 /* checks and setup */
 model = sysenv.active_model;
 if (!model)
+  {
+  gui_text_show(ERROR, "Load a 3D periodic model first.\n");
   return;
+  }
 if (model->periodic != 3)
+  {
+  gui_text_show(ERROR, "Dislocation builder requires a 3D periodic model.\n");
   return;
+  }
 
 /* TODO - if the building is long - run in background */
 defect_new(&defect, model);

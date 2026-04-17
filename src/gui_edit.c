@@ -2578,7 +2578,7 @@ void gui_edit_dialog(void) //__attribute__ ((optnone))
 gint i;
 //gpointer p_i=0;
 gpointer dialog;
-GtkWidget *window, *frame, *label;
+GtkWidget *window, *frame, *label, *swin;
 GtkWidget *notebook, *page;
 
 /* request a new dialog */
@@ -2586,10 +2586,17 @@ dialog = dialog_request(CREATOR, "Model editing", gui_edit_refresh, NULL, NULL);
 if (!dialog)
   return;
 window = dialog_window(dialog);
+gtk_window_set_default_size(GTK_WINDOW(window), 780, 640);
 
 /* notebook frame */
+swin = gtk_scrolled_window_new(NULL, NULL);
+gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(swin),
+                               GTK_POLICY_AUTOMATIC,
+                               GTK_POLICY_AUTOMATIC);
+gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)), swin, TRUE, TRUE, 0);
+
 frame = gtk_frame_new(NULL);
-gtk_box_pack_start(GTK_BOX(GDIS_DIALOG_CONTENTS(window)), frame, FALSE, FALSE, 0);
+gtk_container_add(GTK_CONTAINER(swin), frame);
 gtk_container_set_border_width(GTK_CONTAINER(frame), PANEL_SPACING);
 
 /* create notebook */
@@ -2597,6 +2604,7 @@ notebook = gtk_notebook_new();
 gtk_notebook_set_tab_pos(GTK_NOTEBOOK(notebook), GTK_POS_TOP);
 gtk_container_add(GTK_CONTAINER(frame), notebook);
 gtk_notebook_set_show_border(GTK_NOTEBOOK(notebook), FALSE);
+gtk_notebook_set_scrollable(GTK_NOTEBOOK(notebook), TRUE);
 
 /* add page */
 page = gtk_vbox_new(FALSE,0);

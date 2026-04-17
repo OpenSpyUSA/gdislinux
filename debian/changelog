@@ -1,3 +1,15 @@
+gdislinux (1.00+git20260417-1) unstable; urgency=medium
+
+  * Polish the renewed GTK4 building dialogs so editing, z-matrix, surfaces,
+    docking, dislocation, and MD setup windows stay usable on modern desktops.
+  * Fix canvas-local picking and selection math, including the GTK4 selection
+    overlay path, and add an automated cursor alignment verifier for GTK4 and
+    GTK2 builds.
+  * Add GTK4 building dialog verification helpers and document the new
+    validation scripts in the top-level README.
+
+ -- OpenSpyUSA <2243199932hym@gmail.com>  Fri, 17 Apr 2026 18:10:00 +0800
+
 gdislinux (1.00+git20260407-1) unstable; urgency=medium
 
   * Rename the Debian source and binary package to gdislinux.

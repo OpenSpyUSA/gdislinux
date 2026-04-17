@@ -52,6 +52,7 @@ extern struct sysenv_pak sysenv;
 void mdi_model_create(gint);
 void rot(gdouble *, gdouble , gdouble , gdouble);
 GtkWidget *spinner[MAX_MODELS];
+static gint mdi_spinner_count = 0;
 struct mdi_pak mdi_data;
 
 /*******************/
@@ -78,6 +79,9 @@ for (list=sysenv.mal ; list ; list=g_slist_next(list))
     break;
   last_spin++;
   }
+
+if (mdi_spinner_count > 0 && last_spin > mdi_spinner_count)
+  last_spin = mdi_spinner_count;
 
 /* numer of loaded models = max possible components */
 mdi_data.num_comp = last_spin;
@@ -201,6 +205,7 @@ return(TRUE);
 void gui_mdi_dialog(void)
 {
 gint i;
+gboolean warned_too_many;
 gpointer dialog;
 GtkWidget *window, *swin, *contents, *vbox, *label, *frame;
 GtkAdjustment *adj;
@@ -259,6 +264,8 @@ adj = (GtkAdjustment *) gtk_adjustment_new (4, 3, 100, 1, 1, 0);
 spinner[0] = gtk_spin_button_new (adj, 0, 0);
 gtk_spin_button_set_wrap(GTK_SPIN_BUTTON (spinner[0]), FALSE);
 gtk_box_pack_start(GTK_BOX (vbox), spinner[0], FALSE, TRUE, 0);
+mdi_spinner_count = 1;
+warned_too_many = FALSE;
 
 g_string_printf(frame_label,"Model: %s",data->basename);//g_string_sprintf deprecated
 
@@ -279,7 +286,22 @@ while (list)
 
 /* don't include any previous MDI model */
   if (data->id == MDI)
+    {
+    list = g_slist_next(list);
     continue;
+    }
+
+  if (i >= MAX_MODELS)
+    {
+    if (!warned_too_many)
+      {
+      gui_text_show(WARNING,
+                    "MD initializer supports up to 14 loaded models including the solvent.\n"
+                    "Additional models were ignored in this dialog.\n");
+      warned_too_many = TRUE;
+      }
+    break;
+    }
   g_string_printf(frame_label,"Model: %s",data->basename);//g_string_sprintf deprecated
 
   frame = gtk_frame_new(frame_label->str);
@@ -300,6 +322,7 @@ while (list)
 
   list = g_slist_next(list);
   i++;
+  mdi_spinner_count = i;
   }
 
 /* buttons */

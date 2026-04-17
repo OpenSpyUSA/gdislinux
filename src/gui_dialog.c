@@ -342,7 +342,6 @@ for (list=sysenv.dialog_list ; list ; list=g_slist_next(list))
   switch (type)
     {
     case CREATOR:
-    case DOCKING:
     case GENSURF:
     case SURF:
       if (type == dialog->type)

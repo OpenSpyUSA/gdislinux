@@ -113,6 +113,8 @@ read_gulp_output(list->data, &model);
 /* cleanup */
 g_slist_free(dir_list);
 model_free(&model);
+g_free(dock->path);
+g_free(dock);
 }
 
 /***************************/
@@ -120,11 +122,12 @@ model_free(&model);
 /**************************/
 void docking_execute(struct dock_pak *dock, struct task_pak *task)
 {
-gchar *path, *cmd, *base, *input, *output;
+gchar *path, *cmd, *base, *input, *output, *cwd;
 GSList *list, *dir_list;
 struct file_pak *file;
 
 path = dock->path;
+cwd = g_get_current_dir();
 
 /*
 printf("expected files: %d\n", dock->n);
@@ -135,6 +138,7 @@ printf("expected files: %d\n", dock->n);
 if (chdir(path))
   {
   printf("Failed to change to project directory.\n");
+  g_free(cwd);
   return;
   }
 
@@ -169,12 +173,14 @@ if (exec_gulp(input, output))
     }
   }
 g_slist_free(dir_list);
+IGNORE_RETURN(chdir(cwd));
+g_free(cwd);
 }
 
 /**************************/
 /* create docking project */
 /**************************/
-void docking_project_create(GtkWidget *w, struct model_pak *model)
+void docking_project_create(GtkWidget *w, gpointer data)
 {
 gint a, b, i, m, n, rx, ry, rz, size, rigid_save;
 gint a_max, b_max, rx_max, ry_max, rz_max;
@@ -182,10 +188,15 @@ gchar *file, *dump, *dump_save, *rigid_move_save;
 gdouble dx, dy, dz, x[3], scale[3], mat[9], dock_centroid[3], q[4];
 GString *name, *rigid;
 GSList *list, *core_list, *shell_list;
+gpointer dialog;
 struct dock_pak *dock;
+struct model_pak *model;
 struct core_pak *core, *core2;
 struct shel_pak *shell, *shell2;
 FILE *fp;
+
+dialog = data;
+model = dialog_model(dialog);
 
 /* checks */
 g_assert(model != NULL);
@@ -199,12 +210,6 @@ if (!size)
 /* create new docking project */
 dock = g_malloc(sizeof(struct dock_pak));
 
-/* NEW - setup project path */
-/*
-g_path_get_dirname(model->fullpath);
-g_get_current_dir();
-*/
-
 /* seek a file name that doesn't exist (avoid background overwriting) */
 name = g_string_new(NULL);
 i=0;
@@ -215,7 +220,7 @@ do
   }
 while (g_file_test(name->str, G_FILE_TEST_EXISTS));
 
-dock->path = g_build_path(sysenv.cwd, name->str, NULL);
+dock->path = g_build_filename(sysenv.cwd, name->str, NULL);
 
 printf("creating new project: [%s]\n", dock->path);
 
@@ -419,12 +424,14 @@ for (list=model->selection ; list ; list=g_slist_next(list))
   core = list->data;
   core2 = g_slist_nth_data(core_list, i);
   ARR3SET(core->x, core2->x);
+  core->region = core2->region;
   if (core->shell)
     {
     shell = core->shell;
     shell2 = core2->shell;
 g_assert(shell2 != NULL);
     ARR3SET(shell->x, shell2->x);
+    shell->region = shell2->region;
     }
   i++;
   }
@@ -432,6 +439,7 @@ g_assert(shell2 != NULL);
 /* free docking core/shell lists */
 free_slist(core_list);
 free_slist(shell_list);
+g_free(dock->path);
 g_free(dock);/*FIX f04cde*/
 g_string_free(name, TRUE);
 fclose(fp);
@@ -516,6 +524,7 @@ vbox1 = gtk_vbox_new(FALSE, 0);
 gui_direct_check("Translational sampling", &dock_grid_on,
                    dock_toggle_refresh, vbox1, vbox);
 gtk_box_pack_start(GTK_BOX(vbox), vbox1, FALSE, FALSE, PANEL_SPACING);
+gtk_widget_set_sensitive(vbox1, dock_grid_on);
 
 /* axes sampling fraction */
 hbox = gtk_hbox_new(FALSE, 0);
@@ -552,6 +561,7 @@ gtk_container_add(GTK_CONTAINER(frame), vbox);
 vbox1 = gtk_vbox_new(TRUE, PANEL_SPACING);
 gui_direct_check("Rotational sampling", &dock_rotate_on, dock_toggle_refresh, vbox1, vbox);
 gtk_box_pack_start(GTK_BOX(vbox), vbox1, FALSE, FALSE, PANEL_SPACING);
+gtk_widget_set_sensitive(vbox1, dock_rotate_on);
 gui_direct_spin("  x axis ", &dock_rotate[0], 1, 60, 1, NULL, NULL, vbox1);
 gui_direct_spin("  y axis ", &dock_rotate[1], 1, 60, 1, NULL, NULL, vbox1);
 gui_direct_spin("  z axis ", &dock_rotate[2], 1, 60, 1, NULL, NULL, vbox1);
@@ -565,6 +575,7 @@ gtk_container_add(GTK_CONTAINER(frame), vbox);
 vbox1 = gtk_vbox_new(TRUE, PANEL_SPACING);
 gui_direct_check("Treat as a rigid body", &dock_rigid_on, dock_toggle_refresh, vbox1, vbox);
 gtk_box_pack_start(GTK_BOX(vbox), vbox1, FALSE, FALSE, PANEL_SPACING);
+gtk_widget_set_sensitive(vbox1, dock_rigid_on);
 
 gui_direct_check("Allow translation in x", &dock_rigid_x, NULL, NULL, vbox1);
 gui_direct_check("Allow translation in y", &dock_rigid_y, NULL, NULL, vbox1);
@@ -582,7 +593,7 @@ gui_direct_check("Create project files then stop", &dock_no_execute, NULL, NULL,
 gtk_widget_set_sensitive(GTK_WIDGET(vbox), FALSE);
 
 /* control buttons */
-gui_stock_button(GTK_STOCK_EXECUTE, docking_project_create, model,
+gui_stock_button(GTK_STOCK_EXECUTE, docking_project_create, dialog,
                    GDIS_DIALOG_ACTIONS(window));
 gui_stock_button(GTK_STOCK_CLOSE, dialog_destroy, dialog,
                    GDIS_DIALOG_ACTIONS(window));

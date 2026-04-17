@@ -157,9 +157,13 @@ static void canvas_glarea_resize(GtkGLArea *area,
                                  gint height,
                                  gpointer data)
 {
+(void) width;
+(void) height;
 (void) data;
 
-canvas_configure_size(GTK_WIDGET(area), width, height);
+canvas_configure_size(GTK_WIDGET(area),
+                      gdis_gtk_widget_get_width(GTK_WIDGET(area)),
+                      gdis_gtk_widget_get_height(GTK_WIDGET(area)));
 }
 
 static gboolean canvas_glarea_render(GtkGLArea *area,
@@ -579,20 +583,18 @@ switch (n)
 /*********************************************/
 void canvas_select(gint x, gint y)
 {
-gint ry;
+gint top;
 GSList *list;
 struct canvas_pak *canvas;
-
-/* height invert correction */
-ry = sysenv.height - y - 1;
 
 for (list=sysenv.canvas_list ; list ; list=g_slist_next(list))
   {
   canvas = list->data;
+  top = sysenv.height - canvas->y - canvas->height;
 
   if (x >= canvas->x && x < canvas->x+canvas->width)
     {
-    if (ry >= canvas->y && ry < canvas->y+canvas->height)
+    if (y >= top && y < top+canvas->height)
       {
       if (canvas->model)
         {

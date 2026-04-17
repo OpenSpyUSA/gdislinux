@@ -40,8 +40,6 @@ The GNU GPL can also be found at http://www.gnu.org
 /* top level data structure */
 extern struct sysenv_pak sysenv;
 
-GtkWidget *zmat_combo, *zmat_entry;
-
 /******************************************************/
 /* process text window in order to update the zmatrix */
 /******************************************************/
@@ -168,13 +166,28 @@ gui_refresh(GUI_CANVAS);
 /*****************************************************/
 /* update zmatrix hash table with gui variable value */
 /*****************************************************/
-void gui_zmatrix_value_update(GtkWidget *w, gpointer data)
+void gui_zmatrix_value_update(GtkWidget *w, gpointer dialog)
 {
 const gchar *key, *value;
-struct zmat_pak *zmat = data;
+GtkWidget *combo, *entry;
+struct model_pak *model;
+struct zmat_pak *zmat;
 
-key = gui_combo_text(zmat_combo);
-value = gtk_entry_get_text(GTK_ENTRY(zmat_entry));
+model = dialog_model(dialog);
+g_assert(model != NULL);
+zmat = model->zmatrix;
+g_assert(zmat != NULL);
+
+combo = dialog_child_get(dialog, "zmat_combo");
+entry = dialog_child_get(dialog, "zmat_entry");
+if (!combo || !entry)
+  return;
+
+key = gui_combo_text(combo);
+if (!key)
+  return;
+
+value = gtk_entry_get_text(GTK_ENTRY(entry));
 
 g_hash_table_insert(zmat->vars, g_strdup(key), g_strdup(value));
 }
@@ -182,17 +195,31 @@ g_hash_table_insert(zmat->vars, g_strdup(key), g_strdup(value));
 /********************************************************/
 /* change current variable value to match variable name */
 /********************************************************/
-void gui_zmatrix_value_change(GtkWidget *w, gpointer data)
+void gui_zmatrix_value_change(GtkWidget *w, gpointer dialog)
 {
 const gchar *text, *value;
-struct zmat_pak *zmat = data;
+GtkWidget *combo, *entry;
+struct model_pak *model;
+struct zmat_pak *zmat;
 
-text = gui_combo_text(zmat_combo);
+model = dialog_model(dialog);
+g_assert(model != NULL);
+zmat = model->zmatrix;
+g_assert(zmat != NULL);
+
+combo = dialog_child_get(dialog, "zmat_combo");
+entry = dialog_child_get(dialog, "zmat_entry");
+if (!combo || !entry)
+  return;
+
+text = gui_combo_text(combo);
+if (!text)
+  return;
 
 value = g_hash_table_lookup(zmat->vars, text);
 
 if (value)
-  gtk_entry_set_text(GTK_ENTRY(zmat_entry), value);
+  gtk_entry_set_text(GTK_ENTRY(entry), value);
 }
 
 /****************************************/
@@ -444,6 +471,7 @@ void gui_zmatrix_widget(GtkWidget *box, gpointer dialog)
 {
 GList *keys=NULL;
 GtkWidget *swin, *view, *hbox, *label, *spin, *entry1, *entry2, *entry3;
+GtkWidget *combo, *entry;
 GtkTextBuffer *buffer;
 struct zmat_pak *zmat;
 struct model_pak *model = dialog_model(dialog);
@@ -464,6 +492,12 @@ buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(view));
 gtk_text_buffer_create_tag(buffer, "bg_changed", "background", "tan", NULL); 
 dialog_child_set(dialog, "view1", view);
 gui_zmatrix_text_update(NULL, dialog);
+
+if (!zmat->zlines)
+  {
+  label = gtk_label_new("Select atoms in the main view, then click Build zmatrix from selection.");
+  gtk_box_pack_start(GTK_BOX(box), label, FALSE, FALSE, PANEL_SPACING);
+  }
 
 
 /* normal zmatrix line editing entries */
@@ -513,19 +547,21 @@ if (keys)
   hbox = gtk_hbox_new(FALSE,0);
   gtk_box_pack_start(GTK_BOX(box), hbox, FALSE, FALSE, 0);
 
-  zmat_combo = gui_combo_new(keys, FALSE);
-  gtk_box_pack_start(GTK_BOX(hbox), zmat_combo, FALSE, FALSE, 0);
+  combo = gui_combo_new(keys, FALSE);
+  gtk_box_pack_start(GTK_BOX(hbox), combo, FALSE, FALSE, 0);
+  dialog_child_set(dialog, "zmat_combo", combo);
 
-  g_signal_connect(GTK_OBJECT(zmat_combo), "changed",
-                   (gpointer) gui_zmatrix_value_change, model->zmatrix);
+  g_signal_connect(GTK_OBJECT(combo), "changed",
+                   (gpointer) gui_zmatrix_value_change, dialog);
 
-  zmat_entry = gtk_entry_new();
-  gtk_box_pack_start(GTK_BOX(hbox), zmat_entry, FALSE, FALSE, 0);
+  entry = gtk_entry_new();
+  gtk_box_pack_start(GTK_BOX(hbox), entry, FALSE, FALSE, 0);
+  dialog_child_set(dialog, "zmat_entry", entry);
 
-  g_signal_connect(GTK_OBJECT(zmat_entry), "changed",
-                   (gpointer) gui_zmatrix_value_update, model->zmatrix);
+  g_signal_connect(GTK_OBJECT(entry), "changed",
+                   (gpointer) gui_zmatrix_value_update, dialog);
 
-  gui_zmatrix_value_change(NULL, model->zmatrix);
+  gui_zmatrix_value_change(NULL, dialog);
   }
 
 hbox = gtk_hbox_new(FALSE,0);

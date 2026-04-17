@@ -480,10 +480,16 @@ return(radius);
 /*********************************************/
 void gl_project(gdouble *w, gint x, gint y, struct canvas_pak *canvas)
 {
+gint top;
+gint local_y;
 gint ry;
 GLdouble r[3];
 
-ry = sysenv.height - y - 1;
+g_return_if_fail(canvas != NULL);
+
+top = sysenv.height - canvas->y - canvas->height;
+local_y = y - top;
+ry = canvas->y + canvas->height - local_y - 1;
 
 /* z = 0.0 (near clipping plane) z = 1.0 (far clipping plane) */
 /* z = 0.5 is in the middle of the viewing volume (orthographic) */
@@ -497,11 +503,17 @@ ARR3SET(w, r);
 /*********************************************/
 void gl_unproject(gint *x, gdouble *w, struct canvas_pak *canvas)
 {
+gdouble top;
+gdouble local_y;
 GLdouble r[3];
+
+g_return_if_fail(canvas != NULL);
 
 gluProject(w[0],w[1],w[2],canvas->modelview,canvas->projection,canvas->viewport,&r[0],&r[1],&r[2]);
 x[0] = r[0];
-x[1] = sysenv.height - r[1] - 1;
+top = sysenv.height - canvas->y - canvas->height;
+local_y = r[1] - canvas->y;
+x[1] = nearest_int(top + canvas->height - local_y - 1.0);
 }
 
 /********************************/
@@ -4199,6 +4211,31 @@ else
 vertex[2] = 0.0f;
 }
 
+static void gl_core_screen_vertex_widget(struct canvas_pak *canvas,
+                                         gdouble x,
+                                         gdouble y,
+                                         GLfloat *vertex)
+{
+gdouble top;
+gdouble local_x, local_y;
+
+top = sysenv.height - canvas->y - canvas->height;
+local_x = x - canvas->x;
+local_y = y - top;
+
+if (canvas->width > 0)
+  vertex[0] = (GLfloat) (2.0*local_x / canvas->width - 1.0);
+else
+  vertex[0] = 0.0f;
+
+if (canvas->height > 0)
+  vertex[1] = (GLfloat) (1.0 - 2.0*local_y / canvas->height);
+else
+  vertex[1] = 0.0f;
+
+vertex[2] = 0.0f;
+}
+
 static void gl_core_append_world_vertex(GArray *vertices, const gdouble *point)
 {
 GLfloat vertex[3];
@@ -4229,6 +4266,21 @@ GLfloat vertex[3];
 gl_core_screen_vertex(canvas, x1, y1, vertex);
 g_array_append_vals(vertices, vertex, 3);
 gl_core_screen_vertex(canvas, x2, y2, vertex);
+g_array_append_vals(vertices, vertex, 3);
+}
+
+static void gl_core_append_widget_screen_segment(GArray *vertices,
+                                                 struct canvas_pak *canvas,
+                                                 gdouble x1,
+                                                 gdouble y1,
+                                                 gdouble x2,
+                                                 gdouble y2)
+{
+GLfloat vertex[3];
+
+gl_core_screen_vertex_widget(canvas, x1, y1, vertex);
+g_array_append_vals(vertices, vertex, 3);
+gl_core_screen_vertex_widget(canvas, x2, y2, vertex);
 g_array_append_vals(vertices, vertex, 3);
 }
 
@@ -5792,18 +5844,18 @@ if (!canvas || !model || !model->box_on)
   return;
 
 segments = g_array_new(FALSE, FALSE, sizeof(GLfloat));
-gl_core_append_screen_segment(segments, canvas,
-                              model->select_box[0], model->select_box[1],
-                              model->select_box[2], model->select_box[1]);
-gl_core_append_screen_segment(segments, canvas,
-                              model->select_box[2], model->select_box[1],
-                              model->select_box[2], model->select_box[3]);
-gl_core_append_screen_segment(segments, canvas,
-                              model->select_box[2], model->select_box[3],
-                              model->select_box[0], model->select_box[3]);
-gl_core_append_screen_segment(segments, canvas,
-                              model->select_box[0], model->select_box[3],
-                              model->select_box[0], model->select_box[1]);
+gl_core_append_widget_screen_segment(segments, canvas,
+                                     model->select_box[0], model->select_box[1],
+                                     model->select_box[2], model->select_box[1]);
+gl_core_append_widget_screen_segment(segments, canvas,
+                                     model->select_box[2], model->select_box[1],
+                                     model->select_box[2], model->select_box[3]);
+gl_core_append_widget_screen_segment(segments, canvas,
+                                     model->select_box[2], model->select_box[3],
+                                     model->select_box[0], model->select_box[3]);
+gl_core_append_widget_screen_segment(segments, canvas,
+                                     model->select_box[0], model->select_box[3],
+                                     model->select_box[0], model->select_box[1]);
 
 if (!segments->len)
   {

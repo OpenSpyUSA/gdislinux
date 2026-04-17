@@ -110,10 +110,30 @@ if (!action || !sysenv.active_model)
 if (g_ascii_strcasecmp(action, "isosurface") == 0 ||
     g_ascii_strcasecmp(action, "iso-surface") == 0)
   gui_isosurf_dialog();
+else if (g_ascii_strcasecmp(action, "editing") == 0 ||
+         g_ascii_strcasecmp(action, "edit") == 0 ||
+         g_ascii_strcasecmp(action, "builder") == 0)
+  gui_edit_dialog();
+else if (g_ascii_strcasecmp(action, "dislocations") == 0 ||
+         g_ascii_strcasecmp(action, "dislocation") == 0 ||
+         g_ascii_strcasecmp(action, "defect") == 0)
+  gui_defect_dialog();
+else if (g_ascii_strcasecmp(action, "docking") == 0 ||
+         g_ascii_strcasecmp(action, "dock") == 0)
+  gui_dock_dialog();
+else if (g_ascii_strcasecmp(action, "dynamics") == 0 ||
+         g_ascii_strcasecmp(action, "mdi") == 0)
+  gui_mdi_dialog();
 else if (g_ascii_strcasecmp(action, "animation") == 0)
   gui_animate_dialog();
 else if (g_ascii_strcasecmp(action, "diffraction") == 0)
   gui_diffract_dialog();
+else if (g_ascii_strcasecmp(action, "surfaces") == 0 ||
+         g_ascii_strcasecmp(action, "surface") == 0)
+  surface_dialog();
+else if (g_ascii_strcasecmp(action, "zmatrix") == 0 ||
+         g_ascii_strcasecmp(action, "zmat") == 0)
+  gui_zmat_dialog();
 else if (g_ascii_strcasecmp(action, "qbox") == 0)
   gui_qbox_dialog();
 

@@ -262,6 +262,13 @@ Advanced build overrides:
 - `./verify-optional-tools.sh`
   Checks optional helpers such as Qbox, POV-Ray, ImageMagick, Open Babel,
   FFmpeg, and xmgrace.
+- `./verify-gtk4-building-tools.sh`
+  Opens the renewed GTK4 Building dialogs under X11/XWayland and checks that
+  the key editor windows appear without critical runtime warnings.
+- `./verify-pick-alignment.sh`
+  Launches GDIS under X11/XWayland, detects the visible methane geometry from
+  a screenshot, clicks it, and checks the debug log to confirm cursor/pick
+  alignment for GTK4 and/or GTK2.
 - `./install-optional-ubuntu.sh`
   Installs the open-source optional helper tools available on Ubuntu.
 - `./install-qbox-local.sh`
